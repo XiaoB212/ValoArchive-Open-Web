@@ -3520,3 +3520,9 @@ body.modal-open { overflow: hidden; }
 .fixed-tip code { font-family: var(--mono, ui-monospace, monospace); font-size: 12px; color: var(--ink); background: var(--card); padding: 2px 6px; border-radius: 6px; }
 .fixed-tip button.sm { padding: 3px 9px; font-size: 12px; }
 .fixed-tip[hidden] { display: none; }
+
+/* 非异变轮战的多队模式（团队乱斗/斗牛）：只标「队N」，不上颜色 */
+.iq-team.plain { color: var(--ink-2); font-size: 12px; }
+.side-color.plain { --side: var(--line-strong); }
+
+.side-color.none { --side: transparent; }

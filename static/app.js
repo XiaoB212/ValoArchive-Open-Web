@@ -212,7 +212,9 @@ function fmtDelta(delta) {
   return `<span class="rr ${cls}" title="本局段位分变化">${sign}${Math.abs(n)} 分</span>`;
 }
 
+const NO_PARTY_MODES = new Set(["deathmatch", "skirmish2v2", "abilitydraftarena", "hurm", "ggteam"]);
 function squadTag(row) {
+  if (NO_PARTY_MODES.has(String(row.mode || ""))) return "";
   if (!row.party || row.party < 2) return '<span class="party-badge solo">单排</span>';
   const label = { 2: "双排", 3: "三排", 4: "四排", 5: "五排" }[row.party] || `${row.party} 人组队`;
   return `<span class="party-badge n${Math.min(row.party, 5)}">${label}</span>`;
@@ -583,7 +585,7 @@ async function loadPlayer(keyword, refresh = false) {
     stopWatch();
     const detail = err.detail && typeof err.detail === "object" ? err.detail : null;
     const action = detail && detail.relogin === "aclos"
-      ? ''
+      ? ' <a class="inline-link" href="/valoadmin#login" target="_blank" rel="noopener">去重新扫码登录助手 →</a>'
       : "";
     showError(`查询失败：${err.message}`, action);
     // 人已经找到了（只是换不出 PUUID）时不用再提供「是不是这个」候选，那反而更乱。
@@ -937,7 +939,9 @@ function renderQuickMatch(payload, matchId, host) {
   const teams = payload.teams || [];
   const won = String(detail.victory) === "1";
   const teamIds = distinctTeams(score);
-  const multiTeam = teamIds.length > 2;
+  // 只有异变轮战（8 队各有颜色/动物名）才分组；团队乱斗、斗牛虽然也是 8 队，
+  // 但掌瓦没给队伍名，强行分组会把它们画成异变轮战的样子。
+  const multiTeam = !!payload.multi_team;
   const srv = detail.server || {};
   const srvLabel = srv.label || srv.region || srv.code || "";
   const whenText = detail.start_text || (detail.start_millis ? msFullDay(detail.start_millis) : "");
@@ -969,9 +973,9 @@ function renderQuickMatch(payload, matchId, host) {
       ? `<img class="iq-tier" src="${img(seat.tier_icon)}" alt="" title="${escapeHtml(seat.tier_name || "未定级")}" loading="lazy" onerror="this.remove()" />`
       : '<span class="iq-tier blank"></span>';
     const squadBadge = seat.party_letter
-      ? `<span class="party-lg" style="background:var(--squad-${"ABCD".indexOf(seat.party_letter) + 1})">${seat.party_letter}队</span>`
+      ? (multiTeam || !sideGrouped ? "" : `<span class="party-lg" style="background:var(--squad-${"ABCD".indexOf(seat.party_letter) + 1})">${seat.party_letter}队</span>`)
       : Number(seat.party_size) >= 2
-        ? `<span class="party-lg solo">${seat.party_size}人</span>`
+        ? (multiTeam || !sideGrouped ? "" : `<span class="party-lg solo">${seat.party_size}人</span>`)
         : '<span class="party-lg blank"></span>';
     return `<tr class="${seat.subject === payload.viewer ? "me" : ""}${seat.is_ally ? " team-ally" : ""}">
       ${teamCell}
@@ -991,9 +995,9 @@ function renderQuickMatch(payload, matchId, host) {
     <div class="iq-head">
       <div class="iq-main">
         <b>${escapeHtml(detail.map_name || detail.used_map?.name || "未知地图")} · <span class="${won ? "win" : "loss"}">${won ? "胜利" : "失败"}</span>
-          <em>${detail.winning_games ?? "—"} : ${detail.failed_games ?? "—"}</em></b>
+          <em>${multiTeam ? `${Number(payload.rounds?.count || detail.rounds_played || 0) || "—"} 回合` : `${detail.winning_games ?? "—"} : ${detail.failed_games ?? "—"}`}</em></b>
         <span class="iq-meta">${escapeHtml(meta)}</span>
-        <span class="iq-squads">组队 <b>${escapeHtml(squadText)}</b></span>
+        ${multiTeam ? "" : `<span class="iq-squads">组队 <b>${escapeHtml(squadText)}</b></span>`}
       </div>
       <div class="iq-acts">
         <button type="button" class="iq-page">完整单页 →</button>
@@ -1049,6 +1053,7 @@ function renderMatch(payload, matchId, host) {
   const score = payload.scoreboard || [];
   const squads = payload.squads || [];
   const won = String(detail.victory) === "1";
+  const teamIds = distinctTeams(score);
   const titleText = detail.used_map?.name ? `${detail.used_map.name} · ${won ? "胜利" : "失败"}` : "单局详情";
   const startMillis = Number(detail.start_millis || 0);
   const endMillis = Number(detail.end_millis || 0);
@@ -1095,22 +1100,22 @@ function renderMatch(payload, matchId, host) {
   // 异变轮战这类「多人分队」模式（8 队各 2 人）没法用红蓝两方表达，
   // 按 teamId 分组、每队一个颜色，行首写队号。
   const teamList = payload.teams || [];
-  const teamIds = distinctTeams(score);
-  const multiTeam = teamIds.length > 2;
+  // 同上：只有异变轮战才分组，乱斗/斗牛按普通列表排。
+  const multiTeam = !!payload.multi_team;
 
   const seatRow = (seat) => {
     const ally = seat.is_ally ?? (seat.team === (payload.ally_team || score[0]?.team));
     const teamClass = ally ? "team-ally" : "team-enemy";
     const pal = teamPalette(seat.team, teamList);
-    const side = multiTeam
-      ? `${pal.number || "?"}`
-      : String(seat.team || "").toLowerCase() === "red" ? "红" : "蓝";
+    // 乱斗（自由混战）掌瓦也按人给了 Team_N，但它不是分队模式：不标队伍、不上颜色。
+    const plainTeam = !multiTeam && distinctTeams(score).length > 2;
+    const side = multiTeam ? `${pal.number || "?"}` : plainTeam ? "" : (String(seat.team || "").toLowerCase() === "red" ? "红" : "蓝");
     const sideStyle = multiTeam
       ? ` style="--side:${pal.color}" title="第 ${pal.placement || pal.number} 名 · ${pal.colorName}${pal.name}"`
       : "";
-    const teamCls = multiTeam ? "side-color multi" : `side-color ${teamClass}`;
+    const teamCls = multiTeam ? "side-color multi" : (plainTeam ? "side-color none" : `side-color ${teamClass}`);
     const badge = seat.party_letter
-      ? `<span class="party-lg" style="background:var(--squad-${"ABCD".indexOf(seat.party_letter) + 1})">${seat.party_letter}队</span>`
+      ? (sideGrouped ? `<span class="party-lg" style="background:var(--squad-${"ABCD".indexOf(seat.party_letter) + 1})">${seat.party_letter}队</span>` : "")
       : "";
     const tag = seat.party_size >= 2 ? `<span class="tag">${seat.party_size} 人组队</span>` : "";
     const face = seat.agent_image
@@ -1130,10 +1135,15 @@ function renderMatch(payload, matchId, host) {
     </tr>`;
   };
 
-  const groups = [
-    { ally: true, label: "我方", rounds: detail.winning_games, cls: "team-ally" },
-    { ally: false, label: "对方", rounds: detail.failed_games, cls: "team-enemy" },
-  ];
+  // 死斗、斗牛这类没有红蓝阵营的模式，不要硬分「我方/对方」——掌瓦那边全是同一队。
+  const TWO_SIDE_MODES = new Set(["competitive", "unrated", "swiftplay", "premier", "onefa", "custom", "hurm"]);
+  const sideGrouped = !multiTeam && TWO_SIDE_MODES.has(String(detail.game_mode || ""));
+  const groups = sideGrouped
+    ? [
+        { ally: true, label: "我方", rounds: detail.winning_games, cls: "team-ally" },
+        { ally: false, label: "对方", rounds: detail.failed_games, cls: "team-enemy" },
+      ]
+    : [{ ally: null, label: "全场", rounds: null, cls: "" }];
   const teamSection = (teamId) => {
     const seats = score
       .filter((seat) => String(seat.team || "") === teamId)
@@ -1143,7 +1153,7 @@ function renderMatch(payload, matchId, host) {
     const info = teamList.find((t) => String(t.team_id || "") === teamId) || {};
     const ally = seats.some((seat) => seat.is_ally);
     const bits = [
-      pal.colorName ? `${pal.colorName}队` : "",
+      pal.name ? "" : pal.colorName ? `${pal.colorName}队` : "",
       pal.placement ? `第 ${pal.placement} 名` : "",
       `${seats.length} 人`,
       Number(info.kills) ? `击杀 ${info.kills}` : "",
@@ -1157,14 +1167,16 @@ function renderMatch(payload, matchId, host) {
   };
   const rows = multiTeam
     ? [...teamIds].sort((a, b) => teamNumber(a, teamList) - teamNumber(b, teamList)).map(teamSection).join("")
-    : groups
+    : (sideGrouped ? groups : [{ ally: null, label: "全场", rounds: null, cls: "" }])
         .map((group) => {
-          const seats = score.filter((seat) => {
-            const ally = seat.is_ally ?? (seat.team === (payload.ally_team || score[0]?.team));
-            return Boolean(ally) === group.ally;
-          });
+          const seats = group.ally === null
+            ? score
+            : score.filter((seat) => {
+                const ally = seat.is_ally ?? (seat.team === (payload.ally_team || score[0]?.team));
+                return Boolean(ally) === group.ally;
+              });
           if (!seats.length) return "";
-          const head = `<tr class="board-sep ${group.cls}"><td colspan="10"><b>${group.label}</b><span>${group.rounds ?? "—"} 回合 · ${seats.length} 人</span></td></tr>`;
+          const head = `<tr class="board-sep ${group.cls}"><td colspan="10"><b>${group.label}</b><span>${group.rounds === null ? "" : `${group.rounds ?? "—"} 回合 · `}${seats.length} 人</span></td></tr>`;
           return head + seats.map(seatRow).join("");
         })
         .join("");
@@ -1179,7 +1191,7 @@ function renderMatch(payload, matchId, host) {
   const nameless = score.filter((seat) => !String(seat.display_name || seat.user_name || "").trim());
   const nameNote = nameless.length
     ? `<p class="name-note">有 ${nameless.length} 名玩家没取到游戏 ID：名字查询服务没登录，或这个人没绑定过游戏账号。
-       </p>`
+       <a class="inline-link" href="/valoadmin#login" target="_blank">去重新扫码 →</a></p>`
     : "";
 
   const hero = `
@@ -1187,9 +1199,14 @@ function renderMatch(payload, matchId, host) {
       ${detail.map_image ? `<img class="map-cover" src="${img(detail.map_image)}" alt="" />` : ""}
       <div class="hero-main">
         <div class="hero-map">${escapeHtml(detail.map_name || detail.used_map?.name || "未知地图")}</div>
-        <div class="hero-score"><b class="${won ? "win" : "loss"}">${detail.winning_games ?? "—"}</b><i>:</i><b>${detail.failed_games ?? "—"}</b></div>
+        <div class="hero-score">${multiTeam
+          ? `<b class="${won ? "win" : "loss"}">${Number(payload.rounds?.count || detail.rounds_played || 0) || "—"}</b><i>回合</i>`
+          : sideGrouped
+            ? `<b class="${won ? "win" : "loss"}">${detail.winning_games ?? "—"}</b><i>:</i><b>${detail.failed_games ?? "—"}</b>`
+            : ""}</div>
         <div class="hero-tags">
           <span class="tag-mode">${detail.game_mode_name || ""}</span>
+          ${multiTeam ? `<span class="tag-mode">${teamIds.length} 队</span>` : ""}
           <span class="res ${won ? "win" : "loss"}">${won ? "胜利" : "失败"}</span>
           ${payload.rank && payload.rank.rr ? `<span class="rr ${payload.rank.rr > 0 ? "up" : "down"}">${payload.rank.rr > 0 ? "+" : ""}${payload.rank.rr} 分</span>` : ""}
           ${payload.rank && payload.rank.promoted ? '<span class="promo">晋级</span>' : ""}
@@ -1201,7 +1218,7 @@ function renderMatch(payload, matchId, host) {
         <div><span>我的表现</span><b>${mySeat.acs || 0} ACS</b></div>
         <div><span>我的 K/D/A</span><b>${mySeat.kda || "—"}</b></div>
       </div>
-      <div class="squads">${squadChips || '<span class="dim">全场单排</span>'}</div>
+      ${multiTeam || !sideGrouped ? "" : `<div class="squads">${squadChips || '<span class="dim">全场单排</span>'}</div>`}
     </div>`;
 
   const boardTable = `
@@ -2274,7 +2291,7 @@ function renderCredAlert(health) {
         return `<li><b>${escapeHtml(s.label)}</b><span>${escapeHtml(s.message)}</span>${when ? `<em>${escapeHtml(when)}</em>` : ""}</li>`;
       })
       .join("")}</ul>
-    <p class="ca-foot">掌瓦数据由服务端统一提供，需要重新扫码时请联系站点管理员。</p>`;
+    <p class="ca-foot">重新扫码在 <a href="/valoadmin#login" target="_blank" rel="noopener">登录态</a> 页（需要手机确认）。</p>`;
   box.querySelector(".ca-close").addEventListener("click", () => {
     const next = dismissed.concat(shown.map((s) => `${s.key}:${s.state}`));
     sessionStorage.setItem("cred-dismissed", JSON.stringify(next));
