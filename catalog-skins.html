@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>皮肤库 · VALO ARCHIVE</title>
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=4" sizes="any" />
+<link rel="stylesheet" href="/static/style.css?v=147" />
+<link rel="stylesheet" href="/static/tools.css?v=1" />
+<style>
+  .skin-layout { display: grid; grid-template-columns: 220px minmax(0,1fr); gap: 18px; align-items: start; }
+  @media (max-width: 820px) { .skin-layout { grid-template-columns: 1fr; } }
+  .gun-list { display: flex; flex-direction: column; gap: 4px; max-height: 76vh; overflow: auto; }
+  .gun { display: flex; align-items: center; gap: 8px; border: 1px solid transparent; background: transparent;
+    border-radius: 8px; padding: 6px 8px; cursor: pointer; font: inherit; font-size: 13px; color: var(--ink-2); text-align: left; }
+  .gun img { width: 46px; height: 26px; object-fit: contain; }
+  .gun:hover { border-color: var(--line-strong); }
+  .gun.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); }
+  .skin-card { cursor: pointer; }
+  .skin-card .art { height: 96px; display: grid; place-items: center; background: var(--paper-2); border-radius: 9px; }
+  .skin-card .art img { max-width: 100%; max-height: 88px; object-fit: contain; }
+  .modal { position: fixed; inset: 0; background: rgba(12,14,17,.62); display: none; align-items: flex-start;
+    justify-content: center; padding: 40px 16px; z-index: 60; overflow: auto; }
+  .modal.on { display: flex; }
+  .modal-card { background: var(--card); border-radius: 16px; width: min(820px,100%); padding: 20px; }
+  .chromas { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px,1fr)); gap: 10px; margin-top: 12px; }
+  .chroma { background: var(--paper-2); border-radius: 10px; padding: 8px; text-align: center; }
+  .chroma img { width: 100%; height: 74px; object-fit: contain; }
+</style>
+</head>
+<body>
+<div class="grid-bg" aria-hidden="true"></div>
+<div class="tool-page">
+  <div class="tool-head">
+    <div>
+      <h1>皮肤库</h1>
+      <div class="sub">按武器浏览全部皮肤与炫彩；点开看大图与配色。</div>
+    </div>
+    <div class="tool-actions"><a class="btn small" href="/catalog/agents">英雄库</a><a class="btn small" href="/">回首页</a></div>
+  </div>
+  <div class="skin-layout">
+    <div class="card-panel"><div class="panel-title">武器</div><div class="gun-list" id="guns"></div></div>
+    <div>
+      <div class="toolbar"><div class="card-name" id="guns-title">选一把武器</div><input class="input search" id="q" placeholder="搜皮肤名" /></div>
+      <div class="cards" id="skins"></div>
+    </div>
+  </div>
+  <div class="legal">非官方工具，与 Riot Games / 腾讯无关；皮肤数据来自社区公开数据，仅供参考。</div>
+</div>
+<div class="modal" id="modal"><div class="modal-card" id="modal-body"></div></div>
+<script>
+(function () {
+  const $ = (s) => document.querySelector(s);
+  let guns = [], current = null, detail = null, kw = "";
+
+  function renderSkins() {
+    const box = $("#skins");
+    box.innerHTML = "";
+    if (!detail) return;
+    detail.skins.filter((s) => !kw || s.name.includes(kw)).forEach((s) => {
+      const card = document.createElement("div");
+      card.className = "tool-card skin-card";
+      card.innerHTML = `<div class="art"><img src="${s.icon}" alt="" loading="lazy"></div>
+        <div class="card-name">${s.name}</div>
+        <div class="card-meta">${s.chromas.length} 个配色</div>`;
+      card.addEventListener("click", () => openSkin(s));
+      box.appendChild(card);
+    });
+  }
+
+  function openSkin(s) {
+    $("#modal-body").innerHTML = `<h2 style="margin:0 0 10px">${s.name}</h2>
+      <div class="chromas">${s.chromas.map((c) => `<div class="chroma"><img src="${c.icon}" alt=""><div class="card-meta">${c.name}</div></div>`).join("")}</div>`;
+    $("#modal").classList.add("on");
+  }
+  $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") e.currentTarget.classList.remove("on"); });
+  $("#q").addEventListener("input", (e) => { kw = e.target.value.trim(); renderSkins(); });
+
+  function renderGuns() {
+    const box = $("#guns");
+    box.innerHTML = "";
+    guns.forEach((g) => {
+      const b = document.createElement("button");
+      b.className = "gun" + (current && g.uuid === current.uuid ? " on" : "");
+      b.innerHTML = `<img src="${g.icon}" alt="" loading="lazy"><span>${g.name}</span>`;
+      b.addEventListener("click", () => choose(g));
+      box.appendChild(b);
+    });
+  }
+
+  async function choose(g) {
+    current = g; renderGuns();
+    $("#guns-title").textContent = g.name + " · 共 " + g.skin_count + " 款";
+    detail = await (await fetch("/api/catalog/weapons/" + g.uuid)).json();
+    renderSkins();
+  }
+
+  fetch("/api/catalog/weapons").then((r) => r.json()).then((d) => {
+    guns = d.rows || [];
+    renderGuns();
+    if (guns.length) choose(guns[0]);
+  });
+})();
+</script>
+</body>
+</html>

@@ -3557,3 +3557,57 @@ body.modal-open { overflow: hidden; }
   font-size: 11px;
   color: var(--muted);
 }
+
+/* ---- landing (home) ------------------------------------------------- */
+.home { max-width: 1080px; padding: 56px 0 24px; }
+.home-hero { max-width: 720px; }
+.home-hero h1 { font-size: 52px; line-height: 1.08; letter-spacing: -0.02em; }
+.home-hero p { margin-top: 14px; font-size: 15.5px; }
+.home-try { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 22px; }
+.try-label { font: 500 11px/1 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+.home .try {
+  font: inherit; font-size: 13px; padding: 7px 13px; cursor: pointer;
+  background: var(--card); color: var(--ink);
+  border: 1px solid var(--line-strong); border-radius: 999px;
+}
+.home .try:hover { border-color: var(--accent); color: var(--accent-ink); background: var(--accent-soft); }
+
+.home-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 44px; }
+.hcard {
+  display: flex; flex-direction: column; gap: 6px; text-align: left;
+  padding: 16px 15px 15px; background: var(--card);
+  border: 1px solid var(--line); border-radius: 4px;
+  color: var(--ink); font: inherit; cursor: pointer;
+  transition: border-color .15s, transform .15s;
+}
+.hcard:hover { border-color: var(--line-strong); transform: translateY(-2px); }
+.hc-ico { font-size: 17px; line-height: 1; color: var(--accent); }
+.hcard b { font-size: 14.5px; font-weight: 600; }
+.hcard i { font-style: normal; font-size: 12.5px; line-height: 1.55; color: var(--muted); }
+
+.home-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 40px; }
+.step { display: flex; gap: 12px; align-items: flex-start; padding: 14px 15px; border-top: 2px solid var(--accent); background: var(--card); }
+.step b { font: 600 13px/1 var(--mono); color: var(--accent-ink); }
+.step span { font-size: 13.5px; font-weight: 600; }
+.step small { display: block; margin-top: 3px; font-weight: 400; font-size: 12px; line-height: 1.55; color: var(--muted); }
+
+.home-faq { margin-top: 40px; max-width: 760px; }
+.home-faq details { border-bottom: 1px solid var(--line); padding: 12px 0; }
+.home-faq summary { cursor: pointer; font-size: 13.5px; font-weight: 600; list-style: none; }
+.home-faq summary::-webkit-details-marker { display: none; }
+.home-faq summary::before { content: "＋"; margin-right: 8px; color: var(--accent); font-weight: 400; }
+.home-faq details[open] summary::before { content: "－"; }
+.home-faq p { margin: 8px 0 0 20px; font-size: 13px; line-height: 1.7; color: var(--muted); }
+.home-faq code { font-family: var(--mono); background: var(--accent-soft); padding: 1px 5px; border-radius: 2px; color: var(--accent-ink); }
+
+@media (max-width: 900px) {
+  .home-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .home-steps { grid-template-columns: 1fr; }
+  .home-hero h1 { font-size: 38px; }
+}
+@media (max-width: 560px) {
+  .home { padding: 28px 0 16px; }
+  .home-hero h1 { font-size: 30px; }
+  .home-cards { margin-top: 28px; gap: 10px; }
+  .hcard { padding: 13px 12px; }
+}

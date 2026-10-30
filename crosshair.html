@@ -3,97 +3,98 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>准星分享 · VALO ARCHIVE</title>
+<title>准星编辑器 · VALO ARCHIVE</title>
 <link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=4" sizes="any" />
 <link rel="stylesheet" href="/static/style.css?v=147" />
-<style>
-  body { background: var(--bg, #0b0d10); }
-  .wrap { max-width: 1080px; margin: 0 auto; padding: 28px 18px 60px; }
-  .hd { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
-  .hd h1 { font-size: 22px; margin: 0; letter-spacing: .04em; }
-  .hd .sub { color: var(--muted, #8b93a1); font-size: 12px; }
-  .cols { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 18px; }
-  @media (max-width: 760px) { .cols { grid-template-columns: 1fr; } }
-  .panel { background: var(--card, #14171c); border: 1px solid var(--line, #262b33); border-radius: 10px; padding: 16px; }
-  .panel h2 { font-size: 13px; margin: 0 0 12px; color: var(--muted, #8b93a1); letter-spacing: .08em; }
-  label.f { display: block; font-size: 12px; color: var(--muted, #8b93a1); margin: 10px 0 5px; }
-  input.t, textarea.t { width: 100%; box-sizing: border-box; background: #0e1116; color: #e8ecf1; border: 1px solid #2a3038; border-radius: 7px; padding: 9px 10px; font: inherit; font-size: 13px; }
-  textarea.t { min-height: 92px; resize: vertical; font-family: ui-monospace, Consolas, monospace; font-size: 12px; line-height: 1.5; }
-  .row { display: flex; gap: 9px; flex-wrap: wrap; margin-top: 14px; }
-  .b { border: 1px solid #2a3038; background: #1a1f26; color: #e8ecf1; border-radius: 7px; padding: 9px 14px; font: inherit; font-size: 13px; cursor: pointer; }
-  .b.pri { background: #0e7c6b; border-color: #0e7c6b; color: #fff; }
-  .b:hover { filter: brightness(1.1); }
-  .preview { display: grid; place-items: center; gap: 10px; }
-  .preview canvas { border-radius: 8px; }
-  .name { font-size: 15px; font-weight: 600; text-align: center; word-break: break-all; }
-  .by { font-size: 12px; color: var(--muted, #8b93a1); text-align: center; }
-  .code { font-family: ui-monospace, Consolas, monospace; font-size: 11px; color: #a8b3c1; word-break: break-all; background: #0e1116; border: 1px dashed #2a3038; border-radius: 7px; padding: 8px; margin-top: 10px; }
-  .hint { font-size: 12px; color: var(--muted, #8b93a1); line-height: 1.7; margin-top: 10px; }
-  .share-only { display: none; }
-  body.share .editor-only { display: none; }
-  body.share .share-only { display: block; }
-  .legal { margin-top: 26px; font-size: 11px; color: #6d7684; line-height: 1.8; }
-  .toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); background: #222932; color: #fff; padding: 9px 16px; border-radius: 999px; font-size: 13px; opacity: 0; pointer-events: none; transition: opacity .2s; }
-  .toast.on { opacity: 1; }
-</style>
+<link rel="stylesheet" href="/static/tools.css?v=1" />
 </head>
 <body>
-<div class="wrap">
-  <div class="hd">
+<div class="grid-bg" aria-hidden="true"></div>
+
+<div class="tool-page">
+  <div class="tool-head">
     <div>
-      <h1>准星分享</h1>
-      <div class="sub">粘贴准星分享码就能生成预览和链接；链接里自带内容，打开即看</div>
+      <h1>准星编辑器</h1>
+      <div class="sub">左边调参数、右边实时预览，底下的代码直接粘进游戏「设置 → 准星 → 导入」。也可以贴一段现成的码进来接着改。</div>
     </div>
-    <a class="b" href="index.html">← 回档案首页</a>
+    <div class="tool-actions">
+      <a class="btn small" href="/crosshairs">准星库</a>
+      <a class="btn small" href="/">回首页</a>
+    </div>
   </div>
 
-  <div class="cols">
-    <div class="panel editor-only">
-      <h2>准星信息</h2>
-      <label class="f" for="c-name">名字</label>
-      <input class="t" id="c-name" maxlength="40" placeholder="例：小圆点 · 绿色" />
-      <label class="f" for="c-author">作者 / 出处（可留空）</label>
-      <input class="t" id="c-author" maxlength="40" placeholder="例：自己调的 / 某选手" />
-      <label class="f" for="c-code">准星分享码</label>
-      <textarea class="t" id="c-code" placeholder="0;P;c;5;u;FF0000FF;o;1;0t;1;0l;2;0o;2;0a;1;0f;0;1b;0"></textarea>
-      <div class="row">
-        <button class="b pri" id="c-make">生成分享链接</button>
-        <button class="b" id="c-copy">复制准星码</button>
-        <button class="b" id="c-reset">清空</button>
+  <div class="editor-grid">
+    <div class="card-panel">
+      <div class="group-title">导入现成的码</div>
+      <label class="field"><span>粘贴准星代码（以 0; 开头）</span>
+        <input class="input" id="import-code" placeholder="0;P;c;5;u;FF0000FF;o;1;d;1;z;3;f;0;0t;1;0l;2;0o;2;0a;1;0f;0;1b;0" />
+      </label>
+      <div class="btn-row" style="margin-top: 4px">
+        <button class="btn small" id="import-btn">导入到编辑器</button>
       </div>
-      <div class="hint">准星码来自游戏内「设置 → 准星 → 分享」导出的一串字符。分享页的预览是尽力还原，最终效果以游戏内为准。</div>
+
+      <div class="group-title">颜色与描边</div>
+      <div class="swatches" id="swatches"></div>
+      <div class="ctl" style="margin-top: 10px">
+        <label>自定义</label>
+        <input class="input" id="hex" style="padding: 5px 8px; font: 12px/1.2 var(--mono)" maxlength="8" placeholder="FF4655FF" />
+        <span></span>
+      </div>
+      <div class="toggle-row"><span>描边（黑色外框）</span>
+        <div class="seg" id="seg-outline"><button data-v="1">开</button><button data-v="0">关</button></div>
+      </div>
+
+      <div class="group-title">中心点</div>
+      <div class="toggle-row"><span>显示中心点</span>
+        <div class="seg" id="seg-dot"><button data-v="1">开</button><button data-v="0">关</button></div>
+      </div>
+      <div class="ctl"><label>点大小</label><input type="range" id="z" min="1" max="6" step="1" /><span class="val" id="z-v"></span></div>
+
+      <div class="group-title">内线</div>
+      <div class="ctl"><label>粗细</label><input type="range" id="0t" min="1" max="6" step="1" /><span class="val" id="0t-v"></span></div>
+      <div class="ctl"><label>长度</label><input type="range" id="0l" min="0" max="12" step="1" /><span class="val" id="0l-v"></span></div>
+      <div class="ctl"><label>偏移</label><input type="range" id="0o" min="0" max="10" step="1" /><span class="val" id="0o-v"></span></div>
+      <div class="ctl"><label>透明度</label><input type="range" id="0a" min="1" max="10" step="1" /><span class="val" id="0a-v"></span></div>
+      <div class="toggle-row"><span>移动误差</span>
+        <div class="seg" id="seg-0m"><button data-v="1">开</button><button data-v="0">关</button></div>
+      </div>
+      <div class="ctl"><label>误差大小</label><input type="range" id="0f" min="0" max="10" step="1" /><span class="val" id="0f-v"></span></div>
+
+      <div class="group-title">外线</div>
+      <div class="toggle-row"><span>显示外线</span>
+        <div class="seg" id="seg-1b"><button data-v="1">开</button><button data-v="0">关</button></div>
+      </div>
+      <div class="ctl"><label>粗细</label><input type="range" id="1t" min="1" max="6" step="1" /><span class="val" id="1t-v"></span></div>
+      <div class="ctl"><label>长度</label><input type="range" id="1l" min="0" max="12" step="1" /><span class="val" id="1l-v"></span></div>
+      <div class="ctl"><label>偏移</label><input type="range" id="1o" min="0" max="12" step="1" /><span class="val" id="1o-v"></span></div>
+      <div class="ctl"><label>透明度</label><input type="range" id="1a" min="1" max="10" step="1" /><span class="val" id="1a-v"></span></div>
+      <div class="ctl"><label>误差大小</label><input type="range" id="1f" min="0" max="10" step="1" /><span class="val" id="1f-v"></span></div>
     </div>
 
-    <div class="panel share-only" id="share-card">
-      <h2>分享内容</h2>
-      <div class="preview">
-        <canvas id="share-canvas" width="180" height="180"></canvas>
-        <div class="name" id="share-name"></div>
-        <div class="by" id="share-author"></div>
+    <div class="card-panel sticky">
+      <div class="panel-title">实时预览</div>
+      <div class="preview-stage">
+        <canvas id="stage" width="300" height="220"></canvas>
       </div>
-      <div class="code" id="share-code"></div>
-      <div class="row">
-        <button class="b pri" id="share-copy-code">复制准星码</button>
-        <button class="b" id="share-copy-link">复制本页链接</button>
+      <div class="code-out" id="code-out"></div>
+      <div class="btn-row">
+        <button class="btn primary small" id="copy-code">复制代码</button>
+        <button class="btn small" id="share">生成分享链接</button>
+        <button class="btn small" id="publish">发布到准星库</button>
       </div>
-    </div>
-
-    <div class="panel">
-      <h2>预览</h2>
-      <div class="preview">
-        <canvas id="c-canvas" width="180" height="180"></canvas>
-        <div class="by" id="c-parsed">等待输入准星码…</div>
+      <div class="hint" style="margin-top: 12px">
+        预览是按游戏参数尽力还原，最终效果以游戏内为准；这里所有参数都不涉及账号信息。
       </div>
-      <div class="hint" id="c-note">贴入准星码后这里会尝试画出中心点与四根线。</div>
     </div>
   </div>
 
   <div class="legal">
-    本页为非官方社区工具，与 Riot Games / 腾讯无关；准星码由你自行提供，仅供参考，不保证与游戏内完全一致。
-    链接内容全部写在地址栏里，本站不保存你的准星数据。
+    本页为非官方社区工具，与 Riot Games / 腾讯无关；准星参数由你自行调整，仅供参考。
+    分享链接的内容全部写在地址栏里，本站不保存你的准星数据；发布到准星库属于公开分享。
   </div>
 </div>
-<div class="toast" id="toast"></div>
+
+<div class="tool-toast" id="toast"></div>
 
 <script src="/static/share-kit.js?v=1"></script>
 <script>
@@ -108,79 +109,271 @@
     toastTimer = setTimeout(() => toastEl.classList.remove("on"), 1800);
   };
 
-  const parse = (code) => {
-    try { return ShareKit.parseCrosshair(code); } catch (err) { return null; }
+  const COLORS = [
+    ["#ffffff", "白"], ["#3ee06b", "绿"], ["#f2e85c", "黄绿"], ["#59e6e6", "青"],
+    ["#f2c14e", "琥珀"], ["#e05c8a", "粉"], ["#ff4655", "红"], ["#8ab4ff", "蓝"],
+  ];
+  const PRESET_HEX = {
+    0: "FFFFFFFF", 1: "3EE06BFF", 2: "F2E85CFF", 3: "59E6E6FF",
+    4: "F2C14EFF", 5: "E05C8AFF", 6: "FF4655FF", 7: "8AB4FFFF",
   };
 
-  function renderPreview(code, canvasSel, noteSel) {
-    const parsed = parse(code);
-    const canvas = $(canvasSel);
-    if (parsed) {
-      ShareKit.drawCrosshair(canvas, parsed, { size: 180 });
-      if (noteSel) $(noteSel).textContent = `已解析：中心点${parsed.dot ? "开" : "关"} · 线长 ${parsed.length} · 粗细 ${parsed.thickness} · 间隙 ${parsed.offset}`;
-    } else {
-      const ctx = canvas.getContext("2d");
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      if (noteSel) $(noteSel).textContent = "这段码认不出来，但仍可分享与复制。";
+  const state = {
+    colorIndex: 6, hex: "", outline: 1, dot: 0, z: 2,
+    inner: { t: 2, l: 6, o: 2, a: 10, m: 0, f: 3 },
+    outer: { b: 0, t: 2, l: 4, o: 6, a: 10, f: 3 },
+    extra: {},
+  };
+
+  // ── 渲染 ────────────────────────────────────────────
+  function render() {
+    const canvas = $("#stage");
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = 300, h = 220;
+    canvas.width = w * dpr; canvas.height = h * dpr;
+    canvas.style.width = w + "px"; canvas.style.height = h + "px";
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = "#151920";
+    ctx.fillRect(0, 0, w, h);
+
+    const cx = w / 2, cy = h / 2;
+    const U = 2.2; // 每个准星单位 ≈ 2.2px
+    const color = state.hex ? "#" + state.hex.slice(0, 6) : COLORS[state.colorIndex][0];
+    const alpha = Math.min(1, Math.max(0.1, state.inner.a / 10));
+
+    function lines(t, l, o, extra) {
+      const gap = o * U;
+      const len = l * U;
+      const th = Math.max(1, t * U);
+      ctx.beginPath();
+      if (l > 0) {
+        ctx.moveTo(cx - gap - len, cy); ctx.lineTo(cx - gap, cy);
+        ctx.moveTo(cx + gap, cy); ctx.lineTo(cx + gap + len, cy);
+        ctx.moveTo(cx, cy - gap - len); ctx.lineTo(cx, cy - gap);
+        ctx.moveTo(cx, cy + gap); ctx.lineTo(cx, cy + gap + len);
+      }
+      ctx.lineWidth = th;
+      ctx.strokeStyle = color;
+      ctx.globalAlpha = alpha;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
     }
-    return parsed;
+
+    function outlined(t, l, o) {
+      if (state.outline) {
+        ctx.save();
+        ctx.strokeStyle = "rgba(0,0,0,0.85)";
+        ctx.beginPath();
+        const gap = o * U, len = l * U, th = Math.max(1, t * U) + 2;
+        if (l > 0) {
+          ctx.moveTo(cx - gap - len, cy); ctx.lineTo(cx - gap, cy);
+          ctx.moveTo(cx + gap, cy); ctx.lineTo(cx + gap + len, cy);
+          ctx.moveTo(cx, cy - gap - len); ctx.lineTo(cx, cy - gap);
+          ctx.moveTo(cx, cy + gap); ctx.lineTo(cx, cy + gap + len);
+        }
+        ctx.lineWidth = th;
+        ctx.stroke();
+        ctx.restore();
+      }
+      lines(t, l, o);
+    }
+
+    if (state.outer.b) outlined(state.outer.t, state.outer.l, state.outer.o);
+    outlined(state.inner.t, state.inner.l, state.inner.o);
+
+    if (state.dot) {
+      const r = Math.max(1, state.z);
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.globalAlpha = alpha;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    drawCode();
   }
 
-  // ── 编辑模式 ─────────────────────────────────────────────
-  const codeBox = $("#c-code");
-  codeBox.addEventListener("input", () => renderPreview(codeBox.value, "#c-canvas", "#c-parsed"));
+  // ── 代码生成 ─────────────────────────────────────────
+  function buildCode() {
+    const parts = ["0", "P"];
+    parts.push("c", String(state.colorIndex));
+    if (state.hex && state.hex.toUpperCase() !== PRESET_HEX[state.colorIndex]) {
+      parts.push("u", state.hex.toUpperCase());
+    }
+    parts.push("o", String(state.outline), "d", String(state.dot), "z", String(state.z));
+    parts.push("f", "0");
+    parts.push("0t", String(state.inner.t), "0l", String(state.inner.l), "0o", String(state.inner.o),
+      "0a", String(state.inner.a / 10), "0f", String(state.inner.m ? state.inner.f : 0),
+      "0m", String(state.inner.m));
+    if (state.outer.b) {
+      parts.push("1b", "1", "1t", String(state.outer.t), "1l", String(state.outer.l),
+        "1o", String(state.outer.o), "1a", String(state.outer.a / 10),
+        "1f", String(state.outer.f), "1m", "0");
+    } else {
+      parts.push("1b", "0");
+    }
+    Object.keys(state.extra).forEach((k) => parts.push(k, String(state.extra[k])));
+    return parts.join(";");
+  }
 
-  $("#c-copy").addEventListener("click", async () => {
-    if (!codeBox.value.trim()) return toast("先贴准星码");
-    await ShareKit.copyText(codeBox.value.trim());
-    toast("准星码已复制");
-  });
+  function drawCode() {
+    $("#code-out").textContent = buildCode();
+  }
 
-  $("#c-reset").addEventListener("click", () => {
-    codeBox.value = "";
-    $("#c-name").value = "";
-    $("#c-author").value = "";
-    renderPreview("", "#c-canvas", "#c-parsed");
-  });
+  // ── 解析导入 ─────────────────────────────────────────
+  function importCode(raw) {
+    const tokens = String(raw || "").split(";").map((t) => t.trim()).filter(Boolean);
+    if (tokens.length < 4) return false;
+    const p = {};
+    for (let i = 0; i + 1 < tokens.length; i += 2) p[tokens[i]] = tokens[i + 1];
+    const num = (k, d) => (Number.isFinite(Number(p[k])) ? Number(p[k]) : d);
 
-  $("#c-make").addEventListener("click", async () => {
-    const code = codeBox.value.trim();
-    if (!code) return toast("先贴准星码");
-    const payload = await ShareKit.pack({
-      t: "crosshair",
-      n: $("#c-name").value.trim() || "未命名准星",
-      a: $("#c-author").value.trim(),
-      c: code,
-    });
-    const url = `${location.origin}${location.pathname}#${payload}`;
-    history.replaceState(null, "", "#" + payload);
-    await ShareKit.copyText(url);
-    showShare(payload);
-    toast("分享链接已复制");
-  });
-
-  // ── 分享模式 ─────────────────────────────────────────────
-  async function showShare(hash) {
-    const data = await ShareKit.unpack(hash);
-    if (!data || !data.c) return false;
-    document.body.classList.add("share");
-    $("#share-name").textContent = data.n || "未命名准星";
-    $("#share-author").textContent = data.a ? `by ${data.a}` : "";
-    $("#share-code").textContent = data.c;
-    renderPreview(data.c, "#share-canvas");
-    $("#share-copy-code").onclick = async () => { await ShareKit.copyText(data.c); toast("准星码已复制"); };
-    $("#share-copy-link").onclick = async () => { await ShareKit.copyText(location.href); toast("链接已复制"); };
+    state.colorIndex = Math.min(7, Math.max(0, num("c", 0)));
+    state.hex = (p.u || PRESET_HEX[state.colorIndex] || "FFFFFFFF").toUpperCase();
+    state.outline = num("o", 1) ? 1 : 0;
+    state.dot = num("d", 0) ? 1 : 0;
+    state.z = Math.min(6, Math.max(1, num("z", 2)));
+    state.inner = {
+      t: Math.min(6, Math.max(1, num("0t", 2))),
+      l: Math.min(12, Math.max(0, num("0l", 6))),
+      o: Math.min(10, Math.max(0, num("0o", 2))),
+      a: Math.round(Math.min(1, Math.max(0.1, num("0a", 1))) * 10),
+      m: num("0m", 0) ? 1 : 0,
+      f: Math.min(10, Math.max(0, num("0f", 0))),
+    };
+    state.outer = {
+      b: num("1b", 0) ? 1 : 0,
+      t: Math.min(6, Math.max(1, num("1t", 2))),
+      l: Math.min(12, Math.max(0, num("1l", 4))),
+      o: Math.min(12, Math.max(0, num("1o", 6))),
+      a: Math.round(Math.min(1, Math.max(0.1, num("1a", 1))) * 10),
+      f: Math.min(10, Math.max(0, num("1f", 0))),
+    };
+    sync();
     return true;
   }
 
-  const preset = new URLSearchParams(location.search).get("code");
-  if (preset) {
-    const codeEl = $("#c-code");
-    if (codeEl) { codeEl.value = preset; codeEl.dispatchEvent(new Event("input")); }
+  // ── UI 绑定 ─────────────────────────────────────────
+  const swatchBox = $("#swatches");
+  COLORS.forEach((c, i) => {
+    const b = document.createElement("button");
+    b.className = "swatch";
+    b.style.background = c[0];
+    b.title = c[1];
+    b.dataset.i = String(i);
+    b.addEventListener("click", () => {
+      state.colorIndex = i;
+      state.hex = PRESET_HEX[i];
+      sync();
+    });
+    swatchBox.appendChild(b);
+  });
+
+  function seg(id, get, set) {
+    const box = $(id);
+    box.addEventListener("click", (ev) => {
+      const btn = ev.target.closest("button[data-v]");
+      if (!btn) return;
+      set(Number(btn.dataset.v) === 1 ? 1 : 0);
+      sync();
+    });
+    box._refresh = () => {
+      const v = get() ? 1 : 0;
+      box.querySelectorAll("button[data-v]").forEach((b) => {
+        b.classList.toggle("on", Number(b.dataset.v) === v);
+      });
+    };
   }
 
-  const hash = location.hash.replace(/^#/, "");
-  if (hash) showShare(hash).then((ok) => { if (!ok) toast("链接内容不完整，已切回编辑模式"); });
+  seg("#seg-outline", () => state.outline, (v) => { state.outline = v; });
+  seg("#seg-dot", () => state.dot, (v) => { state.dot = v; });
+  seg("#seg-0m", () => state.inner.m, (v) => { state.inner.m = v; });
+  seg("#seg-1b", () => state.outer.b, (v) => { state.outer.b = v; });
+
+  function slider(id, get, set, unit) {
+    // 注意：id 可能是 "0t" 这类以数字开头的，querySelector("#0t") 会抛错，必须用 getElementById。
+    id = id.replace(/^#/, "");
+    const el = document.getElementById(id), out = document.getElementById(id + "-v");
+    el.addEventListener("input", () => {
+      set(Number(el.value));
+      out.textContent = String(get()) + (unit || "");
+      render();
+    });
+    el._refresh = () => {
+      el.value = String(get());
+      out.textContent = String(get()) + (unit || "");
+    };
+  }
+
+  slider("z", () => state.z, (v) => { state.z = v; }, "");
+  slider("#0t", () => state.inner.t, (v) => { state.inner.t = v; }, "");
+  slider("#0l", () => state.inner.l, (v) => { state.inner.l = v; }, "");
+  slider("#0o", () => state.inner.o, (v) => { state.inner.o = v; }, "");
+  slider("#0a", () => state.inner.a, (v) => { state.inner.a = v; }, "/10");
+  slider("#0f", () => state.inner.f, (v) => { state.inner.f = v; }, "");
+  slider("#1t", () => state.outer.t, (v) => { state.outer.t = v; }, "");
+  slider("#1l", () => state.outer.l, (v) => { state.outer.l = v; }, "");
+  slider("#1o", () => state.outer.o, (v) => { state.outer.o = v; }, "");
+  slider("#1a", () => state.outer.a, (v) => { state.outer.a = v; }, "/10");
+  slider("#1f", () => state.outer.f, (v) => { state.outer.f = v; }, "");
+
+  $("#hex").addEventListener("input", (ev) => {
+    const v = ev.target.value.trim().toUpperCase();
+    if (/^[0-9A-F]{6,8}$/.test(v)) {
+      state.hex = v.length === 6 ? v + "FF" : v;
+      render();
+    }
+  });
+
+  function sync() {
+    document.querySelectorAll("#swatches .swatch").forEach((b) => {
+      b.classList.toggle("on", Number(b.dataset.i) === state.colorIndex);
+    });
+    $("#hex").value = state.hex;
+    [$("#seg-outline"), $("#seg-dot"), $("#seg-0m"), $("#seg-1b")].forEach((b) => b._refresh && b._refresh());
+    ["z", "0t", "0l", "0o", "0a", "0f", "1t", "1l", "1o", "1a", "1f"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el && el._refresh) el._refresh();
+    });
+    render();
+  }
+
+  $("#import-btn").addEventListener("click", () => {
+    if (importCode($("#import-code").value)) toast("已导入，继续调就行");
+    else toast("这段码看不懂，检查一下是不是以 0; 开头");
+  });
+
+  $("#copy-code").addEventListener("click", async () => {
+    await ShareKit.copyText(buildCode());
+    toast("代码已复制");
+  });
+
+  $("#share").addEventListener("click", async () => {
+    const payload = await ShareKit.pack({ t: "crosshair", n: "自定义准星", a: "", c: buildCode() });
+    history.replaceState(null, "", "#" + payload);
+    await ShareKit.copyText(location.origin + location.pathname + "#" + payload);
+    toast("分享链接已复制");
+  });
+
+  $("#publish").addEventListener("click", async () => {
+    const name = prompt("给这个准星起个名字（会公开）", "自定义准星");
+    if (name === null) return;
+    const res = await fetch("/api/library/crosshairs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: name.trim() || "未命名准星", code: buildCode(), tags: "" }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      return toast(err.detail || "发布失败");
+    }
+    toast("已发布到准星库");
+  });
+
+  const preset = new URLSearchParams(location.search).get("code");
+  if (preset && importCode(preset)) $("#import-code").value = preset;
+  sync();
 })();
 </script>
 </body>

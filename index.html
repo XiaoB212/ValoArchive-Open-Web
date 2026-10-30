@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>VALO ARCHIVE · WEB</title>
+<title>瓦罗兰档案 · 无畏契约战绩查询</title>
 <link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=4" sizes="any" />
 <link rel="alternate icon" type="image/x-icon" href="/favicon.ico?v=4" />
 <meta name="theme-color" content="#0e7c6b" />
 <meta name="description" content="瓦罗兰档案：非官方《无畏契约》社区项目，支持长历史、单局详情、对位击杀热力图、组队分析与多格式导出。" />
-<link rel="stylesheet" href="/static/style.css?v=147" />
+<link rel="stylesheet" href="/static/style.css?v=148" />
 </head>
 <body>
 <div class="grid-bg" aria-hidden="true"></div>
@@ -31,15 +31,13 @@
       <span class="busy hidden" id="busy"><i class="spinner"></i><span id="busy-text">载入中</span></span>
       <button type="submit" id="search-btn">检索</button>
     </form>
-    <div class="health" id="health">连接中…</div>
-    <a class="cred-chip hidden" id="cred-chip" href="/valoadmin#login" target="_blank" rel="noopener"></a>
+    <div class="health" id="health" hidden>连接中…</div>
+    <a class="cred-chip hidden" id="cred-chip" hidden href="#" rel="noopener"></a>
     <button class="export-btn" id="export-open" type="button">导出</button>
-    <a class="export-btn ghost" href="crosshairs.html" title="准星库">准星库</a>
-    <a class="export-btn ghost" href="lineups.html" title="点位库">点位库</a>
-    <a class="export-btn ghost" href="/login" title="扫码登录 / 查看凭证">登录态</a>
+    <a class="export-btn ghost" href="/crosshairs" title="准星库">准星库</a>
+    <a class="export-btn ghost" href="/lineups" title="点位库">点位库</a>
   </div>
 </header>
-
 <div class="cred-alert hidden" id="cred-alert"></div>
 
 <div class="export-modal hidden" id="export-modal" role="dialog" aria-modal="true" aria-labelledby="export-modal-title">
@@ -131,16 +129,74 @@
 </section>
 
 <main class="shell">
-  <section class="empty" id="empty-state">
-    <div class="empty-kicker">READ-ONLY · FAN PROJECT</div>
-    <h1>每一局，<br />都留<em>底</em>。</h1>
-    <p>输入游戏名（<code>名字#编号</code>）开始。只读取公开的战绩数据，不写回游戏、不碰账号。</p>
-    <ul class="hints">
-      <li>对局记录 · 每把 KDA / ACS / RR 增减</li>
-      <li>单局详情 · 十人记分板与组队聚类</li>
-      <li>组队 · 近 100 场的队友与规模分布</li>
-      <li>资产 · 枪皮 / 卡面 / 喷漆 / 挂饰 / 英雄</li>
-    </ul>
+  <section class="empty home" id="empty-state">
+    <div class="home-hero">
+      <div class="empty-kicker">QUERY · ANALYSE · ARCHIVE</div>
+      <h1>查一个人，<br />看清他<em>每一局</em>。</h1>
+      <p>输入游戏名 <code>名字#编号</code>、掌瓦号，或一个固定 ID。只读公开战绩，不写回游戏、不碰你的账号。</p>
+      <div class="home-try" id="home-try">
+        <span class="try-label">试试</span>
+        <button type="button" class="try" data-mode="game" data-kw="">游戏 ID</button>
+        <button type="button" class="try" data-mode="mval" data-kw="">掌瓦号</button>
+        <button type="button" class="try" data-mode="uid" data-kw="">固定 ID</button>
+      </div>
+    </div>
+
+    <div class="home-cards">
+      <button type="button" class="hcard" data-focus="1">
+        <span class="hc-ico">▤</span>
+        <b>对局历史</b>
+        <i>每把 KDA / ACS / RR 增减，可按模式与日期筛</i>
+      </button>
+      <button type="button" class="hcard" data-focus="1">
+        <span class="hc-ico">◎</span>
+        <b>单局详情</b>
+        <i>十人记分板、组队聚类、回合走势与对位击杀</i>
+      </button>
+      <button type="button" class="hcard" data-focus="1">
+        <span class="hc-ico">↗</span>
+        <b>赛季与生涯</b>
+        <i>当前赛幕数据 + 各赛幕段位轨迹</i>
+      </button>
+      <button type="button" class="hcard" data-focus="1">
+        <span class="hc-ico">✦</span>
+        <b>枪械资产</b>
+        <i>枪皮 / 卡面 / 喷漆 / 挂饰 / 英雄，按价值排序</i>
+      </button>
+      <a class="hcard" href="/crosshairs">
+        <span class="hc-ico">⊹</span>
+        <b>准星库</b>
+        <i>复制代码即用，也能自己调参数生成</i>
+      </a>
+      <a class="hcard" href="/lineups">
+        <span class="hc-ico">⌖</span>
+        <b>点位库</b>
+        <i>分步截图 + 站位坐标，按地图 / 英雄筛</i>
+      </a>
+      <a class="hcard" href="/catalog/agents">
+        <span class="hc-ico">☰</span>
+        <b>英雄库</b>
+        <i>全部英雄与技能说明（中文）</i>
+      </a>
+      <a class="hcard" href="/catalog/skins">
+        <span class="hc-ico">◈</span>
+        <b>皮肤库</b>
+        <i>武器 → 皮肤 → 炫彩，逐级查看</i>
+      </a>
+    </div>
+
+    <div class="home-steps">
+      <div class="step"><b>1</b><span>输入 ID<small>游戏 ID 带 # 编号，掌瓦号是那串数字或自定义号</small></span></div>
+      <div class="step"><b>2</b><span>看概览<small>段位、场均、最近战绩一眼看完</small></span></div>
+      <div class="step"><b>3</b><span>往下钻<small>点进单局看回合，或导出成 PDF 存档</small></span></div>
+    </div>
+
+    <div class="home-faq">
+      <details><summary>改名了还能查到吗？</summary><p>能。查到时可以复制那串「固定 ID」，它跟着账号走、不随改名变化；用固定 ID 搜索即可。</p></details>
+      <details><summary>为什么有的号没有掌瓦号、没有资产？</summary><p>掌瓦没收录这个账号时就没有掌瓦号；资产接口需要他本人的 <code>scene</code>，没有收录就查不到，页面会直接说明。</p></details>
+      <details><summary>数据是哪来的，准不准？</summary><p>只读取公开战绩（掌瓦 / 公开对局接口）。非官方项目，数据可能有延迟或缺失，仅供参考。</p></details>
+      <details><summary>会存我的信息吗？</summary><p>不存 QQ、不存密码；页面只读取公开战绩，不留任何账号信息。</p></details>
+    </div>
   </section>
 
   <section class="player hidden" id="player">
@@ -331,6 +387,35 @@
 </footer>
 
 <script src="config.js"></script>
-<script src="/static/app.js?v=154"></script>
+<script src="/static/app.js?v=162"></script>
+<script>
+(function () {
+  document.querySelectorAll("#home-try .try").forEach(function (el) {
+    el.addEventListener("click", function () {
+      var mode = el.dataset.mode || "game";
+      var btn = document.querySelector('#search-mode button[data-source="' + mode + '"]');
+      if (btn) btn.click();
+      var input = document.getElementById("search-input");
+      var tips = {
+        game: "游戏昵称#编号，如 示例玩家#12345",
+        mval: "掌瓦号，如 038000000 或自定义号",
+        uid: "固定 ID（改名也能查，概览页可复制）"
+      };
+      if (input) {
+        input.value = el.dataset.kw || "";
+        input.placeholder = tips[mode] || tips.game;
+        input.focus();
+      }
+    });
+  });
+  document.querySelectorAll(".home .hcard[data-focus]").forEach(function (el) {
+    el.addEventListener("click", function () {
+      var input = document.getElementById("search-input");
+      if (input) input.focus();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  });
+})();
+</script>
 </body>
 </html>

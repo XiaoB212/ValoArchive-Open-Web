@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>英雄库 · VALO ARCHIVE</title>
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=4" sizes="any" />
+<link rel="stylesheet" href="/static/style.css?v=147" />
+<link rel="stylesheet" href="/static/tools.css?v=1" />
+<style>
+  .agent-card { cursor: pointer; }
+  .agent-card .portrait { height: 168px; display: grid; place-items: end center; overflow: hidden;
+    background: radial-gradient(circle at 50% 30%, #2a3038, #12161b); border-radius: 10px; }
+  .agent-card .portrait img { height: 100%; object-fit: contain; }
+  .modal { position: fixed; inset: 0; background: rgba(12,14,17,.62); display: none;
+    align-items: flex-start; justify-content: center; padding: 40px 16px; z-index: 60; overflow: auto; }
+  .modal.on { display: flex; }
+  .modal-card { background: var(--card); border-radius: 16px; width: min(760px, 100%); padding: 22px; }
+  .ab { display: grid; grid-template-columns: 34px 1fr; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); }
+  .ab img { width: 30px; height: 30px; }
+  .ab b { font-size: 13px; }
+  .ab p { margin: 3px 0 0; font-size: 12px; color: var(--muted); line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="grid-bg" aria-hidden="true"></div>
+<div class="tool-page">
+  <div class="tool-head">
+    <div>
+      <h1>英雄库</h1>
+      <div class="sub">30 位英雄的定位、技能与说明；点卡片看技能详情（数据为中文语料，随版本更新）。</div>
+    </div>
+    <div class="tool-actions"><a class="btn small" href="/catalog/skins">皮肤库</a><a class="btn small" href="/">回首页</a></div>
+  </div>
+  <div class="toolbar">
+    <div class="chips" id="roles"><button class="tool-chip on" data-role="">全部</button></div>
+    <input class="input search" id="q" placeholder="搜英雄名" />
+  </div>
+  <div class="cards" id="cards"></div>
+  <div class="legal">非官方工具，与 Riot Games / 腾讯无关；英雄资料来自社区公开数据，仅供参考。</div>
+</div>
+<div class="modal" id="modal"><div class="modal-card" id="modal-body"></div></div>
+<script>
+(function () {
+  const $ = (s) => document.querySelector(s);
+  let rows = [], role = "", kw = "";
+
+  function render() {
+    const box = $("#cards");
+    box.innerHTML = "";
+    rows.filter((r) => (!role || r.role === role) && (!kw || r.name.includes(kw))).forEach((r) => {
+      const card = document.createElement("div");
+      card.className = "tool-card agent-card";
+      card.innerHTML = `<div class="portrait"><img src="${r.icon}" alt="${r.name}" loading="lazy"></div>
+        <div class="card-name">${r.name}</div><div class="card-meta">${r.role || "—"}</div>`;
+      card.addEventListener("click", () => open(r));
+      box.appendChild(card);
+    });
+  }
+
+  function open(r) {
+    $("#modal-body").innerHTML = `<div style="display:flex;gap:16px;align-items:center;margin-bottom:8px">
+      <img src="${r.icon}" style="width:96px;height:96px;object-fit:contain">
+      <div><h2 style="margin:0 0 4px">${r.name}</h2>
+      <div class="card-meta">${r.role || ""}</div>
+      <p class="hint" style="margin:8px 0 0">${r.desc || ""}</p></div></div>
+      ${r.abilities.map((a) => `<div class="ab"><img src="${a.icon}" alt=""><div><b>${a.name}</b><p>${a.desc}</p></div></div>`).join("")}`;
+    $("#modal").classList.add("on");
+  }
+  $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") e.currentTarget.classList.remove("on"); });
+  $("#q").addEventListener("input", (e) => { kw = e.target.value.trim(); render(); });
+
+  fetch("/api/catalog/agents").then((r) => r.json()).then((d) => {
+    rows = d.rows || [];
+    const roles = [...new Set(rows.map((r) => r.role).filter(Boolean))];
+    const box = $("#roles");
+    roles.forEach((name) => {
+      const b = document.createElement("button");
+      b.className = "tool-chip"; b.textContent = name; b.dataset.role = name;
+      box.appendChild(b);
+    });
+    box.addEventListener("click", (e) => {
+      const chip = e.target.closest(".tool-chip[data-role]");
+      if (!chip) return;
+      box.querySelectorAll(".tool-chip").forEach((c) => c.classList.remove("on"));
+      chip.classList.add("on"); role = chip.dataset.role; render();
+    });
+    render();
+  });
+})();
+</script>
+</body>
+</html>

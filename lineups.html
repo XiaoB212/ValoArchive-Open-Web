@@ -3,338 +3,269 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>点位分享 · VALO ARCHIVE</title>
+<title>点位库 · VALO ARCHIVE</title>
 <link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=4" sizes="any" />
 <link rel="stylesheet" href="/static/style.css?v=147" />
+<link rel="stylesheet" href="/static/tools.css?v=1" />
 <style>
-  body { background: var(--bg, #0b0d10); }
-  .wrap { max-width: 1080px; margin: 0 auto; padding: 28px 18px 60px; }
-  .hd { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
-  .hd h1 { font-size: 22px; margin: 0; letter-spacing: .04em; }
-  .hd .sub { color: var(--muted, #8b93a1); font-size: 12px; }
-  .cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
-  @media (max-width: 820px) { .cols { grid-template-columns: 1fr; } }
-  .panel { background: var(--card, #14171c); border: 1px solid var(--line, #262b33); border-radius: 10px; padding: 16px; }
-  .panel h2 { font-size: 13px; margin: 0 0 12px; color: var(--muted, #8b93a1); letter-spacing: .08em; }
-  label.f { display: block; font-size: 12px; color: var(--muted, #8b93a1); margin: 10px 0 5px; }
-  input.t, textarea.t, select.t { width: 100%; box-sizing: border-box; background: #0e1116; color: #e8ecf1; border: 1px solid #2a3038; border-radius: 7px; padding: 9px 10px; font: inherit; font-size: 13px; }
-  textarea.t { min-height: 84px; resize: vertical; }
-  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .row { display: flex; gap: 9px; flex-wrap: wrap; margin-top: 14px; }
-  .b { border: 1px solid #2a3038; background: #1a1f26; color: #e8ecf1; border-radius: 7px; padding: 9px 14px; font: inherit; font-size: 13px; cursor: pointer; }
-  .b.pri { background: #0e7c6b; border-color: #0e7c6b; color: #fff; }
-  .drop { border: 1px dashed #333b45; border-radius: 9px; padding: 16px; text-align: center; color: var(--muted, #8b93a1); font-size: 12px; cursor: pointer; }
-  .drop.on { border-color: #0e7c6b; color: #9fe0d5; }
-  .shot { max-width: 100%; border-radius: 9px; display: block; margin-top: 12px; }
-  .shot.hidden { display: none; }
-  .hint { font-size: 12px; color: var(--muted, #8b93a1); line-height: 1.7; margin-top: 10px; }
-  .share-only { display: none; }
-  body.share .editor-only { display: none; }
-  body.share .share-only { display: block; }
-  .meta { font-size: 13px; color: #cfd7e2; margin: 4px 0; }
-  .meta b { color: #fff; }
-  .libbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 6px 0 14px; }
-  .chip { border: 1px solid #2a3038; background: #14171c; color: #cfd7e2; border-radius: 999px; padding: 6px 13px; font-size: 12px; cursor: pointer; }
-  .chip.on { border-color: #0e7c6b; color: #9fe0d5; background: #0e7c6b1a; }
-  .libgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; }
-  .libcard { background: #14171c; border: 1px solid #262b33; border-radius: 10px; padding: 11px; display: flex; flex-direction: column; gap: 6px; }
-  .libcard img { width: 100%; height: 128px; object-fit: cover; border-radius: 8px; background: #0e1116; }
-  .libcard .t { font-size: 13px; color: #fff; }
-  .libcard .m { font-size: 11px; color: #8b93a1; line-height: 1.6; }
-  .libcard .n { font-size: 12px; color: #b9c2cf; line-height: 1.6; max-height: 58px; overflow: hidden; }
-  .legal { margin-top: 26px; font-size: 11px; color: #6d7684; line-height: 1.8; }
-  .toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); background: #222932; color: #fff; padding: 9px 16px; border-radius: 999px; font-size: 13px; opacity: 0; pointer-events: none; transition: opacity .2s; }
-  .toast.on { opacity: 1; }
+  .lineup-card { cursor: pointer; }
+  .lineup-card .shot { height: 118px; width: 100%; object-fit: cover; border-radius: 9px; background: var(--paper-2); margin: 0; }
+  .modal { position: fixed; inset: 0; background: rgba(12,14,17,.64); display: none; align-items: flex-start;
+    justify-content: center; padding: 32px 16px; z-index: 60; overflow: auto; }
+  .modal.on { display: flex; }
+  .modal-card { background: var(--card); border-radius: 16px; width: min(920px, 100%); padding: 18px; }
+  .modal-card img.big { width: 100%; border-radius: 12px; background: var(--paper-2); }
+  .meta-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 0; }
+  .pill { border: 1px solid var(--line-strong); border-radius: 999px; padding: 3px 10px; font-size: 11px; color: var(--ink-2); }
+  /* 详情：左边地图俯视图（带站位/落点标记），右边分步图 */
+  .detail-grid { display: grid; grid-template-columns: minmax(260px, 360px) 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 780px) { .detail-grid { grid-template-columns: 1fr; } }
+  .mini { position: relative; background: #101418; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); }
+  .mini img { display: block; width: 100%; height: auto; opacity: .92; }
+  .mk { position: absolute; transform: translate(-50%, -50%); }
+  .mk-player { width: 13px; height: 13px; border-radius: 50%; background: #38e08a; border: 2px solid #0b0d10; box-shadow: 0 0 0 2px rgba(56,224,138,.28); }
+  .mk-util { width: 22px; height: 22px; }
+  .mk-util::before, .mk-util::after { content: ""; position: absolute; left: 50%; top: 50%; background: #ff4655; }
+  .mk-util::before { width: 22px; height: 2px; transform: translate(-50%, -50%); }
+  .mk-util::after { width: 2px; height: 22px; transform: translate(-50%, -50%); }
+  .legend { display: flex; gap: 14px; font-size: 11px; color: var(--ink-2); margin-top: 8px; }
+  .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #38e08a; margin-right: 5px; }
+  .legend i.cross { border-radius: 0; background: #ff4655; width: 10px; height: 2px; vertical-align: middle; }
+  .steps { display: grid; gap: 12px; }
+  .step { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--paper-2); }
+  .step img { display: block; width: 100%; height: auto; }
+  .step figcaption { padding: 9px 12px; font-size: 13px; color: var(--ink); line-height: 1.6; }
+  .step b { color: var(--accent, #ff4655); margin-right: 6px; }
+  .detail-desc { margin: 10px 0 0; font-size: 13px; line-height: 1.75; color: var(--ink-2); white-space: pre-wrap; }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="hd">
+<div class="grid-bg" aria-hidden="true"></div>
+
+<div class="tool-page">
+  <div class="tool-head">
     <div>
-      <h1>点位分享</h1>
-      <div class="sub">地图 + 英雄 + 截图 + 说明，生成一条自带内容的链接</div>
+      <h1>点位库</h1>
+      <div class="sub">按地图、英雄、攻防筛；点卡片看大图与原图。图片第一次打开时会缓存到本地，之后更快。</div>
     </div>
-    <a class="b" href="index.html">← 回档案首页</a>
+    <div class="tool-actions">
+      <button class="btn small" id="open-form">上传点位</button>
+      <a class="btn small" href="/">回首页</a>
+    </div>
   </div>
 
-  <div class="panel" style="margin-bottom: 18px;">
-    <h2>点位库</h2>
-    <div class="libbar">
-      <select class="t" id="l-map" style="max-width:170px">
-        <option value="">全部地图</option>
-        <option>亚海悬城</option><option>隐世修所</option><option>森寒冬港</option>
-        <option>裂变峡谷</option><option>微风岛屿</option><option>莲华古城</option>
-        <option>遗落境地</option><option>源工重镇</option><option>霓虹町</option>
-        <option>幽邃地窟</option><option>盐海矿镇</option><option>天枢云阙</option>
-        <option>深窟幽境</option><option>日落之城</option><option>其他</option>
-      </select>
-      <input class="t" id="l-agent" style="max-width:150px" placeholder="英雄" />
-      <input class="t" id="l-q" style="max-width:200px" placeholder="搜标题 / 说明 / 点位" />
-      <button class="chip" id="l-add">+ 发布点位</button>
+  <div class="card-panel" style="margin-bottom: 18px">
+    <div class="panel-title">地图</div>
+    <div class="chips" id="maps" style="margin-bottom: 12px"></div>
+    <div class="panel-title">英雄</div>
+    <div class="chips" id="agents" style="margin-bottom: 12px"></div>
+    <div class="toolbar" style="margin-bottom: 0">
+      <div class="chips" id="sides"></div>
+      <input class="input search" id="q" placeholder="搜标题 / 说明" />
+      <span class="hint" id="count"></span>
     </div>
-    <div class="libgrid" id="lib-grid"></div>
-    <div class="hint" id="lib-empty" style="display:none">还没有这批筛选下的点位，来发第一个。</div>
   </div>
 
-  <div class="cols">
-    <div class="panel editor-only">
-      <h2>点位信息</h2>
-      <div class="two">
-        <div>
-          <label class="f" for="p-map">地图</label>
-          <select class="t" id="p-map">
-            <option>亚海悬城</option><option>隐世修所</option><option>森寒冬港</option>
-            <option>裂变峡谷</option><option>微风岛屿</option><option>莲华古城</option>
-            <option>遗落境地</option><option>源工重镇</option><option>霓虹町</option>
-            <option>幽邃地窟</option><option>盐海矿镇</option><option>天枢云阙</option>
-            <option>深窟幽境</option><option>日落之城</option><option>其他</option>
-          </select>
-        </div>
-        <div>
-          <label class="f" for="p-agent">英雄</label>
-          <input class="t" id="p-agent" maxlength="16" placeholder="例：贤者 / 猎枭" />
-        </div>
-      </div>
-      <div class="two">
-        <div>
-          <label class="f" for="p-side">阵营</label>
-          <select class="t" id="p-side"><option>进攻</option><option>防守</option><option>通用</option></select>
-        </div>
-        <div>
-          <label class="f" for="p-site">点位</label>
-          <input class="t" id="p-site" maxlength="20" placeholder="例：A 大 / B 点箱后" />
-        </div>
-      </div>
-      <label class="f" for="p-title">标题</label>
-      <input class="t" id="p-title" maxlength="40" placeholder="例：A 大烟 · 从出生点" />
-      <label class="f" for="p-note">做法 / 说明</label>
-      <textarea class="t" id="p-note" maxlength="600" placeholder="站哪里、瞄哪里、几段跳、给谁看…"></textarea>
-      <label class="f" for="p-author">作者（可留空）</label>
-      <input class="t" id="p-author" maxlength="30" />
+  <div class="cards" id="cards"></div>
+  <div class="empty" id="empty" style="display: none">这个筛选下还没有点位。</div>
 
-      <label class="f">截图（可粘贴剪贴板 / 点选文件）</label>
-      <div class="drop" id="p-drop">点这里选图，或直接 Ctrl+V 粘贴截图</div>
-      <img class="shot hidden" id="p-shot" alt="点位截图" />
-      <input type="file" id="p-file" accept="image/*" hidden />
-
-      <div class="row">
-        <button class="b pri" id="p-make">生成分享链接</button>
-        <button class="b" id="p-publish">发布到点位库</button>
-        <button class="b" id="p-clear">清空</button>
-      </div>
-      <div class="hint">截图会自动压到 1000px 宽并转成 JPEG，再塞进链接里；太大的图会提示换一张。链接不经过任何服务器。</div>
+  <div class="card-panel" id="form" style="display: none; margin-top: 20px">
+    <div class="panel-title">上传点位</div>
+    <div class="field-row">
+      <label class="field"><span>地图</span><input class="input" id="f-map" placeholder="例：亚海悬城" /></label>
+      <label class="field"><span>英雄</span><input class="input" id="f-agent" placeholder="例：猎枭" /></label>
     </div>
-
-    <div class="panel share-only" id="share-card">
-      <h2>分享内容</h2>
-      <div class="meta" id="s-meta"></div>
-      <img class="shot hidden" id="s-shot" alt="点位截图" />
-      <div class="hint" id="s-note"></div>
-      <div class="row">
-        <button class="b pri" id="s-copy-link">复制本页链接</button>
-      </div>
+    <div class="field-row">
+      <label class="field"><span>攻防</span><input class="input" id="f-side" placeholder="进攻 / 防守" /></label>
+      <label class="field"><span>点位</span><input class="input" id="f-site" placeholder="A / B / 中场" /></label>
     </div>
-
-    <div class="panel editor-only">
-      <h2>预览</h2>
-      <div class="meta" id="p-preview-meta">还没填内容</div>
-      <img class="shot hidden" id="p-preview" alt="预览" />
+    <label class="field"><span>标题</span><input class="input" id="f-title" maxlength="60" /></label>
+    <label class="field"><span>说明</span><textarea class="textarea" id="f-note" maxlength="600"></textarea></label>
+    <label class="field"><span>截图（可选，≤3MB）</span><input class="input" type="file" id="f-file" accept="image/*" /></label>
+    <div class="btn-row">
+      <button class="btn primary" id="submit">发布</button>
+      <button class="btn" id="close-form">取消</button>
     </div>
   </div>
 
   <div class="legal">
-    本页为非官方社区工具，与 Riot Games / 腾讯无关；点位由玩家自行提供，仅供参考。
-    链接内容全部写在地址栏里，本站不保存你的点位与截图。
+    点位内容由社区玩家分享、或来自公开目录的元数据，仅供参考，落点请以自己在自定义房间的实测为准。
+    非官方工具，与 Riot Games / 腾讯无关。
   </div>
 </div>
-<div class="toast" id="toast"></div>
 
-<script src="/static/share-kit.js?v=1"></script>
+<div class="modal" id="modal"><div class="modal-card" id="modal-body"></div></div>
+<div class="tool-toast" id="toast"></div>
+
 <script>
 (function () {
   const $ = (s) => document.querySelector(s);
   const toastEl = $("#toast");
-  let timer = 0;
-  const toast = (text) => {
-    toastEl.textContent = text;
-    toastEl.classList.add("on");
-    clearTimeout(timer);
-    timer = setTimeout(() => toastEl.classList.remove("on"), 2000);
+  let toastTimer = 0;
+  const toast = (t) => {
+    toastEl.textContent = t; toastEl.classList.add("on");
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => toastEl.classList.remove("on"), 1800);
   };
 
-  let shot = ""; // data URL
+  const esc = (t) => String(t || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const img = (u) => u && u.startsWith("http") ? "/api/lineups/img?u=" + encodeURIComponent(u) : u;
+  const PURPOSE = { ENTRY: "进点用", INFO: "拿信息", ANTI_RUSH: "防快攻", RETAKE: "回防用", SITE_HOLD: "守点",
+    ANTI_DEFUSE: "防拆包", FLASH_ASSIST: "辅助闪光", POST_PLANT: "下包后", SMOKE: "封烟", MOLLY: "燃烧瓶" };
+  const purposeCn = (p) => PURPOSE[p] || p || "";
 
-  function metaOf(d) {
-    const bits = [d.map, d.agent, d.side, d.site].filter(Boolean);
-    return bits.join(" · ") || "未填写";
-  }
+  const state = { map: "", agent: "", side: "", q: "" };
+  let rows = [];
 
-  function refreshPreview() {
-    const d = readForm();
-    $("#p-preview-meta").textContent = `${metaOf(d)}${d.title ? " ｜ " + d.title : ""}`;
-    const img = $("#p-preview");
-    if (shot) { img.src = shot; img.classList.remove("hidden"); }
-    else { img.classList.add("hidden"); }
-  }
-
-  function readForm() {
-    return {
-      map: $("#p-map").value,
-      agent: $("#p-agent").value.trim(),
-      side: $("#p-side").value,
-      site: $("#p-site").value.trim(),
-      title: $("#p-title").value.trim(),
-      note: $("#p-note").value.trim(),
-      author: $("#p-author").value.trim(),
-    };
-  }
-
-  async function compressImage(fileOrBlob, maxWidth) {
-    const bitmap = await createImageBitmap(fileOrBlob);
-    const scale = Math.min(1, (maxWidth || 1000) / bitmap.width);
-    const w = Math.max(1, Math.round(bitmap.width * scale));
-    const h = Math.max(1, Math.round(bitmap.height * scale));
-    const canvas = document.createElement("canvas");
-    canvas.width = w;
-    canvas.height = h;
-    canvas.getContext("2d").drawImage(bitmap, 0, 0, w, h);
-    return canvas.toDataURL("image/jpeg", 0.72);
-  }
-
-  async function takeImage(blob) {
-    try {
-      shot = await compressImage(blob, 1000);
-      if (shot.length > 520000) {
-        shot = await compressImage(blob, 720);
-      }
-      if (shot.length > 700000) {
-        shot = "";
-        return toast("截图太大了，换一张小一点的（或先裁掉无关区域）");
-      }
-      refreshPreview();
-      toast("截图已就绪");
-    } catch (err) {
-      toast("这张图读不出来，换一张试试");
-    }
-  }
-
-  $("#p-drop").addEventListener("click", () => $("#p-file").click());
-  $("#p-file").addEventListener("change", (ev) => {
-    const file = ev.target.files && ev.target.files[0];
-    if (file) takeImage(file);
-  });
-  document.addEventListener("paste", (ev) => {
-    const item = [...(ev.clipboardData ? ev.clipboardData.items : [])].find((i) => i.type.startsWith("image/"));
-    if (item) takeImage(item.getAsFile());
-  });
-  ["p-map", "p-agent", "p-side", "p-site", "p-title", "p-note", "p-author"].forEach((id) => {
-    $("#" + id).addEventListener("input", refreshPreview);
-  });
-  $("#p-side").addEventListener("change", refreshPreview);
-
-  $("#p-clear").addEventListener("click", () => {
-    shot = "";
-    ["p-agent", "p-site", "p-title", "p-note", "p-author"].forEach((id) => { $("#" + id).value = ""; });
-    refreshPreview();
-  });
-
-  $("#p-make").addEventListener("click", async () => {
-    const d = readForm();
-    if (!d.title && !d.note) return toast("至少写个标题或说明");
-    const payload = await ShareKit.pack({ t: "lineup", ...d, img: shot });
-    if (payload.length > 300000) return toast("内容太大，换张小一点的截图");
-    const url = `${location.origin}${location.pathname}#${payload}`;
-    history.replaceState(null, "", "#" + payload);
-    await ShareKit.copyText(url);
-    showShare(payload);
-    toast("分享链接已复制");
-  });
-
-  async function showShare(hash) {
-    const d = await ShareKit.unpack(hash);
-    if (!d || !(d.title || d.note)) return false;
-    document.body.classList.add("share");
-    $("#s-meta").innerHTML = `<b>${metaOf(d)}</b>${d.title ? " ｜ " + escapeHtml(d.title) : ""}${d.author ? " · by " + escapeHtml(d.author) : ""}`;
-    $("#s-note").textContent = d.note || "";
-    if (d.img) { $("#s-shot").src = d.img; $("#s-shot").classList.remove("hidden"); }
-    $("#s-copy-link").onclick = async () => { await ShareKit.copyText(location.href); toast("链接已复制"); };
-    return true;
-  }
-
-  function escapeHtml(text) {
-    return String(text || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  }
-
-  // ---------------- 点位库 ----------------
-  let libMap = "", libAgent = "", libQ = "";
-
-  async function loadLib() {
-    const grid = $("#lib-grid");
-    grid.innerHTML = "";
-    let rows = [];
-    try {
-      const url = `/api/library/lineups?limit=60&map=${encodeURIComponent(libMap)}&agent=${encodeURIComponent(libAgent)}&q=${encodeURIComponent(libQ)}`;
-      rows = (await (await fetch(url)).json()).rows || [];
-    } catch (err) {
-      toast("点位库暂时读不到");
-    }
-    $("#lib-empty").style.display = rows.length ? "none" : "block";
-    rows.forEach((row) => {
-      const box = document.createElement("div");
-      box.className = "libcard";
-      if (row.img) {
-        const img = document.createElement("img");
-        img.src = `/api/library/lineups/${row.id}/image`;
-        img.alt = row.title || "点位截图";
-        img.loading = "lazy";
-        box.appendChild(img);
-      }
-      const title = document.createElement("div");
-      title.className = "t";
-      title.textContent = row.title || "未命名点位";
-      box.appendChild(title);
-      const meta = document.createElement("div");
-      meta.className = "m";
-      meta.textContent = [row.map, row.agent, row.side, row.site].filter(Boolean).join(" · ") + (row.author ? " · " + row.author : "");
-      box.appendChild(meta);
-      if (row.note) {
-        const note = document.createElement("div");
-        note.className = "n";
-        note.textContent = row.note;
-        box.appendChild(note);
-      }
-      grid.appendChild(box);
+  function chipRow(box, values, key, label) {
+    box.innerHTML = "";
+    const all = document.createElement("button");
+    all.className = "tool-chip on"; all.textContent = "全部"; all.dataset.v = "";
+    box.appendChild(all);
+    values.forEach((v) => {
+      const b = document.createElement("button");
+      b.className = "tool-chip"; b.textContent = v; b.dataset.v = v;
+      box.appendChild(b);
     });
+    box.addEventListener("click", (e) => {
+      const b = e.target.closest(".tool-chip");
+      if (!b) return;
+      box.querySelectorAll(".tool-chip").forEach((x) => x.classList.remove("on"));
+      b.classList.add("on");
+      state[key] = b.dataset.v;
+      load();
+    });
+    if (label) return;
   }
 
-  $("#l-map").addEventListener("change", (ev) => { libMap = ev.target.value; loadLib(); });
-  $("#l-agent").addEventListener("input", (ev) => { libAgent = ev.target.value.trim(); clearTimeout(libTimer); libTimer = setTimeout(loadLib, 260); });
-  let libTimer = 0;
-  $("#l-q").addEventListener("input", (ev) => { libQ = ev.target.value.trim(); clearTimeout(libTimer); libTimer = setTimeout(loadLib, 260); });
-  $("#l-add").addEventListener("click", () => { window.scrollTo({ top: 0, behavior: "smooth" }); toast("在左边填好内容，点「发布到点位库」"); });
+  function card(row) {
+    const box = document.createElement("div");
+    box.className = "tool-card lineup-card";
+    const img = document.createElement("img");
+    img.className = "shot"; img.loading = "lazy"; img.alt = row.title || "";
+    img.src = row.thumb || "/static/favicon.svg";
+    box.appendChild(img);
+    const title = document.createElement("div");
+    title.className = "card-name"; title.textContent = row.title || "未命名";
+    box.appendChild(title);
+    const meta = document.createElement("div");
+    meta.className = "card-meta";
+    meta.textContent = [row.map, row.agent, row.side, row.site, row.area].filter(Boolean).join(" · ");
+    box.appendChild(meta);
+    box.addEventListener("click", () => openDetail(row.id));
+    return box;
+  }
 
-  $("#p-publish").addEventListener("click", async () => {
-    const d = readForm();
-    if (!d.title && !d.note) return toast("至少写个标题或说明");
-    const btn = $("#p-publish");
-    btn.disabled = true;
+  async function openDetail(id) {
+    const res = await fetch("/api/library/lineups/" + id);
+    if (!res.ok) return toast("这条点位读不到了");
+    const row = await res.json();
+    const pills = [row.map, row.agent, row.side, row.site, row.area, row.difficulty,
+      purposeCn(row.purpose), row.stability, row.penetration && ("穿点 " + row.penetration),
+      row.duration].filter(Boolean).map((x) => `<span class="pill">${x}</span>`).join("");
+
+    // 地图俯视图 + 两个标记：绿点=站位，红叉=落点（来自目录里的百分比坐标）
+    const hasMap = row.map_icon && (row.player_x != null || row.util_x != null);
+    const mk = (cls, x, y) => (x == null || y == null) ? ""
+      : `<span class="mk ${cls}" style="left:${Number(x)}%;top:${Number(y)}%"></span>`;
+    const mini = hasMap ? `<div>
+        <div class="mini">
+          <img src="${img(row.map_icon)}" alt="${row.map || ""} 地图">
+          ${mk("mk-player", row.player_x, row.player_y)}
+          ${mk("mk-util", row.util_x, row.util_y)}
+        </div>
+        <div class="legend"><span><i></i>站位</span><span><i class="cross"></i>落点</span></div>
+      </div>` : (row.full ? `<img class="big" src="${row.full}" alt="">` : "");
+
+    const steps = (row.steps || []).map((st, i) => `<figure class="step">
+        <img src="${img(st.url)}" alt="第 ${i + 1} 步" loading="lazy">
+        <figcaption><b>${i + 1}</b>${st.desc || "（这一步没有文字说明，看图中的落点标记）"}</figcaption>
+      </figure>`).join("");
+
+    const tags = (row.tags || "").split(",").filter(Boolean)
+      .map((t) => `<span class="pill">#${t}</span>`).join("");
+
+    $("#modal-body").innerHTML = `<h2 style="margin:0 0 6px">${row.title || ""}</h2>
+      <div class="meta-row">${pills}</div>
+      ${row.desc ? `<p class="detail-desc">${esc(row.desc)}</p>` : ""}
+      <div class="detail-grid" style="margin-top:14px">
+        ${mini}
+        <div class="steps">${steps || `<p class="hint">这条点位只有一张示意图：${row.full ? `<img class="big" src="${img(row.full)}" alt="">` : "暂无图片"}</p>`}</div>
+      </div>
+      ${tags ? `<div class="meta-row" style="margin-top:12px">${tags}</div>` : ""}
+      ${row.note && row.note !== row.desc ? `<p class="hint" style="margin-top:10px">${esc(row.note)}</p>` : ""}`;
+    $("#modal").classList.add("on");
+  }
+
+  async function load() {
+    const url = "/api/library/lineups?limit=400"
+      + "&map=" + encodeURIComponent(state.map)
+      + "&agent=" + encodeURIComponent(state.agent)
+      + "&side=" + encodeURIComponent(state.side)
+      + "&q=" + encodeURIComponent(state.q);
+    const grid = $("#cards");
+    grid.innerHTML = "";
+    const data = await (await fetch(url)).json();
+    rows = data.rows || [];
+    const maps = {}, agents = {}, sides = {};
+    rows.forEach((r) => {
+      if (r.map) maps[r.map] = 1;
+      if (r.agent) agents[r.agent] = 1;
+      if (r.side) sides[r.side] = 1;
+    });
+    if (!state._init) {
+      chipRow($("#maps"), Object.keys(maps), "map");
+      chipRow($("#agents"), Object.keys(agents), "agent");
+      chipRow($("#sides"), Object.keys(sides), "side");
+      state._init = true;
+    }
+    rows.forEach((r) => grid.appendChild(card(r)));
+    $("#empty").style.display = rows.length ? "none" : "block";
+    $("#count").textContent = rows.length + " 条";
+  }
+
+  let debounce = 0;
+  $("#q").addEventListener("input", (e) => {
+    clearTimeout(debounce);
+    debounce = setTimeout(() => { state.q = e.target.value.trim(); load(); }, 240);
+  });
+
+  $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") e.currentTarget.classList.remove("on"); });
+  $("#open-form").addEventListener("click", () => {
+    const f = $("#form"); f.style.display = f.style.display === "none" ? "block" : "none";
+  });
+  $("#close-form").addEventListener("click", () => { $("#form").style.display = "none"; });
+
+  $("#submit").addEventListener("click", async () => {
+    const file = $("#f-file").files[0];
+    let img = "";
+    if (file) {
+      if (file.size > 3 * 1024 * 1024) return toast("截图太大（上限 3MB）");
+      img = await new Promise((ok) => {
+        const fr = new FileReader();
+        fr.onload = () => ok(String(fr.result));
+        fr.readAsDataURL(file);
+      });
+    }
+    const payload = {
+      map: $("#f-map").value.trim(), agent: $("#f-agent").value.trim(),
+      side: $("#f-side").value.trim(), site: $("#f-site").value.trim(),
+      title: $("#f-title").value.trim(), note: $("#f-note").value.trim(),
+      author: "", img,
+    };
     const res = await fetch("/api/library/lineups", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...d, img: shot }),
+      body: JSON.stringify(payload),
     });
-    btn.disabled = false;
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       return toast(err.detail || "发布失败");
     }
-    toast("已发布到点位库");
-    loadLib();
+    toast("已发布");
+    $("#form").style.display = "none";
+    load();
   });
 
-  loadLib();
-
-  const hash = location.hash.replace(/^#/, "");
-  if (hash) showShare(hash).then((ok) => { if (!ok) toast("链接内容不完整，已切回编辑模式"); });
+  load();
 })();
 </script>
 </body>
