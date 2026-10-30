@@ -106,7 +106,7 @@ const placeholderFor = (src) => src === "mval"
   ? "掌瓦号，如 011091448 或掌瓦昵称"
   : src === "uid"
     ? "固定ID（改名后也能查到），如 d7d9d871-5f1f-58db-84de-996fbb32d9aa"
-    : "游戏昵称#编号，如 眠是未觉雨#40889";
+    : "游戏昵称#编号，如 示例玩家#12345";
 
 const api = {
   async get(path, params = {}) {
@@ -477,6 +477,14 @@ async function loadPlayer(keyword, refresh = false) {
     if (fixedBox) {
       const fixed = p.stable_id || "";
       fixedBox.textContent = fixed ? `固定ID ${fixed.slice(0, 8)}…` : "固定ID —";
+      const fixedTip = $("#fixed-tip");
+      if (fixedTip) {
+        fixedTip.hidden = !fixed;
+        if (fixed) {
+          fixedTip.querySelector("code").textContent = fixed;
+          fixedTip.hidden = localStorage.getItem("valo.fixedTipSeen") === "1";
+        }
+      }
       fixedBox.dataset.id = fixed;
       fixedBox.title = fixed
         ? `固定 ID（改名不变，可直接搜索）：${fixed}　点击复制`
@@ -2419,7 +2427,7 @@ async function boot() {
 
   $("#search-form").addEventListener("submit", (event) => {
     event.preventDefault();
-    // 全角 ＃ / 全角字母数字先归一化，不然「三杆大烟枪＃81799」查不到
+    // 全角 ＃ / 全角字母数字先归一化，不然「示例玩家＃12345」这种全角写法查不到
     const keyword = $("#search-input").value.normalize("NFKC").replace(/＃/g, "#").trim();
     if (!keyword) return;
     // 「掌瓦ID」模式下粘了带 # 的游戏 ID：掌瓦号永远没有 #，直接切成游戏ID，
@@ -2427,7 +2435,7 @@ async function boot() {
     if (state.source === "mval" && keyword.includes("#")) {
       $$("#search-mode button").forEach((b) => b.classList.toggle("active", b.dataset.source === "game"));
       state.source = "game";
-      $("#search-input").placeholder = "游戏昵称#编号，如 眠是未觉雨#40889";
+      $("#search-input").placeholder = "游戏昵称#编号，如 示例玩家#12345";
     }
     loadPlayer(keyword);
   });
@@ -2482,6 +2490,21 @@ async function boot() {
       syncModeChips();
       try { localStorage.setItem("valo.gm", state.gm); } catch (_) { /* 隐私模式忽略 */ }
       loadPage(1);
+    });
+  }
+
+  const fixedTipEl = $("#fixed-tip");
+  if (fixedTipEl) {
+    fixedTipEl.addEventListener("click", async (ev) => {
+      const btn = ev.target.closest("button");
+      if (!btn) return;
+      if (btn.id === "fixed-tip-copy") {
+        const raw = fixedTipEl.querySelector("code")?.textContent || "";
+        try { await navigator.clipboard.writeText(raw); toast("固定ID 已复制"); } catch { toast("复制失败，请手动选中"); }
+      } else if (btn.id === "fixed-tip-hide") {
+        localStorage.setItem("valo.fixedTipSeen", "1");
+        fixedTipEl.hidden = true;
+      }
     });
   }
 

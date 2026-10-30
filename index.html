@@ -26,7 +26,7 @@
         <button type="button" data-source="mval">掌瓦ID</button>
         <button type="button" data-source="uid" title="改名也能查到的固定ID（概览页可复制）">固定ID</button>
       </div>
-      <input id="search-input" name="valo-keyword" placeholder="游戏昵称#编号，如 眠是未觉雨#40889"
+      <input id="search-input" name="valo-keyword" placeholder="游戏昵称#编号，如 示例玩家#12345"
              autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
       <span class="busy hidden" id="busy"><i class="spinner"></i><span id="busy-text">载入中</span></span>
       <button type="submit" id="search-btn">检索</button>
@@ -155,6 +155,12 @@
             <span class="pill muted" id="p-appnum" title="掌瓦号">掌瓦 —</span>
             <button type="button" class="pill muted fixed-id" id="p-fixed" title="固定 ID：改名后依然能查到这个人的永久编号（点击复制）">固定ID —</button>
             <span class="pill muted hidden" id="p-server" title=""></span>
+          <div class="fixed-tip" id="fixed-tip" hidden>
+            <span>💡 记住这个固定ID：改名后它不变，下次凭它也能查到这个人。</span>
+            <code></code>
+            <button type="button" class="ghost sm" id="fixed-tip-copy">复制</button>
+            <button type="button" class="ghost sm" id="fixed-tip-hide">不再提示</button>
+          </div>
           </div>
           <div class="rank-badge" id="rank-badge"></div>
         </div>
@@ -325,6 +331,6 @@
 </footer>
 
 <script src="config.js"></script>
-<script src="/static/app.js?v=153"></script>
+<script src="/static/app.js?v=154"></script>
 </body>
 </html>
