@@ -102,10 +102,16 @@ const EXPORT_DATE_FROM = _QUERY.get("from") || "";
 const EXPORT_DATE_TO = _QUERY.get("to") || "";
 const $$ = (sel) => [...document.querySelectorAll(sel)];
 
+const placeholderFor = (src) => src === "mval"
+  ? "掌瓦号，如 011091448 或掌瓦昵称"
+  : src === "uid"
+    ? "固定ID（改名后也能查到），如 d7d9d871-5f1f-58db-84de-996fbb32d9aa"
+    : "游戏昵称#编号，如 眠是未觉雨#40889";
+
 const api = {
   async get(path, params = {}) {
     const url = new URL(path, location.origin);
-    Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+    Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v === "uid" ? "game" : v));
     const res = await fetch(url);
     if (!res.ok) {
       let detail = res.statusText;
@@ -2431,9 +2437,7 @@ async function boot() {
     $$("#search-mode button").forEach((b) => b.classList.remove("active"));
     btn.classList.add("active");
     state.source = btn.dataset.source;
-    $("#search-input").placeholder = state.source === "mval"
-      ? "掌瓦号，如 011091448 或掌瓦昵称"
-      : "游戏昵称#编号，如 眠是未觉雨#40889";
+    $("#search-input").placeholder = placeholderFor(state.source);
   }));
 
   $$("#tabs button").forEach((btn) => btn.addEventListener("click", () => switchTab(btn.dataset.tab)));
@@ -2767,7 +2771,13 @@ async function boot() {
     // （开新标签看 PDF 时要等几十秒渲染，标签一直转圈，用户以为整页卡死了。）
 
     btn.disabled = true;
-    btn.textContent = "导出中…";
+    const started = Date.now();
+    const tick = () => {
+      const sec = Math.round((Date.now() - started) / 1000);
+      btn.textContent = `导出中… ${sec}s`;
+    };
+    btn.textContent = "导出中… 0s";
+    const timer = setInterval(tick, 1000);
     try {
       const res = await fetch(url);
       if (!res.ok) {
@@ -2790,8 +2800,9 @@ async function boot() {
     } catch (err) {
       showError(`导出失败：${err.message}`);
     } finally {
+      clearInterval(timer);
       btn.disabled = false;
-      if (btn.textContent === "导出中…") btn.textContent = original;
+      if (/^导出中/.test(btn.textContent)) btn.textContent = original;
     }
   });
 
@@ -2809,9 +2820,7 @@ async function boot() {
   if (presetMode === "mval" || presetMode === "game") {
     state.source = presetMode;
     $$("#search-mode button").forEach((b) => b.classList.toggle("active", b.dataset.source === presetMode));
-    $("#search-input").placeholder = presetMode === "mval"
-      ? "掌瓦号，如 011091448 或掌瓦昵称"
-      : "游戏昵称#编号，如 眠是未觉雨#40889";
+    $("#search-input").placeholder = placeholderFor(presetMode);
   }
   if (EXPORT_KIND) {
     document.body.classList.add("export");
