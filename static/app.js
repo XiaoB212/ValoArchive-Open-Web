@@ -383,13 +383,14 @@ function bindAppNum(p) {
   box.innerHTML = `
     <form class="appnum-edit" id="appnum-edit" autocomplete="off">
       <label>${editing ? "修改掌瓦号" : "绑定掌瓦号"}
-        <input id="appnum-input" inputmode="numeric" maxlength="9" placeholder="9 位数字，例如 038000000"
+        <input id="appnum-input" maxlength="24" spellcheck="false"
+               placeholder="9 位数字或自定义号，如 038000000 / ValoDemo"
                value="${escapeHtml(current)}" />
       </label>
       <button type="submit" class="bind-btn">保存</button>
       <button type="button" class="bind-btn ghost" id="appnum-cancel">取消</button>
     </form>
-    <p class="appnum-hint">掌瓦 App 里「我的 → 个人资料」那串 9 位数字；填错只是查不到段位/资产，可以再改。</p>`;
+    <p class="appnum-hint">填掌瓦 App 里那串 9 位数字，或者玩家自设的掌瓦号（字母/数字，如 ValoDemo）；填错只是查不到段位/资产，可以再改。</p>`;
   const form = box.querySelector("#appnum-edit");
   const input = box.querySelector("#appnum-input");
   const cancel = box.querySelector("#appnum-cancel");
@@ -397,9 +398,9 @@ function bindAppNum(p) {
   if (cancel) cancel.onclick = () => loadPlayer(p.label, false);
   form.onsubmit = async (ev) => {
     ev.preventDefault();
-    const number = String(input.value || "").replace(/\D/g, "");
-    if (number.length !== 9) {
-      showError("掌瓦号是 9 位数字（纯数字，如 038000000）。");
+    const number = String(input.value || "").trim();
+    if (!/^[A-Za-z0-9_.-]{2,24}$/.test(number)) {
+      showError("掌瓦号填 9 位数字，或自定义号（字母/数字/下划线，如 ValoDemo）。");
       return;
     }
     if (editing && number === current) { loadPlayer(p.label, false); return; }
