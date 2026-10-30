@@ -375,29 +375,44 @@ async function checkWatch() {
   } catch (_) { /* silent by design */ }
 }
 
-async function bindAppNum(p) {
+function bindAppNum(p) {
+  const box = $("#p-appnum");
+  if (!box) return;
   const current = String(p.app_num || "");
   const editing = Boolean(current);
-  const tip = editing
-    ? `修改 ${p.label} 的掌瓦号（现在是 ${current}；9 位数字，例如 038214488）：`
-    : `把 ${p.label} 的掌瓦号绑到这个游戏ID上（9 位数字，例如 038214488）：`;
-  const raw = window.prompt(tip, editing ? current : "");
-  if (raw === null) return;
-  const number = String(raw).replace(/\D/g, "");
-  if (number.length !== 9) {
-    showError("掌瓦号是 9 位数字，例如 038214488。");
-    return;
-  }
-  if (editing && number === current) return;
-  try {
-    setBusy(true, "正在绑定掌瓦号");
-    await api.post(`/api/player/appnum?keyword=${encodeURIComponent(p.label)}&mode=${encodeURIComponent(state.source)}&app_num=${number}`);
-    await loadPlayer(p.label, true);
-  } catch (err) {
-    showError("绑定失败：" + err.message);
-  } finally {
-    setBusy(false);
-  }
+  box.innerHTML = `
+    <form class="appnum-edit" id="appnum-edit" autocomplete="off">
+      <label>${editing ? "修改掌瓦号" : "绑定掌瓦号"}
+        <input id="appnum-input" inputmode="numeric" maxlength="9" placeholder="9 位数字，例如 038000000"
+               value="${escapeHtml(current)}" />
+      </label>
+      <button type="submit" class="bind-btn">保存</button>
+      <button type="button" class="bind-btn ghost" id="appnum-cancel">取消</button>
+    </form>
+    <p class="appnum-hint">掌瓦 App 里「我的 → 个人资料」那串 9 位数字；填错只是查不到段位/资产，可以再改。</p>`;
+  const form = box.querySelector("#appnum-edit");
+  const input = box.querySelector("#appnum-input");
+  const cancel = box.querySelector("#appnum-cancel");
+  if (input) { input.focus(); input.select(); }
+  if (cancel) cancel.onclick = () => loadPlayer(p.label, false);
+  form.onsubmit = async (ev) => {
+    ev.preventDefault();
+    const number = String(input.value || "").replace(/\D/g, "");
+    if (number.length !== 9) {
+      showError("掌瓦号是 9 位数字（纯数字，如 038000000）。");
+      return;
+    }
+    if (editing && number === current) { loadPlayer(p.label, false); return; }
+    try {
+      setBusy(true, "正在绑定掌瓦号");
+      await api.post(`/api/player/appnum?keyword=${encodeURIComponent(p.label)}&mode=${encodeURIComponent(state.source)}&app_num=${number}`);
+      await loadPlayer(p.label, true);
+    } catch (err) {
+      showError("绑定失败：" + err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
 }
 
 function renderRail() {
