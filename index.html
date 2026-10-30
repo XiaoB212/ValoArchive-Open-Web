@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>VALO ARCHIVE · WEB</title>
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=4" sizes="any" />
+<link rel="alternate icon" type="image/x-icon" href="/favicon.ico?v=4" />
+<meta name="theme-color" content="#0e7c6b" />
+<meta name="description" content="瓦罗兰档案：非官方《无畏契约》社区项目，支持长历史、单局详情、对位击杀热力图、组队分析与多格式导出。" />
+<link rel="stylesheet" href="/static/style.css?v=147" />
+</head>
+<body>
+<div class="grid-bg" aria-hidden="true"></div>
+
+<header class="top">
+  <div class="shell top-inner">
+    <div class="brand">
+      <span class="mark mark-plain"><img src="/static/favicon.svg?v=5" alt="瓦罗兰档案" width="34" height="34" /></span>
+      <span class="brand-text">VALO<em>ARCHIVE</em></span>
+      <span class="brand-sub">web / 作战档案</span>
+    </div>
+    <form class="search" id="search-form" autocomplete="off">
+      <div class="mode" id="search-mode">
+        <button type="button" class="active" data-source="game">游戏ID</button>
+        <button type="button" data-source="mval">掌瓦ID</button>
+      </div>
+      <input id="search-input" name="valo-keyword" placeholder="游戏昵称#编号，如 眠是未觉雨#40889"
+             autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+      <span class="busy hidden" id="busy"><i class="spinner"></i><span id="busy-text">载入中</span></span>
+      <button type="submit" id="search-btn">检索</button>
+    </form>
+    <div class="health" id="health">连接中…</div>
+    <button class="export-btn" id="export-open" type="button">导出</button>
+    <a class="export-btn ghost" href="crosshair.html" title="准星分享">准星</a>
+    <a class="export-btn ghost" href="lineups.html" title="点位分享">点位</a>
+  </div>
+</header>
+
+<div class="cred-alert hidden" id="cred-alert"></div>
+
+<div class="export-modal hidden" id="export-modal" role="dialog" aria-modal="true" aria-labelledby="export-modal-title">
+  <div class="em-backdrop" data-close="1"></div>
+  <div class="em-card">
+    <header class="em-head">
+      <h3 id="export-modal-title">导出</h3>
+      <button class="em-x" type="button" data-close="1" aria-label="关闭">×</button>
+    </header>
+    <section class="em-sec">
+      <div class="em-row"><b>导出内容</b>
+        <span class="em-links">
+          <button type="button" id="export-all">全选</button>
+          <button type="button" id="export-none">清空</button>
+        </span>
+      </div>
+      <div class="em-parts" id="export-parts">
+        <label><input type="checkbox" value="history" /><span>对局历史</span></label>
+        <label><input type="checkbox" value="match" /><span>单局详情</span></label>
+        <label><input type="checkbox" value="social" /><span>好友与组队</span></label>
+        <label><input type="checkbox" value="party" /><span>最近组队</span></label>
+        <label><input type="checkbox" value="assets" /><span>资产</span></label>
+        <label><input type="checkbox" value="season" /><span>赛季总览</span></label>
+      </div>
+      <label class="em-privacy">
+        <input type="checkbox" id="export-privacy" />
+        <span>隐私模式：把玩家名换成「玩家A/玩家B」，并隐藏掌瓦号与固定 ID（适合发群展示）</span>
+      </label>
+      <div class="em-range">
+        <b>单局详情导哪几场</b>
+        <span class="em-modes" id="export-range-mode">
+          <label><input type="radio" name="export-range" value="count" checked /><span>最近 N 场</span></label>
+          <label><input type="radio" name="export-range" value="date" /><span>日期区间</span></label>
+        </span>
+        <span class="dim">两种方式二选一，不会互相打架</span>
+      </div>
+      <div class="em-range" id="export-count-row">
+        <label for="export-match-count">取</label>
+        <select id="export-match-count">
+          <option value="1">最近 1 场</option>
+          <option value="3">最近 3 场</option>
+          <option value="5" selected>最近 5 场</option>
+          <option value="10">最近 10 场</option>
+          <option value="20">最近 20 场</option>
+        </select>
+        <span class="dim">场次不足按实际出，不会复制补齐</span>
+      </div>
+      <div class="em-range" id="export-date-row" hidden>
+        <label for="export-date-from">从</label>
+        <select id="export-date-from"><option value="">不限</option></select>
+        <span>到</span>
+        <select id="export-date-to"><option value="">不限</option></select>
+        <span class="dim" id="export-day-hint">选项只列真的有战绩的日子</span>
+      </div>
+      <p class="em-hint" id="export-hint">不勾选 = 只导出当前这一页（PDF / PNG）；勾选后按「历史 → 单局 → 好友 → 组队 → 资产 → 赛季」的顺序合并。</p>
+    </section>
+    <section class="em-sec">
+      <b>输出格式</b>
+      <div class="em-fmts" id="export-formats">
+        <label class="em-fmt"><input type="radio" name="export-fmt" value="pdf" checked />
+          <span><b>合并 PDF</b><i>多段合成一个文件，适合打印与归档</i></span></label>
+        <label class="em-fmt"><input type="radio" name="export-fmt" value="png" />
+          <span><b>PNG 长图</b><i>整页截图，适合发群里</i></span></label>
+        <label class="em-fmt"><input type="radio" name="export-fmt" value="html" />
+          <span><b>HTML 文档</b><i>文字版分析报告，不走浏览器，几秒就好</i></span></label>
+        <label class="em-fmt"><input type="radio" name="export-fmt" value="md" />
+          <span><b>Markdown 文档</b><i>能贴进笔记、能再编辑</i></span></label>
+      </div>
+    </section>
+    <footer class="em-foot">
+      <button class="em-cancel" type="button" data-close="1">取消</button>
+      <button class="em-share" id="share-btn" type="button" title="生成一个别人不用登录也能看的只读页面">生成分享链接</button>
+      <button class="em-go" id="export-btn" type="button">开始导出</button>
+    </footer>
+  </div>
+</div>
+
+<section class="search-recent hidden" id="search-recent" aria-label="最近查询与收藏">
+  <div class="sr-tabs">
+    <button type="button" class="sr-tab active" data-list="recent">最近查询</button>
+    <button type="button" class="sr-tab" data-list="fav">我的收藏</button>
+  </div>
+  <div class="sr-items" id="sr-items"></div>
+  <div class="sr-side">
+    <label class="sr-remember"><input type="checkbox" id="sr-remember" checked /> 记住查询</label>
+    <button type="button" class="sr-fav" id="sr-fav" title="把当前查询的人加进收藏">☆ 收藏</button>
+    <button type="button" class="sr-clear" id="sr-clear" title="清空当前列表">清空</button>
+  </div>
+</section>
+
+<main class="shell">
+  <section class="empty" id="empty-state">
+    <div class="empty-kicker">READ-ONLY · FAN PROJECT</div>
+    <h1>每一局，<br />都留<em>底</em>。</h1>
+    <p>输入游戏名（<code>名字#编号</code>）开始。只读取公开的战绩数据，不写回游戏、不碰账号。</p>
+    <ul class="hints">
+      <li>对局记录 · 每把 KDA / ACS / RR 增减</li>
+      <li>单局详情 · 十人记分板与组队聚类</li>
+      <li>组队 · 近 100 场的队友与规模分布</li>
+      <li>资产 · 枪皮 / 卡面 / 喷漆 / 挂饰 / 英雄</li>
+    </ul>
+  </section>
+
+  <section class="player hidden" id="player">
+    <div class="id-card">
+      <div class="id-left">
+        <img class="avatar" id="p-avatar" alt="" />
+        <span class="avatar-fallback hidden" id="p-avatar-fallback">?</span>
+        <div class="id-main">
+          <h2 id="p-name">—</h2>
+          <div class="id-meta">
+            <span class="pill" id="p-level">LV —</span>
+            <span class="pill muted" id="p-appnum" title="掌瓦号">掌瓦 —</span>
+            <button type="button" class="pill muted fixed-id" id="p-fixed" title="固定 ID：改名后依然能查到这个人的永久编号（点击复制）">固定ID —</button>
+            <span class="pill muted hidden" id="p-server" title=""></span>
+          </div>
+          <div class="rank-badge" id="rank-badge"></div>
+        </div>
+      </div>
+      <div class="id-right">
+        <div class="tiles" id="tiles"></div>
+      </div>
+    </div>
+    </div>
+
+    <div class="player-grid">
+      <div class="player-main">
+        <nav class="tabs" id="tabs">
+          <button data-tab="history" class="active">对局记录</button>
+          <button data-tab="match">单局详情</button>
+          <button data-tab="social">好友与组队</button>
+          <button data-tab="party">组队</button>
+          <button data-tab="season">赛季总览</button>
+          <button data-tab="assets">资产</button>
+        </nav>
+
+        <div class="panel" id="panel-history">
+          <div class="panel-head">
+            <h3>对局记录</h3>
+            <div class="filters">
+              <button class="chip active" data-mode="all">全部</button>
+              <button class="chip" data-mode="party">只看组队</button>
+              <!-- 选项内容以后端 /api/player/history 的 mode_groups 为准，
+                   这里只是在首屏那一次请求回来之前的兜底，两边保持一致即可。 -->
+              <div class="view-mode" id="view-mode" title="按模式分类查看对局记录">
+                <button type="button" class="chip active" data-gm="all">全部模式</button>
+              </div>
+              <span class="open-mode" id="open-mode" title="点对局时怎么打开详情">
+                <button type="button" data-open="inline">就地查看</button>
+                <button type="button" data-open="page" class="active">单页查看</button>
+              </span>
+              <span class="pager">
+                <button id="prev">‹</button>
+                <span id="page-label">1 / 1</span>
+                <button id="next">›</button>
+                <select id="page-size" title="每页场次">
+                  <option value="10">10 / 页</option>
+                  <option value="20" selected>20 / 页</option>
+                  <option value="50">50 / 页</option>
+                  <option value="300">全部</option>
+                </select>
+              </span>
+            </div>
+          </div>
+          <p class="coverage" id="history-note"></p>
+          <section class="summary" id="summary" hidden></section>
+          <div class="rows" id="history-rows"></div>
+        </div>
+
+        <div class="panel hidden" id="panel-match">
+          <div class="panel-head"><h3 id="match-title">单局详情</h3><span class="dim" id="match-meta"></span></div>
+          <div id="match-body" class="match-body"></div>
+        </div>
+
+        <div class="panel hidden" id="panel-social">
+          <div class="panel-head">
+            <h3>好友与组队</h3>
+            <span class="dim" id="social-meta"></span>
+          </div>
+          <div class="social-tools">
+            <input id="social-filter" placeholder="在这些人里搜…" />
+            <div class="social-counts">
+              <button class="chip active" data-group="all">全部</button>
+              <button class="chip" data-group="friends">好友</button>
+              <button class="chip" data-group="strangers">组排非好友</button>
+            </div>
+          </div>
+          <div class="friend-strip" id="social-friends"></div>
+          <div class="people" id="social-people"></div>
+        </div>
+
+        <div class="panel hidden" id="panel-party">
+          <div class="panel-head"><h3>组队</h3><span class="dim" id="party-meta"></span></div>
+          <div class="party-search">
+            <input id="party-search" type="search" autocomplete="off" placeholder="输入队友「昵称#编号」筛场次（如 江晚吟#12345，编号可省）" />
+            <span class="dim" id="party-search-hint">全部队友</span>
+          </div>
+          <div class="party-grid">
+            <div class="party-bars" id="party-bars"></div>
+            <div class="party-mates" id="party-mates"></div>
+          </div>
+          <p class="coverage" id="party-note"></p>
+          <div class="rows" id="party-rows"></div>
+        </div>
+
+        <div class="panel hidden" id="panel-season">
+          <div class="panel-head">
+            <h3>赛季总览</h3>
+            <span class="panel-sub" id="season-sub"></span>
+          </div>
+          <div class="season-grid">
+            <div class="season-radar"><div id="radar"></div><div class="radar-note" id="radar-note"></div></div>
+            <div class="season-modes"><div id="mode-table"></div></div>
+          </div>
+          <div class="season-career" id="season-career"></div>
+          <h4 style="margin:18px 0 8px">各赛幕总览</h4>
+          <div id="season-acts"></div>
+          <div class="season-trend">
+            <div class="trend-head">
+              <h4>近期段位情况</h4>
+              <span class="trend-sub" id="trend-sub"></span>
+            </div>
+            <div id="season-trend" class="trend-body"></div>
+          </div>
+          <div class="season-cols">
+            <div><h4>常用英雄</h4><div id="season-agents" class="mini-list"></div></div>
+            <div><h4>地图表现</h4><div id="season-maps" class="mini-list"></div></div>
+          </div>
+        </div>
+
+        <div class="panel hidden" id="panel-assets">
+          <div class="panel-head">
+            <h3>资产</h3>
+            <span class="filters">
+              <select id="asset-sort" title="枪皮排序">
+                <option value="unlock">获取时间</option>
+                <option value="gun">类型分类</option>
+                <option value="price">VP 价格</option>
+                <option value="quality">品质</option>
+                <option value="level">等级</option>
+              </select>
+              <button class="sort-order" id="asset-order" type="button" title="切换正序 / 逆序">逆序 ↓</button>
+            </span>
+            <span class="dim" id="assets-meta"></span>
+          </div>
+          <div class="asset-counts" id="asset-counts"></div>
+          <div class="asset-block"><h4>枪械收集 <span class="dim" id="guns-meta"></span></h4><div class="gun-grid" id="asset-guns"></div></div>
+          <div class="asset-block"><h4>枪皮</h4><div class="asset-grid" id="asset-skins"></div></div>
+          <div class="asset-block"><h4>卡面 <span class="dim" id="cards-meta"></span></h4><div class="asset-grid small" id="asset-cards"></div></div>
+          <div class="asset-block"><h4>喷漆 / 挂饰 <span class="dim" id="sprays-meta"></span></h4><div class="asset-grid small" id="asset-sprays"></div></div>
+          <div class="asset-block"><h4>英雄 <span class="dim" id="agents-meta"></span></h4><div class="asset-grid small" id="asset-agents"></div></div>
+        </div>
+      </div>
+
+      <aside class="rail">
+        <div class="rail-card">
+          <h4>地图表现</h4>
+          <div id="rail-maps" class="rail-list"></div>
+        </div>
+        <div class="rail-card">
+          <h4>近 10 场英雄</h4>
+          <div id="rail-agents" class="rail-agents"></div>
+        </div>
+        <div class="rail-note">
+          <b>关于</b>
+          <p>非官方《无畏契约》社区项目，与游戏官方无关。数据只读不写，仅用于个人战报整理。</p>
+        <p class="legal">本工具为非官方第三方项目，与 Riot Games、腾讯公司及《无畏契约》《掌上无畏契约》运营方无任何关联；相关名称与商标归各自权利人所有。</p>
+        <p class="legal">战绩数据取自玩家公开可见的记录，仅供参考，不保证准确、完整或时效，不可作为官方依据或用于商业决策；不收集敏感个人信息，权利人如要求删除相关数据，请联系运营者处理。</p>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <p class="session-hint hidden" id="session-hint"></p>
+  <p class="error hidden" id="error"></p>
+  <div class="suggest hidden" id="suggest"></div>
+  <div class="data-meta hidden" id="data-meta"></div>
+</main>
+
+<footer class="shell">
+  <span>ValoArchive-Web · 本地只读预览</span>
+  <span id="footer-cred"></span>
+</footer>
+
+<script src="config.js"></script>
+<script src="/static/app.js?v=150"></script>
+</body>
+</html>

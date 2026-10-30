@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>准星分享 · VALO ARCHIVE</title>
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=4" sizes="any" />
+<link rel="stylesheet" href="/static/style.css?v=147" />
+<style>
+  body { background: var(--bg, #0b0d10); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 28px 18px 60px; }
+  .hd { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+  .hd h1 { font-size: 22px; margin: 0; letter-spacing: .04em; }
+  .hd .sub { color: var(--muted, #8b93a1); font-size: 12px; }
+  .cols { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 18px; }
+  @media (max-width: 760px) { .cols { grid-template-columns: 1fr; } }
+  .panel { background: var(--card, #14171c); border: 1px solid var(--line, #262b33); border-radius: 10px; padding: 16px; }
+  .panel h2 { font-size: 13px; margin: 0 0 12px; color: var(--muted, #8b93a1); letter-spacing: .08em; }
+  label.f { display: block; font-size: 12px; color: var(--muted, #8b93a1); margin: 10px 0 5px; }
+  input.t, textarea.t { width: 100%; box-sizing: border-box; background: #0e1116; color: #e8ecf1; border: 1px solid #2a3038; border-radius: 7px; padding: 9px 10px; font: inherit; font-size: 13px; }
+  textarea.t { min-height: 92px; resize: vertical; font-family: ui-monospace, Consolas, monospace; font-size: 12px; line-height: 1.5; }
+  .row { display: flex; gap: 9px; flex-wrap: wrap; margin-top: 14px; }
+  .b { border: 1px solid #2a3038; background: #1a1f26; color: #e8ecf1; border-radius: 7px; padding: 9px 14px; font: inherit; font-size: 13px; cursor: pointer; }
+  .b.pri { background: #0e7c6b; border-color: #0e7c6b; color: #fff; }
+  .b:hover { filter: brightness(1.1); }
+  .preview { display: grid; place-items: center; gap: 10px; }
+  .preview canvas { border-radius: 8px; }
+  .name { font-size: 15px; font-weight: 600; text-align: center; word-break: break-all; }
+  .by { font-size: 12px; color: var(--muted, #8b93a1); text-align: center; }
+  .code { font-family: ui-monospace, Consolas, monospace; font-size: 11px; color: #a8b3c1; word-break: break-all; background: #0e1116; border: 1px dashed #2a3038; border-radius: 7px; padding: 8px; margin-top: 10px; }
+  .hint { font-size: 12px; color: var(--muted, #8b93a1); line-height: 1.7; margin-top: 10px; }
+  .share-only { display: none; }
+  body.share .editor-only { display: none; }
+  body.share .share-only { display: block; }
+  .legal { margin-top: 26px; font-size: 11px; color: #6d7684; line-height: 1.8; }
+  .toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); background: #222932; color: #fff; padding: 9px 16px; border-radius: 999px; font-size: 13px; opacity: 0; pointer-events: none; transition: opacity .2s; }
+  .toast.on { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hd">
+    <div>
+      <h1>准星分享</h1>
+      <div class="sub">粘贴准星分享码就能生成预览和链接；链接里自带内容，打开即看</div>
+    </div>
+    <a class="b" href="index.html">← 回档案首页</a>
+  </div>
+
+  <div class="cols">
+    <div class="panel editor-only">
+      <h2>准星信息</h2>
+      <label class="f" for="c-name">名字</label>
+      <input class="t" id="c-name" maxlength="40" placeholder="例：小圆点 · 绿色" />
+      <label class="f" for="c-author">作者 / 出处（可留空）</label>
+      <input class="t" id="c-author" maxlength="40" placeholder="例：自己调的 / 某选手" />
+      <label class="f" for="c-code">准星分享码</label>
+      <textarea class="t" id="c-code" placeholder="0;P;c;5;u;FF0000FF;o;1;0t;1;0l;2;0o;2;0a;1;0f;0;1b;0"></textarea>
+      <div class="row">
+        <button class="b pri" id="c-make">生成分享链接</button>
+        <button class="b" id="c-copy">复制准星码</button>
+        <button class="b" id="c-reset">清空</button>
+      </div>
+      <div class="hint">准星码来自游戏内「设置 → 准星 → 分享」导出的一串字符。分享页的预览是尽力还原，最终效果以游戏内为准。</div>
+    </div>
+
+    <div class="panel share-only" id="share-card">
+      <h2>分享内容</h2>
+      <div class="preview">
+        <canvas id="share-canvas" width="180" height="180"></canvas>
+        <div class="name" id="share-name"></div>
+        <div class="by" id="share-author"></div>
+      </div>
+      <div class="code" id="share-code"></div>
+      <div class="row">
+        <button class="b pri" id="share-copy-code">复制准星码</button>
+        <button class="b" id="share-copy-link">复制本页链接</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>预览</h2>
+      <div class="preview">
+        <canvas id="c-canvas" width="180" height="180"></canvas>
+        <div class="by" id="c-parsed">等待输入准星码…</div>
+      </div>
+      <div class="hint" id="c-note">贴入准星码后这里会尝试画出中心点与四根线。</div>
+    </div>
+  </div>
+
+  <div class="legal">
+    本页为非官方社区工具，与 Riot Games / 腾讯无关；准星码由你自行提供，仅供参考，不保证与游戏内完全一致。
+    链接内容全部写在地址栏里，本站不保存你的准星数据。
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="/static/share-kit.js?v=1"></script>
+<script>
+(function () {
+  const $ = (s) => document.querySelector(s);
+  const toastEl = $("#toast");
+  let toastTimer = 0;
+  const toast = (text) => {
+    toastEl.textContent = text;
+    toastEl.classList.add("on");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove("on"), 1800);
+  };
+
+  const parse = (code) => {
+    try { return ShareKit.parseCrosshair(code); } catch (err) { return null; }
+  };
+
+  function renderPreview(code, canvasSel, noteSel) {
+    const parsed = parse(code);
+    const canvas = $(canvasSel);
+    if (parsed) {
+      ShareKit.drawCrosshair(canvas, parsed, { size: 180 });
+      if (noteSel) $(noteSel).textContent = `已解析：中心点${parsed.dot ? "开" : "关"} · 线长 ${parsed.length} · 粗细 ${parsed.thickness} · 间隙 ${parsed.offset}`;
+    } else {
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (noteSel) $(noteSel).textContent = "这段码认不出来，但仍可分享与复制。";
+    }
+    return parsed;
+  }
+
+  // ── 编辑模式 ─────────────────────────────────────────────
+  const codeBox = $("#c-code");
+  codeBox.addEventListener("input", () => renderPreview(codeBox.value, "#c-canvas", "#c-parsed"));
+
+  $("#c-copy").addEventListener("click", async () => {
+    if (!codeBox.value.trim()) return toast("先贴准星码");
+    await ShareKit.copyText(codeBox.value.trim());
+    toast("准星码已复制");
+  });
+
+  $("#c-reset").addEventListener("click", () => {
+    codeBox.value = "";
+    $("#c-name").value = "";
+    $("#c-author").value = "";
+    renderPreview("", "#c-canvas", "#c-parsed");
+  });
+
+  $("#c-make").addEventListener("click", async () => {
+    const code = codeBox.value.trim();
+    if (!code) return toast("先贴准星码");
+    const payload = await ShareKit.pack({
+      t: "crosshair",
+      n: $("#c-name").value.trim() || "未命名准星",
+      a: $("#c-author").value.trim(),
+      c: code,
+    });
+    const url = `${location.origin}${location.pathname}#${payload}`;
+    history.replaceState(null, "", "#" + payload);
+    await ShareKit.copyText(url);
+    showShare(payload);
+    toast("分享链接已复制");
+  });
+
+  // ── 分享模式 ─────────────────────────────────────────────
+  async function showShare(hash) {
+    const data = await ShareKit.unpack(hash);
+    if (!data || !data.c) return false;
+    document.body.classList.add("share");
+    $("#share-name").textContent = data.n || "未命名准星";
+    $("#share-author").textContent = data.a ? `by ${data.a}` : "";
+    $("#share-code").textContent = data.c;
+    renderPreview(data.c, "#share-canvas");
+    $("#share-copy-code").onclick = async () => { await ShareKit.copyText(data.c); toast("准星码已复制"); };
+    $("#share-copy-link").onclick = async () => { await ShareKit.copyText(location.href); toast("链接已复制"); };
+    return true;
+  }
+
+  const hash = location.hash.replace(/^#/, "");
+  if (hash) showShare(hash).then((ok) => { if (!ok) toast("链接内容不完整，已切回编辑模式"); });
+})();
+</script>
+</body>
+</html>

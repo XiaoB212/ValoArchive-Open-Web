@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="瓦罗兰档案">
+  <title>瓦罗兰档案</title>
+  <defs>
+    <linearGradient id="h-v" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#12a08a" />
+      <stop offset="100%" stop-color="#0a5f52" />
+    </linearGradient>
+    <linearGradient id="h-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fbf7ee" />
+      <stop offset="100%" stop-color="#e6ddcb" />
+    </linearGradient>
+    <linearGradient id="h-fold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0e7c6b" stop-opacity=".38" />
+      <stop offset="100%" stop-color="#0e7c6b" stop-opacity=".16" />
+    </linearGradient>
+  </defs>
+  <!-- 纸色封皮（浅底，浅色/深色标签栏都不打架） -->
+  <rect width="64" height="64" rx="14" fill="url(#h-bg)" />
+  <!-- 右上折角 -->
+  <path d="M46 0 h4 a14 14 0 0 1 14 14 v4 Z" fill="url(#h-fold)" />
+  <path d="M46 0 L60 14" stroke="#0e7c6b" stroke-opacity=".45" stroke-width="1.3" />
+  <!-- 压印 V -->
+  <path d="M20 21 L32 42 L44 21" fill="none" stroke="url(#h-v)" stroke-width="6.2"
+        stroke-linecap="round" stroke-linejoin="round" />
+  <!-- 金色档案线 -->
+  <path d="M25 50.5 h14" stroke="#c79a2e" stroke-opacity=".95" stroke-width="2.6"
+        stroke-linecap="round" />
+  <!-- 描边 -->
+  <rect x=".75" y=".75" width="62.5" height="62.5" rx="13.4" fill="none"
+        stroke="#0e7c6b" stroke-opacity=".22" stroke-width="1.5" />
+</svg>
