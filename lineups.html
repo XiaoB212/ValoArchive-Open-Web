@@ -33,6 +33,15 @@
   body.share .share-only { display: block; }
   .meta { font-size: 13px; color: #cfd7e2; margin: 4px 0; }
   .meta b { color: #fff; }
+  .libbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 6px 0 14px; }
+  .chip { border: 1px solid #2a3038; background: #14171c; color: #cfd7e2; border-radius: 999px; padding: 6px 13px; font-size: 12px; cursor: pointer; }
+  .chip.on { border-color: #0e7c6b; color: #9fe0d5; background: #0e7c6b1a; }
+  .libgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; }
+  .libcard { background: #14171c; border: 1px solid #262b33; border-radius: 10px; padding: 11px; display: flex; flex-direction: column; gap: 6px; }
+  .libcard img { width: 100%; height: 128px; object-fit: cover; border-radius: 8px; background: #0e1116; }
+  .libcard .t { font-size: 13px; color: #fff; }
+  .libcard .m { font-size: 11px; color: #8b93a1; line-height: 1.6; }
+  .libcard .n { font-size: 12px; color: #b9c2cf; line-height: 1.6; max-height: 58px; overflow: hidden; }
   .legal { margin-top: 26px; font-size: 11px; color: #6d7684; line-height: 1.8; }
   .toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); background: #222932; color: #fff; padding: 9px 16px; border-radius: 999px; font-size: 13px; opacity: 0; pointer-events: none; transition: opacity .2s; }
   .toast.on { opacity: 1; }
@@ -46,6 +55,25 @@
       <div class="sub">地图 + 英雄 + 截图 + 说明，生成一条自带内容的链接</div>
     </div>
     <a class="b" href="index.html">← 回档案首页</a>
+  </div>
+
+  <div class="panel" style="margin-bottom: 18px;">
+    <h2>点位库</h2>
+    <div class="libbar">
+      <select class="t" id="l-map" style="max-width:170px">
+        <option value="">全部地图</option>
+        <option>亚海悬城</option><option>隐世修所</option><option>森寒冬港</option>
+        <option>裂变峡谷</option><option>微风岛屿</option><option>莲华古城</option>
+        <option>遗落境地</option><option>源工重镇</option><option>霓虹町</option>
+        <option>幽邃地窟</option><option>盐海矿镇</option><option>天枢云阙</option>
+        <option>深窟幽境</option><option>日落之城</option><option>其他</option>
+      </select>
+      <input class="t" id="l-agent" style="max-width:150px" placeholder="英雄" />
+      <input class="t" id="l-q" style="max-width:200px" placeholder="搜标题 / 说明 / 点位" />
+      <button class="chip" id="l-add">+ 发布点位</button>
+    </div>
+    <div class="libgrid" id="lib-grid"></div>
+    <div class="hint" id="lib-empty" style="display:none">还没有这批筛选下的点位，来发第一个。</div>
   </div>
 
   <div class="cols">
@@ -91,6 +119,7 @@
 
       <div class="row">
         <button class="b pri" id="p-make">生成分享链接</button>
+        <button class="b" id="p-publish">发布到点位库</button>
         <button class="b" id="p-clear">清空</button>
       </div>
       <div class="hint">截图会自动压到 1000px 宽并转成 JPEG，再塞进链接里；太大的图会提示换一张。链接不经过任何服务器。</div>
@@ -235,6 +264,74 @@
   function escapeHtml(text) {
     return String(text || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   }
+
+  // ---------------- 点位库 ----------------
+  let libMap = "", libAgent = "", libQ = "";
+
+  async function loadLib() {
+    const grid = $("#lib-grid");
+    grid.innerHTML = "";
+    let rows = [];
+    try {
+      const url = `/api/library/lineups?limit=60&map=${encodeURIComponent(libMap)}&agent=${encodeURIComponent(libAgent)}&q=${encodeURIComponent(libQ)}`;
+      rows = (await (await fetch(url)).json()).rows || [];
+    } catch (err) {
+      toast("点位库暂时读不到");
+    }
+    $("#lib-empty").style.display = rows.length ? "none" : "block";
+    rows.forEach((row) => {
+      const box = document.createElement("div");
+      box.className = "libcard";
+      if (row.img) {
+        const img = document.createElement("img");
+        img.src = `/api/library/lineups/${row.id}/image`;
+        img.alt = row.title || "点位截图";
+        img.loading = "lazy";
+        box.appendChild(img);
+      }
+      const title = document.createElement("div");
+      title.className = "t";
+      title.textContent = row.title || "未命名点位";
+      box.appendChild(title);
+      const meta = document.createElement("div");
+      meta.className = "m";
+      meta.textContent = [row.map, row.agent, row.side, row.site].filter(Boolean).join(" · ") + (row.author ? " · " + row.author : "");
+      box.appendChild(meta);
+      if (row.note) {
+        const note = document.createElement("div");
+        note.className = "n";
+        note.textContent = row.note;
+        box.appendChild(note);
+      }
+      grid.appendChild(box);
+    });
+  }
+
+  $("#l-map").addEventListener("change", (ev) => { libMap = ev.target.value; loadLib(); });
+  $("#l-agent").addEventListener("input", (ev) => { libAgent = ev.target.value.trim(); clearTimeout(libTimer); libTimer = setTimeout(loadLib, 260); });
+  let libTimer = 0;
+  $("#l-q").addEventListener("input", (ev) => { libQ = ev.target.value.trim(); clearTimeout(libTimer); libTimer = setTimeout(loadLib, 260); });
+  $("#l-add").addEventListener("click", () => { window.scrollTo({ top: 0, behavior: "smooth" }); toast("在左边填好内容，点「发布到点位库」"); });
+
+  $("#p-publish").addEventListener("click", async () => {
+    const d = readForm();
+    if (!d.title && !d.note) return toast("至少写个标题或说明");
+    const btn = $("#p-publish");
+    btn.disabled = true;
+    const res = await fetch("/api/library/lineups", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...d, img: shot }),
+    });
+    btn.disabled = false;
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      return toast(err.detail || "发布失败");
+    }
+    toast("已发布到点位库");
+    loadLib();
+  });
+
+  loadLib();
 
   const hash = location.hash.replace(/^#/, "");
   if (hash) showShare(hash).then((ok) => { if (!ok) toast("链接内容不完整，已切回编辑模式"); });

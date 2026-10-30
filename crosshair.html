@@ -173,6 +173,12 @@
     return true;
   }
 
+  const preset = new URLSearchParams(location.search).get("code");
+  if (preset) {
+    const codeEl = $("#c-code");
+    if (codeEl) { codeEl.value = preset; codeEl.dispatchEvent(new Event("input")); }
+  }
+
   const hash = location.hash.replace(/^#/, "");
   if (hash) showShare(hash).then((ok) => { if (!ok) toast("链接内容不完整，已切回编辑模式"); });
 })();

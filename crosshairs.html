@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>准星库 · VALO ARCHIVE</title>
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=4" sizes="any" />
+<link rel="stylesheet" href="/static/style.css?v=147" />
+<style>
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 28px 18px 60px; }
+  .hd { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  .hd h1 { font-size: 22px; margin: 0; }
+  .hd .sub { color: var(--muted, #8b93a1); font-size: 12px; margin-top: 4px; }
+  .bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 14px 0 18px; }
+  .chip { border: 1px solid #2a3038; background: #14171c; color: #cfd7e2; border-radius: 999px; padding: 6px 13px; font-size: 12px; cursor: pointer; }
+  .chip.on { border-color: #0e7c6b; color: #9fe0d5; background: #0e7c6b1a; }
+  input.q { background: #0e1116; color: #e8ecf1; border: 1px solid #2a3038; border-radius: 7px; padding: 8px 11px; font: inherit; font-size: 13px; min-width: 200px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(196px, 1fr)); gap: 14px; }
+  .card { background: #14171c; border: 1px solid #262b33; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .card canvas { width: 100%; height: 132px; background: #0e1116; border-radius: 8px; }
+  .card .name { font-size: 14px; color: #fff; }
+  .card .meta { font-size: 11px; color: #8b93a1; }
+  .row { display: flex; gap: 7px; }
+  .b { flex: 1; border: 1px solid #2a3038; background: #1a1f26; color: #e8ecf1; border-radius: 7px; padding: 7px 0; font: inherit; font-size: 12px; cursor: pointer; }
+  .b.pri { background: #0e7c6b; border-color: #0e7c6b; color: #fff; }
+  .empty { color: #6d7684; font-size: 13px; padding: 26px 0; text-align: center; }
+  .form { margin-top: 26px; background: #14171c; border: 1px solid #262b33; border-radius: 10px; padding: 16px; display: none; }
+  .form.on { display: block; }
+  .form label { display: block; font-size: 12px; color: #8b93a1; margin: 10px 0 5px; }
+  .form input, .form textarea { width: 100%; box-sizing: border-box; background: #0e1116; color: #e8ecf1; border: 1px solid #2a3038; border-radius: 7px; padding: 9px 10px; font: inherit; font-size: 13px; }
+  .legal { margin-top: 26px; font-size: 11px; color: #6d7684; line-height: 1.8; }
+  .toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); background: #222932; color: #fff; padding: 9px 16px; border-radius: 999px; font-size: 13px; opacity: 0; pointer-events: none; transition: opacity .2s; }
+  .toast.on { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hd">
+    <div>
+      <h1>准星库</h1>
+      <div class="sub">点选即复制代码；不满意就发布你自己的，画布是实时渲染的</div>
+    </div>
+    <div class="row" style="flex:0 0 auto">
+      <a class="b" style="padding:8px 13px" href="crosshair.html">自己调 →</a>
+      <a class="b" style="padding:8px 13px" href="index.html">← 回首页</a>
+    </div>
+  </div>
+
+  <div class="bar" id="tags">
+    <button class="chip on" data-tag="">全部</button>
+    <button class="chip" data-tag="dot">点</button>
+    <button class="chip" data-tag="cross">十字</button>
+    <button class="chip" data-tag="long">长十字</button>
+    <input class="q" id="q" placeholder="搜名字 / 作者" />
+    <button class="chip" id="add">+ 发布我的准星</button>
+  </div>
+
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty" style="display:none">这个筛选下还没有内容，来发第一个。</div>
+
+  <div class="form" id="form">
+    <div class="row" style="justify-content:space-between;align-items:center">
+      <strong style="font-size:14px">发布到准星库</strong>
+      <button class="chip" id="close-form">收起</button>
+    </div>
+    <label>名字</label>
+    <input id="f-name" maxlength="40" placeholder="例：小十字 · 绿" />
+    <label>准星代码（在游戏里 “设置 → 准星 → 分享代码” 复制，以 0; 开头）</label>
+    <textarea id="f-code" rows="3" maxlength="400"></textarea>
+    <label>标签（空格分隔，可选：dot / cross / long）</label>
+    <input id="f-tags" maxlength="40" placeholder="cross dot" />
+    <label>作者（可留空）</label>
+    <input id="f-author" maxlength="24" />
+    <div class="row" style="margin-top:14px">
+      <button class="b pri" id="submit">发布</button>
+    </div>
+  </div>
+
+  <div class="legal">
+    准星库内容由玩家自行发布，本站只做展示与复制，不保证适用于所有人；准星代码是游戏内可分享的数据格式，不含账号信息。
+    非官方工具，与 Riot Games / 腾讯无关。
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="/static/share-kit.js?v=1"></script>
+<script>
+(function () {
+  const $ = (s) => document.querySelector(s);
+  let tag = "";
+  let keyword = "";
+  const toastEl = $("#toast");
+  let timer = 0;
+  const toast = (t) => { toastEl.textContent = t; toastEl.classList.add("on"); clearTimeout(timer); timer = setTimeout(() => toastEl.classList.remove("on"), 2000); };
+
+  async function load() {
+    const url = `/api/library/crosshairs?limit=120&tag=${encodeURIComponent(tag)}&q=${encodeURIComponent(keyword)}`;
+    const grid = $("#grid");
+    grid.innerHTML = "";
+    let rows = [];
+    try {
+      const data = await (await fetch(url)).json();
+      rows = data.rows || [];
+    } catch (err) {
+      toast("准星库暂时读不到，稍后再试");
+    }
+    $("#empty").style.display = rows.length ? "none" : "block";
+    rows.forEach((row) => grid.appendChild(card(row)));
+  }
+
+  function card(row) {
+    const box = document.createElement("div");
+    box.className = "card";
+    const canvas = document.createElement("canvas");
+    canvas.width = 220; canvas.height = 132;
+    box.appendChild(canvas);
+    const parsed = ShareKit.parseCrosshair(row.code);
+    ShareKit.drawCrosshair(canvas, parsed, { size: 132 });
+    const name = document.createElement("div");
+    name.className = "name";
+    name.textContent = row.name;
+    box.appendChild(name);
+    const meta = document.createElement("div");
+    meta.className = "meta";
+    meta.textContent = `${row.author || "匿名"}${row.tags ? " · " + row.tags : ""}`;
+    box.appendChild(meta);
+    const actions = document.createElement("div");
+    actions.className = "row";
+    const copy = document.createElement("button");
+    copy.className = "b pri"; copy.textContent = "复制代码";
+    copy.addEventListener("click", async () => { await ShareKit.copyText(row.code); toast("代码已复制"); });
+    const edit = document.createElement("a");
+    edit.className = "b"; edit.textContent = "改样式";
+    edit.style.textAlign = "center"; edit.style.textDecoration = "none"; edit.style.lineHeight = "1.6";
+    edit.href = "crosshair.html#" + encodeURIComponent(ShareKit.packSync ? "" : "") ;
+    edit.href = "crosshair.html?code=" + encodeURIComponent(row.code);
+    actions.appendChild(copy); actions.appendChild(edit);
+    box.appendChild(actions);
+    return box;
+  }
+
+  $("#tags").addEventListener("click", (ev) => {
+    const chip = ev.target.closest(".chip[data-tag]");
+    if (!chip) return;
+    document.querySelectorAll("#tags .chip").forEach((c) => c.classList.remove("on"));
+    chip.classList.add("on");
+    tag = chip.dataset.tag;
+    load();
+  });
+  let debounce = 0;
+  $("#q").addEventListener("input", (ev) => {
+    clearTimeout(debounce);
+    debounce = setTimeout(() => { keyword = ev.target.value.trim(); load(); }, 250);
+  });
+  $("#add").addEventListener("click", () => { $("#form").classList.add("on"); $("#form").scrollIntoView({ behavior: "smooth" }); });
+  $("#close-form").addEventListener("click", () => $("#form").classList.remove("on"));
+  $("#submit").addEventListener("click", async () => {
+    const payload = {
+      name: $("#f-name").value.trim(),
+      code: $("#f-code").value.trim(),
+      tags: $("#f-tags").value.trim(),
+      author: $("#f-author").value.trim(),
+    };
+    if (!payload.code.startsWith("0;")) return toast("代码要以 0; 开头");
+    const res = await fetch("/api/library/crosshairs", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
+    });
+    if (!res.ok) { const err = await res.json().catch(() => ({})); return toast(err.detail || "发布失败"); }
+    toast("已发布");
+    $("#form").classList.remove("on");
+    ["f-name", "f-code", "f-tags", "f-author"].forEach((id) => { $("#" + id).value = ""; });
+    load();
+  });
+
+  load();
+})();
+</script>
+</body>
+</html>
