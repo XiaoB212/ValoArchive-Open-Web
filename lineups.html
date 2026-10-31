@@ -97,6 +97,7 @@
 <div class="modal" id="modal"><div class="modal-card" id="modal-body"></div></div>
 <div class="tool-toast" id="toast"></div>
 
+<script src="/config.js?v=1"></script>
 <script>
 (function () {
   const $ = (s) => document.querySelector(s);
@@ -108,7 +109,10 @@
   };
 
   const esc = (t) => String(t || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  const img = (u) => u && u.startsWith("http") ? "/api/lineups/img?u=" + encodeURIComponent(u) : u;
+  const img = (u) => {
+    const p = u && u.startsWith("http") ? "/api/lineups/img?u=" + encodeURIComponent(u) : u;
+    return typeof window.valoAsset === "function" ? window.valoAsset(p) : p;
+  };
   const PURPOSE = { ENTRY: "进点用", INFO: "拿信息", ANTI_RUSH: "防快攻", RETAKE: "回防用", SITE_HOLD: "守点",
     ANTI_DEFUSE: "防拆包", FLASH_ASSIST: "辅助闪光", POST_PLANT: "下包后", SMOKE: "封烟", MOLLY: "燃烧瓶" };
   const purposeCn = (p) => PURPOSE[p] || p || "";

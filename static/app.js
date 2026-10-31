@@ -2,7 +2,14 @@
 
 // 远端图一律走 /img 代理（上游会校验 Referer）；本站路径（/static/*.svg 这类）
 // 必须直连 —— 送进代理会 400，浏览器就画成「图片坏了」。
-const img = (url) => (!url ? "" : (String(url).startsWith("/") ? String(url) : `/img?url=${encodeURIComponent(url)}`));
+// valoAsset 由 config.js 提供：静态站和后端不同源时把 /img、/api 补成绝对地址
+// （同源部署或没加载 config.js 时它是 undefined，行为与以前完全一致）。
+const img = (url) => {
+  if (!url) return "";
+  const s = String(url);
+  const path = s.startsWith("/") ? s : `/img?url=${encodeURIComponent(s)}`;
+  return typeof window.valoAsset === "function" ? window.valoAsset(path) : path;
+};
 
 // 老版本的「最近查询」存在 localStorage（valoarchive.recent.v1），UI 已经去掉了，顺手清干净。
 try {
@@ -103,9 +110,9 @@ const EXPORT_DATE_TO = _QUERY.get("to") || "";
 const $$ = (sel) => [...document.querySelectorAll(sel)];
 
 const placeholderFor = (src) => src === "mval"
-  ? "掌瓦号，如 011091448 或掌瓦昵称"
+  ? "掌瓦号（9 位数字）或掌瓦昵称"
   : src === "uid"
-    ? "固定ID（改名后也能查到），如 d7d9d871-5f1f-58db-84de-996fbb32d9aa"
+    ? "固定ID（改名后也能查到），如 00000000-0000-0000-0000-000000000000"
     : "游戏昵称#编号，如 示例玩家#12345";
 
 const api = {
@@ -1563,8 +1570,8 @@ function partyHit(row, q) {
   const bare = needle.replace(/#/g, "").replace(/\s+/g, "");
   if (!bare) return true;
   return (row.partners || []).some((mate) => {
-    const name = String(mate.name || "").toLowerCase();       // 形如「江晚吟#12345」
-    const flat = name.replace(/[#\s]/g, "");                  // 「江晚吟12345」
+    const name = String(mate.name || "").toLowerCase();       // 形如「示例队友#12345」
+    const flat = name.replace(/[#\s]/g, "");                  // 「示例队友12345」
     // 命中三种写法：整串 / 忽略 # 与空格（含只输编号）/ puuid
     return name.includes(needle) || (bare && flat.includes(bare)) || String(mate.subject || "").toLowerCase().includes(needle);
   });

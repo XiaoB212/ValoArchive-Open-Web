@@ -48,9 +48,12 @@
   <div class="legal">非官方工具，与 Riot Games / 腾讯无关；皮肤数据来自社区公开数据，仅供参考。</div>
 </div>
 <div class="modal" id="modal"><div class="modal-card" id="modal-body"></div></div>
+<script src="/config.js?v=1"></script>
 <script>
 (function () {
   const $ = (s) => document.querySelector(s);
+  // 后端给的图是 /img?url=…，静态站自己没这个路由，补成 apiBase 绝对地址。
+  const pic = (u) => (typeof window.valoAsset === "function" ? window.valoAsset(u) : u);
   let guns = [], current = null, detail = null, kw = "";
 
   function renderSkins() {
@@ -60,7 +63,7 @@
     detail.skins.filter((s) => !kw || s.name.includes(kw)).forEach((s) => {
       const card = document.createElement("div");
       card.className = "tool-card skin-card";
-      card.innerHTML = `<div class="art"><img src="${s.icon}" alt="" loading="lazy"></div>
+      card.innerHTML = `<div class="art"><img src="${pic(s.icon)}" alt="" loading="lazy"></div>
         <div class="card-name">${s.name}</div>
         <div class="card-meta">${s.chromas.length} 个配色</div>`;
       card.addEventListener("click", () => openSkin(s));
@@ -70,7 +73,7 @@
 
   function openSkin(s) {
     $("#modal-body").innerHTML = `<h2 style="margin:0 0 10px">${s.name}</h2>
-      <div class="chromas">${s.chromas.map((c) => `<div class="chroma"><img src="${c.icon}" alt=""><div class="card-meta">${c.name}</div></div>`).join("")}</div>`;
+      <div class="chromas">${s.chromas.map((c) => `<div class="chroma"><img src="${pic(c.icon)}" alt=""><div class="card-meta">${c.name}</div></div>`).join("")}</div>`;
     $("#modal").classList.add("on");
   }
   $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") e.currentTarget.classList.remove("on"); });
@@ -82,7 +85,7 @@
     guns.forEach((g) => {
       const b = document.createElement("button");
       b.className = "gun" + (current && g.uuid === current.uuid ? " on" : "");
-      b.innerHTML = `<img src="${g.icon}" alt="" loading="lazy"><span>${g.name}</span>`;
+      b.innerHTML = `<img src="${pic(g.icon)}" alt="" loading="lazy"><span>${g.name}</span>`;
       b.addEventListener("click", () => choose(g));
       box.appendChild(b);
     });
