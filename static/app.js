@@ -834,6 +834,11 @@ async function loadPage(page, refresh = false, prefetched = null) {
     renderHistory(data.rows, data);
   } catch (err) {
     showError(`翻页失败：${err.message}`);
+    // 无头截图看不到 toast，只会看到一张空图。把失败落进列表本体，
+    // 并把原因挂到 exportNote 上，截图端才报得出真正的原因。
+    const box = $("#history-rows");
+    if (box) box.innerHTML = `<p class="empty">翻页失败：${escapeHtml(err.message)}</p>`;
+    if (EXPORT_KIND) document.body.dataset.exportNote = `翻页失败：${err.message}`;
   }
 }
 
