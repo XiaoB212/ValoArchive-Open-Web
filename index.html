@@ -92,7 +92,7 @@
         <select id="export-date-to"><option value="">不限</option></select>
         <span class="dim" id="export-day-hint">选项只列真的有战绩的日子</span>
       </div>
-      <p class="em-hint" id="export-hint">不勾选 = 只导出当前这一页（PDF / PNG）；勾选后按「历史 → 单局 → 好友 → 组队 → 资产 → 赛季」的顺序合并。</p>
+      <p class="em-hint" id="export-hint">不勾选 = 只导出当前这一页；勾选后按「历史 → 单局 → 好友 → 组队 → 资产 → 赛季」的顺序合并。</p>
     </section>
     <section class="em-sec">
       <b>输出格式</b>
@@ -101,6 +101,10 @@
           <span><b>合并 PDF</b><i>多段合成一个文件，适合打印与归档</i></span></label>
         <label class="em-fmt"><input type="radio" name="export-fmt" value="png" />
           <span><b>PNG 长图</b><i>整页截图，适合发群里</i></span></label>
+        <label class="em-fmt"><input type="radio" name="export-fmt" value="pngzip" />
+          <span><b>PNG 压缩包</b><i>勾几块就打几张图进 zip，文件名是中文</i></span></label>
+        <label class="em-fmt"><input type="radio" name="export-fmt" value="pdfzip" />
+          <span><b>PDF 分卷压缩包</b><i>每块（每场）一个 PDF，附中文说明</i></span></label>
         <label class="em-fmt"><input type="radio" name="export-fmt" value="html" />
           <span><b>HTML 文档</b><i>文字版分析报告，不走浏览器，几秒就好</i></span></label>
         <label class="em-fmt"><input type="radio" name="export-fmt" value="md" />

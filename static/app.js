@@ -2615,9 +2615,12 @@ async function boot() {
   };
   syncPrivacy();
   const PART_KEYS = ["history", "match", "social", "party", "assets", "season"];
+  // 后端允许的导出格式（部署时可以用 EXPORT_PDF=0 关掉 PDF）；null = 还没问到
+  let allowedFmts = null;
   const exportFmt = () => {
     const box = document.querySelector('#export-formats input[name="export-fmt"]:checked');
-    return box ? box.value : "pdf";
+    if (box) return box.value;
+    return allowedFmts && allowedFmts.length ? allowedFmts[0] : "png";
   };
   const isDocFmt = (fmt) => fmt === "html" || fmt === "md";
   const exportBoxes = () => $$("#export-parts input[type=checkbox]");
@@ -2631,16 +2634,54 @@ async function boot() {
       return null;
     }
   };
+  const isZipFmt = (fmt) => fmt === "pngzip" || fmt === "pdfzip";
   const syncExportHint = () => {
     const hint = $("#export-hint");
     if (!hint) return;
-    hint.textContent = isDocFmt(exportFmt())
-      ? "文档导出会把勾选的部分排成一份分析报告（几秒就好）；一段都不勾就导出全部六段。"
-      : "不勾选 = 只导出当前这一页（PDF / PNG）；勾选后按「历史 → 单局 → 好友与组队 → 最近组队 → 资产 → 赛季」的顺序合并。";
+    const fmt = exportFmt();
+    const count = checkedParts().length;
+    let text;
+    if (isDocFmt(fmt)) {
+      text = "文档导出会把勾选的部分排成一份分析报告（几秒就好）；一段都不勾就导出全部六段。";
+    } else if (isZipFmt(fmt)) {
+      text = "压缩包导出：勾几块就打几份进 zip（单局详情按场次拆开），文件名是中文，另附一份说明.txt；一段都不勾就只打当前这一页。";
+    } else {
+      text = "不勾选 = 只导出当前这一页；勾选后按「历史 → 单局 → 好友与组队 → 最近组队 → 资产 → 赛季」的顺序合并。";
+    }
+    if (!isDocFmt(fmt) && count > 2) {
+      text += ` 已勾 ${count} 块：不建议一次全导——每块都要单独渲染，分几次、每次 2 块更快也更稳。`;
+    }
+    hint.textContent = text;
   };
   const rememberParts = () => {
     try { localStorage.setItem(EXPORT_PARTS_KEY, JSON.stringify(checkedParts())); } catch (_) { /* ignore */ }
   };
+  // 后端可以按部署关掉某种格式，把对应的单选项藏起来，别让人点了一个必然 400 的按钮
+  const syncExportFormats = async () => {
+    try {
+      const res = await fetch("/api/export/formats");
+      if (!res.ok) return;
+      const info = await res.json();
+      allowedFmts = Array.isArray(info.formats) ? info.formats : null;
+    } catch (_) {
+      return;
+    }
+    if (!allowedFmts || !allowedFmts.length) return;
+    $$('#export-formats input[name="export-fmt"]').forEach((box) => {
+      const off = !allowedFmts.includes(box.value);
+      box.disabled = off;
+      const label = box.closest("label");
+      if (label) label.classList.toggle("hidden", off);
+      if (off) box.checked = false;
+    });
+    const cur = document.querySelector('#export-formats input[name="export-fmt"]:checked');
+    if (!cur) {
+      const first = $$('#export-formats input[name="export-fmt"]').find((box) => !box.disabled);
+      if (first) first.checked = true;
+    }
+    syncExportHint();
+  };
+  syncExportFormats();
   const openExportDialog = () => {
     if (!state.keyword) {
       showError("先查一个人，再导出。");
@@ -2810,6 +2851,19 @@ async function boot() {
     const original = btn.textContent;
     clearError();
     const parts = checkedParts().join(",");
+    // 不建议一次全选：每块都是一次完整渲染，六块连着跑很容易慢到让人以为卡死。
+    // 这里不是硬限制（用户仍然可以坚持），只是把「2-2-2 分次」的习惯摆在面前。
+    const picked = checkedParts().length;
+    if (picked > 3) {
+      const ok = window.confirm(
+        `勾了 ${picked} 块内容，一次导完会比较久（每块都要单独渲染），中途也更容易超时。\n\n`
+        + "建议分几次导出，每次 2 块左右，更快也更稳。仍要现在一次导完吗？",
+      );
+      if (!ok) {
+        syncExportHint();
+        return;
+      }
+    }
     // 两种范围二选一：按场数就完全不传日期，按日期就让后端取区间内全部（封顶 30 场）。
     const dateMode = exportRangeMode() === "date";
     const rawCount = Number(($("#export-match-count") || {}).value);
@@ -2856,8 +2910,9 @@ async function boot() {
       const blob = await res.blob();
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
-      const ext = fmt === "md" ? "md" : fmt;
-      const name = `${state.keyword}-${isDocFmt(fmt) ? "分析报告" : state.tab}.${ext}`;
+      const ext = fmt === "md" ? "md" : (isZipFmt(fmt) ? "zip" : fmt);
+      const tail = isDocFmt(fmt) ? "分析报告" : (isZipFmt(fmt) ? "打包导出" : state.tab);
+      const name = `${state.keyword}-${tail}.${ext}`;
       link.download = name;
       document.body.appendChild(link);
       link.click();

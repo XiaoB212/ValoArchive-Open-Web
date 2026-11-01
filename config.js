@@ -177,6 +177,9 @@ window.VALO_CONFIG = {
   function ttlFor(url) {
     var p = String(url).replace(/^https?:\/\/[^/]+/, "");
     if (/^\/api\/(health|gate)/.test(p)) return 0;
+    // 导出与卡片返回的是二进制（PNG/PDF/ZIP），缓存层只会把 blob 当文本存坏，
+    // 第二次请求就拿到一个 content-type 是 json 的假文件。一律不缓存。
+    if (/^\/api\/(export|card)/.test(p)) return 0;
     if (/^\/api\/match(\?|$)/.test(p)) return 30 * 864e5;
     if (/^\/api\/player\/(assets|career|season|rank)/.test(p)) return 864e5;
     if (/^\/api\/(catalog|maps|gear|bundles|agents|skins|lineups|crosshair)/.test(p)) return 864e5;
@@ -262,7 +265,12 @@ window.VALO_CONFIG = {
         return cacheGet(url).then(function (hit) {
           if (hit && Date.now() - hit.t < ttl) return cachedResponse(hit.b, "HIT");
           return nativeFetch(url, opts).then(function (res) {
-            if (res && res.ok) {
+            // 只缓存 JSON。图片、导出包这类二进制一旦被当文本存进去就是坏数据。
+            var ctype = "";
+            try {
+              ctype = String((res.headers && res.headers.get("content-type")) || "");
+            } catch (e) { ctype = ""; }
+            if (res && res.ok && ctype.indexOf("json") !== -1) {
               try {
                 res.clone().text().then(function (txt) { cachePut(url, txt); });
               } catch (e) { /* clone 失败就算了 */ }
