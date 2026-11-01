@@ -7,7 +7,7 @@
 <link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=4" sizes="any" />
 <link rel="alternate icon" type="image/x-icon" href="/favicon.ico?v=4" />
 <meta name="theme-color" content="#0e7c6b" />
-<meta name="description" content="瓦罗兰档案：非官方《无畏契约》社区项目，支持长历史、单局详情、对位击杀热力图、组队分析与多格式导出。" />
+<meta name="description" content="瓦罗兰档案：非官方《无畏契约》社区项目，支持长历史、单局详情、对位击杀热力图与组队分析。" />
 <link rel="stylesheet" href="/static/style.css?v=148" />
 </head>
 <body>
@@ -31,93 +31,14 @@
       <span class="busy hidden" id="busy"><i class="spinner"></i><span id="busy-text">载入中</span></span>
       <button type="submit" id="search-btn">检索</button>
     </form>
-    <div class="health" id="health" hidden>连接中…</div>
-    <a class="cred-chip hidden" id="cred-chip" hidden href="#" rel="noopener"></a>
-    <button class="export-btn" id="export-open" type="button">导出</button>
+    <div class="health" id="health">连接中…</div>
+    <a class="cred-chip hidden" id="cred-chip" href="#" target="_blank" rel="noopener"></a>
     <a class="export-btn ghost" href="/crosshairs" title="准星库">准星库</a>
     <a class="export-btn ghost" href="/lineups" title="点位库">点位库</a>
   </div>
 </header>
-<div class="cred-alert hidden" id="cred-alert"></div>
 
-<div class="export-modal hidden" id="export-modal" role="dialog" aria-modal="true" aria-labelledby="export-modal-title">
-  <div class="em-backdrop" data-close="1"></div>
-  <div class="em-card">
-    <header class="em-head">
-      <h3 id="export-modal-title">导出</h3>
-      <button class="em-x" type="button" data-close="1" aria-label="关闭">×</button>
-    </header>
-    <section class="em-sec">
-      <div class="em-row"><b>导出内容</b>
-        <span class="em-links">
-          <button type="button" id="export-all">全选</button>
-          <button type="button" id="export-none">清空</button>
-        </span>
-      </div>
-      <div class="em-parts" id="export-parts">
-        <label><input type="checkbox" value="history" /><span>对局历史</span></label>
-        <label><input type="checkbox" value="match" /><span>单局详情</span></label>
-        <label><input type="checkbox" value="social" /><span>好友与组队</span></label>
-        <label><input type="checkbox" value="party" /><span>最近组队</span></label>
-        <label><input type="checkbox" value="assets" /><span>资产</span></label>
-        <label><input type="checkbox" value="season" /><span>赛季总览</span></label>
-      </div>
-      <label class="em-privacy">
-        <input type="checkbox" id="export-privacy" />
-        <span>隐私模式：把玩家名换成「玩家A/玩家B」，并隐藏掌瓦号与固定 ID（适合发群展示）</span>
-      </label>
-      <div class="em-range">
-        <b>单局详情导哪几场</b>
-        <span class="em-modes" id="export-range-mode">
-          <label><input type="radio" name="export-range" value="count" checked /><span>最近 N 场</span></label>
-          <label><input type="radio" name="export-range" value="date" /><span>日期区间</span></label>
-        </span>
-        <span class="dim">两种方式二选一，不会互相打架</span>
-      </div>
-      <div class="em-range" id="export-count-row">
-        <label for="export-match-count">取</label>
-        <select id="export-match-count">
-          <option value="1">最近 1 场</option>
-          <option value="3">最近 3 场</option>
-          <option value="5" selected>最近 5 场</option>
-          <option value="10">最近 10 场</option>
-          <option value="20">最近 20 场</option>
-        </select>
-        <span class="dim">场次不足按实际出，不会复制补齐</span>
-      </div>
-      <div class="em-range" id="export-date-row" hidden>
-        <label for="export-date-from">从</label>
-        <select id="export-date-from"><option value="">不限</option></select>
-        <span>到</span>
-        <select id="export-date-to"><option value="">不限</option></select>
-        <span class="dim" id="export-day-hint">选项只列真的有战绩的日子</span>
-      </div>
-      <p class="em-hint" id="export-hint">不勾选 = 只导出当前这一页；勾选后按「历史 → 单局 → 好友 → 组队 → 资产 → 赛季」的顺序合并。</p>
-    </section>
-    <section class="em-sec">
-      <b>输出格式</b>
-      <div class="em-fmts" id="export-formats">
-        <label class="em-fmt"><input type="radio" name="export-fmt" value="pdf" checked />
-          <span><b>合并 PDF</b><i>多段合成一个文件，适合打印与归档</i></span></label>
-        <label class="em-fmt"><input type="radio" name="export-fmt" value="png" />
-          <span><b>PNG 长图</b><i>整页截图，适合发群里</i></span></label>
-        <label class="em-fmt"><input type="radio" name="export-fmt" value="pngzip" />
-          <span><b>PNG 压缩包</b><i>勾几块就打几张图进 zip，文件名是中文</i></span></label>
-        <label class="em-fmt"><input type="radio" name="export-fmt" value="pdfzip" />
-          <span><b>PDF 分卷压缩包</b><i>每块（每场）一个 PDF，附中文说明</i></span></label>
-        <label class="em-fmt"><input type="radio" name="export-fmt" value="html" />
-          <span><b>HTML 文档</b><i>文字版分析报告，不走浏览器，几秒就好</i></span></label>
-        <label class="em-fmt"><input type="radio" name="export-fmt" value="md" />
-          <span><b>Markdown 文档</b><i>能贴进笔记、能再编辑</i></span></label>
-      </div>
-    </section>
-    <footer class="em-foot">
-      <button class="em-cancel" type="button" data-close="1">取消</button>
-      <button class="em-share" id="share-btn" type="button" title="生成一个别人不用登录也能看的只读页面">生成分享链接</button>
-      <button class="em-go" id="export-btn" type="button">开始导出</button>
-    </footer>
-  </div>
-</div>
+<div class="cred-alert hidden" id="cred-alert"></div>
 
 <section class="search-recent hidden" id="search-recent" aria-label="最近查询与收藏">
   <div class="sr-tabs">
@@ -192,14 +113,14 @@
     <div class="home-steps">
       <div class="step"><b>1</b><span>输入 ID<small>游戏 ID 带 # 编号，掌瓦号是那串数字或自定义号</small></span></div>
       <div class="step"><b>2</b><span>看概览<small>段位、场均、最近战绩一眼看完</small></span></div>
-      <div class="step"><b>3</b><span>往下钻<small>点进单局看回合，或导出成 PDF 存档</small></span></div>
+      <div class="step"><b>3</b><span>往下钻<small>点进单局看回合，或分享给别人</small></span></div>
     </div>
 
     <div class="home-faq">
       <details><summary>改名了还能查到吗？</summary><p>能。查到时可以复制那串「固定 ID」，它跟着账号走、不随改名变化；用固定 ID 搜索即可。</p></details>
       <details><summary>为什么有的号没有掌瓦号、没有资产？</summary><p>掌瓦没收录这个账号时就没有掌瓦号；资产接口需要他本人的 <code>scene</code>，没有收录就查不到，页面会直接说明。</p></details>
       <details><summary>数据是哪来的，准不准？</summary><p>只读取公开战绩（掌瓦 / 公开对局接口）。非官方项目，数据可能有延迟或缺失，仅供参考。</p></details>
-      <details><summary>会存我的信息吗？</summary><p>不存 QQ、不存密码；页面只读取公开战绩，不留任何账号信息。</p></details>
+      <details><summary>会存我的信息吗？</summary><p>不存 QQ、不存密码；页面只在你的浏览器本地缓存公开战绩，方便下次打开更快。</p></details>
     </div>
   </section>
 
@@ -229,6 +150,19 @@
         <div class="tiles" id="tiles"></div>
       </div>
     </div>
+    </div>
+
+    <div class="share-row">
+      <button class="em-share" id="share-btn" type="button" title="生成一个别人不用登录也能看的只读页面">生成分享链接</button>
+      <select id="share-hours" class="share-hours" title="链接有效期">
+        <option value="1">1 小时</option>
+        <option value="6">6 小时</option>
+        <option value="12">12 小时</option>
+        <option value="24" selected>24 小时</option>
+        <option value="48">48 小时</option>
+        <option value="72">72 小时</option>
+      </select>
+      <span class="em-hint" id="export-hint">分享出去的是一份只读快照，到期自动失效。</span>
     </div>
 
     <div class="player-grid">

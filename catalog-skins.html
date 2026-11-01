@@ -22,7 +22,10 @@
   .modal { position: fixed; inset: 0; background: rgba(12,14,17,.62); display: none; align-items: flex-start;
     justify-content: center; padding: 40px 16px; z-index: 60; overflow: auto; }
   .modal.on { display: flex; }
-  .modal-card { background: var(--card); border-radius: 16px; width: min(820px,100%); padding: 20px; }
+  .modal-card { background: var(--card); border-radius: 16px; width: min(820px,100%); padding: 20px; position: relative; }
+  .modal-x { position: absolute; top: 10px; right: 12px; border: 0; background: transparent; font-size: 22px;
+    line-height: 1; color: var(--muted); cursor: pointer; padding: 4px 6px; border-radius: 8px; }
+  .modal-x:hover { background: var(--paper-2); color: var(--ink); }
   .chromas { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px,1fr)); gap: 10px; margin-top: 12px; }
   .chroma { background: var(--paper-2); border-radius: 10px; padding: 8px; text-align: center; }
   .chroma img { width: 100%; height: 74px; object-fit: contain; }
@@ -47,13 +50,11 @@
   </div>
   <div class="legal">非官方工具，与 Riot Games / 腾讯无关；皮肤数据来自社区公开数据，仅供参考。</div>
 </div>
-<div class="modal" id="modal"><div class="modal-card" id="modal-body"></div></div>
+<div class="modal" id="modal"><div class="modal-card"><button class="modal-x" id="modal-x" aria-label="关闭">✕</button><div id="modal-body"></div></div></div>
 <script src="/config.js?v=1"></script>
 <script>
 (function () {
   const $ = (s) => document.querySelector(s);
-  // 后端给的图是 /img?url=…，静态站自己没这个路由，补成 apiBase 绝对地址。
-  const pic = (u) => (typeof window.valoAsset === "function" ? window.valoAsset(u) : u);
   let guns = [], current = null, detail = null, kw = "";
 
   function renderSkins() {
@@ -63,7 +64,7 @@
     detail.skins.filter((s) => !kw || s.name.includes(kw)).forEach((s) => {
       const card = document.createElement("div");
       card.className = "tool-card skin-card";
-      card.innerHTML = `<div class="art"><img src="${pic(s.icon)}" alt="" loading="lazy"></div>
+      card.innerHTML = `<div class="art"><img src="${valoAsset(s.icon)}" alt="" loading="lazy"></div>
         <div class="card-name">${s.name}</div>
         <div class="card-meta">${s.chromas.length} 个配色</div>`;
       card.addEventListener("click", () => openSkin(s));
@@ -73,10 +74,13 @@
 
   function openSkin(s) {
     $("#modal-body").innerHTML = `<h2 style="margin:0 0 10px">${s.name}</h2>
-      <div class="chromas">${s.chromas.map((c) => `<div class="chroma"><img src="${pic(c.icon)}" alt=""><div class="card-meta">${c.name}</div></div>`).join("")}</div>`;
+      <div class="chromas">${s.chromas.map((c) => `<div class="chroma"><img src="${valoAsset(c.icon)}" alt=""><div class="card-meta">${c.name}</div></div>`).join("")}</div>`;
     $("#modal").classList.add("on");
   }
-  $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") e.currentTarget.classList.remove("on"); });
+  const close = () => $("#modal").classList.remove("on");
+  $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") close(); });
+  $("#modal-x").addEventListener("click", close);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
   $("#q").addEventListener("input", (e) => { kw = e.target.value.trim(); renderSkins(); });
 
   function renderGuns() {
@@ -85,7 +89,7 @@
     guns.forEach((g) => {
       const b = document.createElement("button");
       b.className = "gun" + (current && g.uuid === current.uuid ? " on" : "");
-      b.innerHTML = `<img src="${pic(g.icon)}" alt="" loading="lazy"><span>${g.name}</span>`;
+      b.innerHTML = `<img src="${valoAsset(g.icon)}" alt="" loading="lazy"><span>${g.name}</span>`;
       b.addEventListener("click", () => choose(g));
       box.appendChild(b);
     });

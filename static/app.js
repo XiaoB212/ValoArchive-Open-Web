@@ -11,6 +11,13 @@ const img = (url) => {
   return typeof window.valoAsset === "function" ? window.valoAsset(path) : path;
 };
 
+// 只有站长部署（web/）才有登录态管理页；Open-Web 复刻版由 config.js 把
+// VALO_FEATURES.login 置 false，三处「去重新扫码」提示直接不渲染，而不是留个点不开的链接。
+const NO_LOGIN = !!(window.VALO_FEATURES && window.VALO_FEATURES.login === false);
+const reloginLink = (label) => (NO_LOGIN
+  ? ""
+  : `<a class="inline-link" href="/valoadmin#login" target="_blank" rel="noopener">${label}</a>`);
+
 // 老版本的「最近查询」存在 localStorage（valoarchive.recent.v1），UI 已经去掉了，顺手清干净。
 try {
   localStorage.removeItem("valoarchive.recent.v1");
@@ -608,7 +615,7 @@ async function loadPlayer(keyword, refresh = false) {
     stopWatch();
     const detail = err.detail && typeof err.detail === "object" ? err.detail : null;
     const action = detail && detail.relogin === "aclos"
-      ? ' <a class="inline-link" href="/valoadmin#login" target="_blank" rel="noopener">去重新扫码登录助手 →</a>'
+      ? (NO_LOGIN ? "" : ' <a class="inline-link" href="/valoadmin#login" target="_blank" rel="noopener">去重新扫码登录助手 →</a>')
       : "";
     showError(`查询失败：${err.message}`, action);
     // 人已经找到了（只是换不出 PUUID）时不用再提供「是不是这个」候选，那反而更乱。
@@ -1219,7 +1226,7 @@ function renderMatch(payload, matchId, host) {
   const nameless = score.filter((seat) => !String(seat.display_name || seat.user_name || "").trim());
   const nameNote = nameless.length
     ? `<p class="name-note">有 ${nameless.length} 名玩家没取到游戏 ID：名字查询服务没登录，或这个人没绑定过游戏账号。
-       <a class="inline-link" href="/valoadmin#login" target="_blank">去重新扫码 →</a></p>`
+       ${reloginLink("去重新扫码 →")}</p>`
     : "";
 
   const hero = `
@@ -2257,6 +2264,16 @@ async function refreshHealth(force) {
 }
 
 function renderHealth(health) {
+  /* 普通用户看不到后台细节：连“PD / 助手 / WG”这三颗灯都别显示，
+     只留“上游服务到期”这一句（后端已经过滤过 credential_states）。 */
+  if (health && health.admin === false) {
+    const box = $("#health");
+    if (box) box.classList.add("hidden");
+    const foot = $("#footer-cred");
+    if (foot) foot.textContent = "";
+    renderCredChip(health);
+    return;
+  }
   const cred = health.credentials || {};
   const mark = (ok) => (ok ? "<b>●</b>" : "<s>●</s>");
   $("#health").innerHTML = `${mark(cred.pd)}PD ${mark(cred.aclos)}助手 ${mark(cred.wegame)}WG`;
@@ -2278,7 +2295,7 @@ function renderCredChip(health) {
   }
   const labels = bad.map((s) => s.short || s.label).join("、");
   chip.className = `cred-chip ${bad.some((s) => ["expired", "missing"].includes(s.state)) ? "bad" : "warn"}`;
-  chip.textContent = `⚠ ${labels} 待重扫`;
+  chip.textContent = health.admin === false ? "⚠ 上游服务到期" : `⚠ ${labels} 待重扫`;
   chip.title = bad
     .map((s) => `${s.label}：${s.state === "expiring" ? "快过期" : "已失效"}${s.since_text ? `（${s.since_text} 起）` : ""}${s.last_ok_text ? ` · 最后正常 ${s.last_ok_text}` : ""}\n${s.message || ""}`)
     .join("\n");
@@ -2319,7 +2336,7 @@ function renderCredAlert(health) {
         return `<li><b>${escapeHtml(s.label)}</b><span>${escapeHtml(s.message)}</span>${when ? `<em>${escapeHtml(when)}</em>` : ""}</li>`;
       })
       .join("")}</ul>
-    <p class="ca-foot">重新扫码在 <a href="/valoadmin#login" target="_blank" rel="noopener">登录态</a> 页（需要手机确认）。</p>`;
+    ${NO_LOGIN || health.admin === false ? "" : '<p class="ca-foot">重新扫码在 <a href="/valoadmin#login" target="_blank" rel="noopener">登录态</a> 页（需要手机确认）。</p>'}`;
   box.querySelector(".ca-close").addEventListener("click", () => {
     const next = dismissed.concat(shown.map((s) => `${s.key}:${s.state}`));
     sessionStorage.setItem("cred-dismissed", JSON.stringify(next));
@@ -2470,7 +2487,9 @@ async function boot() {
   );
   initSearchHistory();
 
-  $("#search-form").addEventListener("submit", (event) => {
+  // 分享页会把搜索框整个摘掉：没有它也要能启动，所以这里判空。
+  const searchForm = $("#search-form");
+  if (searchForm) searchForm.addEventListener("submit", (event) => {
     event.preventDefault();
     // 全角 ＃ / 全角字母数字先归一化，不然「示例玩家＃12345」这种全角写法查不到
     const keyword = $("#search-input").value.normalize("NFKC").replace(/＃/g, "#").trim();
@@ -2681,7 +2700,7 @@ async function boot() {
     }
     syncExportHint();
   };
-  syncExportFormats();
+  if ($("#export-modal")) syncExportFormats();
   const openExportDialog = () => {
     if (!state.keyword) {
       showError("先查一个人，再导出。");
@@ -2818,7 +2837,8 @@ async function boot() {
     btn.textContent = "生成中…";
     clearError();
     try {
-      const data = await api.post("/api/share", { keyword: state.keyword, mode: state.source || "game" });
+      const hours = Number(($("#share-hours") || {}).value || 24);
+      const data = await api.post("/api/share", { keyword: state.keyword, mode: state.source || "game", hours });
       const url = new URL(data.url, location.origin).href;
       let copied = false;
       try {
@@ -2939,20 +2959,23 @@ async function boot() {
 
   const params = new URLSearchParams(location.search);
   state.pendingTab = params.get("tab");
-  const presetMode = params.get("mode");
+  const presetMode = params.get("mode") || (window.__SHARE__ && window.__SHARE__.mode);
   if (presetMode === "mval" || presetMode === "game") {
     state.source = presetMode;
     $$("#search-mode button").forEach((b) => b.classList.toggle("active", b.dataset.source === presetMode));
-    $("#search-input").placeholder = placeholderFor(presetMode);
+    const modeInput = $("#search-input");
+    if (modeInput) modeInput.placeholder = placeholderFor(presetMode);
   }
   if (EXPORT_KIND) {
     document.body.classList.add("export");
     if (EXPORT_KIND === "match") document.body.classList.add("export-match");
   }
   if (EXPORT_KIND) document.body.dataset.exportPending = "1";
-  const preset = params.get("q");
+  // 分享页没有查询串，玩家从内联快照里读（window.__SHARE__）。
+  const preset = params.get("q") || (window.__SHARE__ && window.__SHARE__.keyword) || "";
   if (preset) {
-    $("#search-input").value = preset;
+    const input = $("#search-input");
+    if (input) input.value = preset;
     loadPlayer(preset)
       .then(() => {
         const tab = params.get("tab");

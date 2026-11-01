@@ -11,11 +11,14 @@
   .agent-card { cursor: pointer; }
   .agent-card .portrait { height: 168px; display: grid; place-items: end center; overflow: hidden;
     background: radial-gradient(circle at 50% 30%, #2a3038, #12161b); border-radius: 10px; }
-  .agent-card .portrait img { height: 100%; object-fit: contain; }
+  .agent-card .portrait img { width: 100%; height: 100%; object-fit: contain; object-position: bottom center; }
   .modal { position: fixed; inset: 0; background: rgba(12,14,17,.62); display: none;
     align-items: flex-start; justify-content: center; padding: 40px 16px; z-index: 60; overflow: auto; }
   .modal.on { display: flex; }
-  .modal-card { background: var(--card); border-radius: 16px; width: min(760px, 100%); padding: 22px; }
+  .modal-card { background: var(--card); border-radius: 16px; width: min(760px, 100%); padding: 22px; position: relative; }
+  .modal-x { position: absolute; top: 10px; right: 12px; border: 0; background: transparent; font-size: 22px;
+    line-height: 1; color: var(--muted); cursor: pointer; padding: 4px 6px; border-radius: 8px; }
+  .modal-x:hover { background: var(--paper-2); color: var(--ink); }
   .ab { display: grid; grid-template-columns: 34px 1fr; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); }
   .ab img { width: 30px; height: 30px; }
   .ab b { font-size: 13px; }
@@ -39,13 +42,11 @@
   <div class="cards" id="cards"></div>
   <div class="legal">非官方工具，与 Riot Games / 腾讯无关；英雄资料来自社区公开数据，仅供参考。</div>
 </div>
-<div class="modal" id="modal"><div class="modal-card" id="modal-body"></div></div>
+<div class="modal" id="modal"><div class="modal-card"><button class="modal-x" id="modal-x" aria-label="关闭">✕</button><div id="modal-body"></div></div></div>
 <script src="/config.js?v=1"></script>
 <script>
 (function () {
   const $ = (s) => document.querySelector(s);
-  // 后端给的图是 /img?url=…，静态站自己没这个路由，补成 apiBase 绝对地址。
-  const pic = (u) => (typeof window.valoAsset === "function" ? window.valoAsset(u) : u);
   let rows = [], role = "", kw = "";
 
   function render() {
@@ -54,7 +55,7 @@
     rows.filter((r) => (!role || r.role === role) && (!kw || r.name.includes(kw))).forEach((r) => {
       const card = document.createElement("div");
       card.className = "tool-card agent-card";
-      card.innerHTML = `<div class="portrait"><img src="${pic(r.icon)}" alt="${r.name}" loading="lazy"></div>
+      card.innerHTML = `<div class="portrait"><img src="${valoAsset(r.full || r.icon)}" alt="${r.name}" loading="lazy"></div>
         <div class="card-name">${r.name}</div><div class="card-meta">${r.role || "—"}</div>`;
       card.addEventListener("click", () => open(r));
       box.appendChild(card);
@@ -63,14 +64,17 @@
 
   function open(r) {
     $("#modal-body").innerHTML = `<div style="display:flex;gap:16px;align-items:center;margin-bottom:8px">
-      <img src="${pic(r.icon)}" style="width:96px;height:96px;object-fit:contain">
+      <img src="${valoAsset(r.icon)}" style="width:96px;height:96px;object-fit:contain">
       <div><h2 style="margin:0 0 4px">${r.name}</h2>
       <div class="card-meta">${r.role || ""}</div>
       <p class="hint" style="margin:8px 0 0">${r.desc || ""}</p></div></div>
-      ${r.abilities.map((a) => `<div class="ab"><img src="${pic(a.icon)}" alt=""><div><b>${a.name}</b><p>${a.desc}</p></div></div>`).join("")}`;
+      ${r.abilities.map((a) => `<div class="ab"><img src="${valoAsset(a.icon)}" alt=""><div><b>${a.name}</b><p>${a.desc}</p></div></div>`).join("")}`;
     $("#modal").classList.add("on");
   }
-  $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") e.currentTarget.classList.remove("on"); });
+  const close = () => $("#modal").classList.remove("on");
+  $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") close(); });
+  $("#modal-x").addEventListener("click", close);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
   $("#q").addEventListener("input", (e) => { kw = e.target.value.trim(); render(); });
 
   fetch("/api/catalog/agents").then((r) => r.json()).then((d) => {
