@@ -122,11 +122,54 @@ const placeholderFor = (src) => src === "mval"
     ? "固定ID（改名后也能查到），如 00000000-0000-0000-0000-000000000000"
     : "游戏昵称#编号，如 示例玩家#12345";
 
+let loginGateShown = false;
+let lastUserAction = 0;
+window.addEventListener("click", () => { lastUserAction = Date.now(); }, true);
+window.addEventListener("keydown", () => { lastUserAction = Date.now(); }, true);
+function gateDayKey() {
+  const d = new Date();
+  return `valo.gate.${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+}
+function gateDismissed() {
+  try { return localStorage.getItem(gateDayKey()) === "1"; } catch (_) { return false; }
+}
+function showLoginGate() {
+  // 只有刚刚点过/按过键（3 秒内）才算「试了一下」；纯刷新、自动预取都不打扰。
+  if (Date.now() - lastUserAction > 3000) return;
+  if (loginGateShown) return;
+  loginGateShown = true;
+  const next = encodeURIComponent(location.pathname + location.search);
+  const box = document.createElement("div");
+  box.id = "login-gate";
+  box.innerHTML = `
+<div class="lg-card" role="dialog" aria-modal="true" aria-labelledby="lg-title">
+  <h3 id="lg-title">登录后查看战绩</h3>
+  <p>对局数据只对登录用户开放。注册一个 QQ 号就能免费查，每天有免费额度；买了卡密的登录后核销就是会员。</p>
+  <div class="lg-actions">
+    <a class="lg-go" href="/account?next=${next}">登录 / 注册</a>
+    <button class="lg-close" id="lg-close" type="button">今天先逛逛</button>
+  </div>
+  <small class="lg-note">今天不再弹这个提示；下次点查询时还会提醒。</small>
+</div>`;
+  document.body.appendChild(box);
+  const close = () => {
+try { localStorage.setItem(gateDayKey(), "1"); } catch (_) { /* 隐私模式忽略 */ }
+box.remove();
+loginGateShown = false;
+  };
+  box.querySelector("#lg-close").addEventListener("click", close);
+  box.addEventListener("click", (ev) => { if (ev.target === box) close(); });
+}
+
 const api = {
   async get(path, params = {}) {
     const url = new URL(path, location.origin);
     Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v === "uid" ? "game" : v));
     const res = await fetch(url);
+    if (res.status === 401) {
+      showLoginGate();
+      throw new Error("需要登录");
+    }
     if (!res.ok) {
       let detail = res.statusText;
       try {
@@ -147,16 +190,40 @@ const api = {
       headers: body ? { "Content-Type": "application/json" } : undefined,
       body: body ? JSON.stringify(body) : undefined,
     });
+    if (res.status === 401) {
+      showLoginGate();
+      throw new Error("需要登录");
+    }
     if (!res.ok) {
       let detail = res.statusText;
       try {
         detail = (await res.json()).detail || detail;
       } catch (_) { /* keep statusText */ }
-      throw new Error(detail);
+      const err = new Error(
+        typeof detail === "string" ? detail : (detail.message || res.statusText)
+      );
+      err.status = res.status;
+      err.detail = detail;
+      throw err;
     }
     return res.json();
   },
 };
+
+// 免费 / 会员：登录后拉一次，分享按钮之类的入口据此提示（真正的限制都在后端）。
+let PLAN = null;
+
+async function loadPlan() {
+  try {
+    const res = await fetch("/api/auth/me", { credentials: "same-origin" });
+    const data = await res.json();
+    PLAN = { vip: !!(data && data.member && data.member.active), qq: (data && data.qq) || "" };
+    const btn = $("#share-btn");
+    if (btn && !PLAN.vip) btn.title = "分享链接是会员功能";
+  } catch (_) {
+    PLAN = null;
+  }
+}
 
 
 let busyDepth = 0;
@@ -184,10 +251,44 @@ function skeleton(rows, label) {
   </div>`;
 }
 
-function showError(message, actionHtml = "") {
+function barBottomOf(sel) {
+  const el = document.querySelector(sel);
+  return el ? el.getBoundingClientRect().bottom : 0;
+}
+
+function showError(message, actionHtml = "", anchor = null) {
+  // 登录提示自己已经说清楚了，别再叠一个黑色的错误条
+  if (/^需要登录$/.test(String(message || "").trim())) return;
   const box = $("#error");
-  box.innerHTML = escapeHtml(message) + actionHtml;
+  box.innerHTML = `<span class="err-msg">${escapeHtml(message)}</span>${actionHtml || ""}` +
+    '<button class="err-x" type="button" aria-label="关闭">×</button>';
   box.classList.remove("hidden");
+  // 提示挂在 body 上，否则会被 main 的 z-index 叠进下层、顶栏盖住
+  if (box.parentElement !== document.body) document.body.appendChild(box);
+  box.style.left = ""; box.style.top = ""; box.style.bottom = ""; box.style.width = ""; box.style.transform = "";
+  // 提示贴在触发点旁边：优先下方，空间不够翻到上方；水平居中于按钮并夹在视口内
+  const w = Math.min(420, innerWidth - 24);
+  const h = box.offsetHeight || 44;
+  let left, top;
+  if (anchor && anchor.getBoundingClientRect) {
+    const r = anchor.getBoundingClientRect();
+    const bw = box.offsetWidth || w;
+    left = Math.min(Math.max(8, r.left + r.width / 2 - bw / 2), innerWidth - bw - 8);
+    top = r.bottom + 10;
+    if (top + h > innerHeight - 8) top = Math.max(8, r.top - h - 10);
+  } else {
+    const bw = box.offsetWidth || w;
+    left = Math.max(8, (innerWidth - bw) / 2);
+    top = barBottomOf(".top") + 10;
+  }
+  box.style.left = Math.round(left) + "px";
+  box.style.top = Math.round(top) + "px";
+  box.style.bottom = "auto";
+  box.style.transform = "none";
+  const x = box.querySelector(".err-x");
+  if (x) x.onclick = () => box.classList.add("hidden");
+  clearTimeout(showError._t);
+  showError._t = setTimeout(() => box.classList.add("hidden"), 3000);
 }
 
 function clearError() {
@@ -268,6 +369,7 @@ function renderSummary(summary) {
     : "";
   box.innerHTML = `
     <div class="sum-head"><span class="kicker">近 ${summary.decided ?? summary.matches} 场总结</span>
+      <button class="sum-toggle" type="button" aria-expanded="false">详情</button>
       <span class="sum-sub">${summary.scope ? summary.scope + " · " : ""}胜 ${summary.wins} · 负 ${summary.losses} · ${
         summary.party_known ? `组队 ${summary.party_games} 场（${summary.party_rate ?? 0}%）` : "长历史不含组队信息"
       }${summary.rr_total !== null && summary.rr_total !== undefined ? ` · RR 累计 ${summary.rr_total > 0 ? "+" : ""}${summary.rr_total}（${summary.rr_games} 场）` : ""}</span>
@@ -278,14 +380,24 @@ function renderSummary(summary) {
       <div><i>ACS</i><b>${summary.acs}</b></div>
       <div><i>组队率</i><b>${summary.party_rate != null ? summary.party_rate + "%" : "—"}</b></div>
     </div>
+    <div class="sum-more">
     <div class="sum-line"><span class="k">最近战绩（点一下看单场）</span><div class="mchips">${chips || '<span class="dim">—</span>'}</div></div>
     <div class="sum-line"><span class="k">对局机房</span><div class="pods">${pods || '<span class="dim">暂无机组数据</span>'}</div></div>
-    <div class="sum-line"><span class="k">常一起排</span><div class="mates" id="summary-mates">${mates || '<span class="dim">暂无（去「好友与组队」扫一次）</span>'}</div></div>`;
+    <div class="sum-line"><span class="k">常一起排</span><div class="mates" id="summary-mates">${mates || '<span class="dim">暂无（去「好友与组队」扫一次）</span>'}</div></div>
+    </div>`;
   box.querySelectorAll("[data-match]").forEach((el) => el.addEventListener("click", (ev) => {
     ev.preventDefault();
     loadMatch(el.dataset.match, null);
   }));
   bindMateChips(box);
+  const tog = box.querySelector(".sum-toggle");
+  if (tog) {
+    tog.addEventListener("click", () => {
+      const open = box.classList.toggle("sum-open");
+      tog.setAttribute("aria-expanded", open ? "true" : "false");
+      tog.textContent = open ? "收起" : "详情";
+    });
+  }
 }
 
 function bindMateChips(scope) {
@@ -504,6 +616,7 @@ async function loadPlayer(keyword, refresh = false) {
     $("#empty-state").classList.add("hidden");
     $("#player").classList.remove("hidden");
     $("#p-name").textContent = p.label;
+    syncFavButton(p.label || state.keyword);
     $("#p-level").textContent = p.level ? `LV ${p.level}` : "LV —";
     const fixedBox = $("#p-fixed");
     if (fixedBox) {
@@ -617,7 +730,10 @@ async function loadPlayer(keyword, refresh = false) {
     const action = detail && detail.relogin === "aclos"
       ? (NO_LOGIN ? "" : ' <a class="inline-link" href="/valoadmin#login" target="_blank" rel="noopener">去重新扫码登录助手 →</a>')
       : "";
-    showError(`查询失败：${err.message}`, action);
+    // 未登录时的提示只留给登录卡片：再叠一条红色错误条会重复，也挡视线。
+    if (err.status !== 401 && !/需要登录/.test(String(err.message || ""))) {
+      showError(`查询失败：${err.message}`, action, $("#search-form"));
+    }
     // 人已经找到了（只是换不出 PUUID）时不用再提供「是不是这个」候选，那反而更乱。
     if (!(detail && detail.found)) suggest(keyword);
   }
@@ -688,6 +804,9 @@ function timeRange(row) {
     const day = msDay(row.start_ms);
     const start = msClock(row.start_ms);
     const end = msClock(row.end_ms);
+    const endDay = row.end_ms ? msFullDay(row.end_ms) : "";
+    // 跨零点：结束时间带上它自己的日期，别只写「→ 00:17」
+    if (end && endDay && endDay !== day) return `${day} ${start} → ${endDay} ${end}`;
     return end ? `${day} ${start} → ${end}` : `${day} ${start}`;
   }
   if (!row.start_time && /^\d{2}-\d{2} \d{2}:\d{2}$/.test(String(row.time || ""))) {
@@ -702,7 +821,11 @@ function timeRange(row) {
   const start = row.start_time || row.time || "";
   const end = row.end_time || "";
   const day = shortDate(start);
-  if (clock(start) && clock(end)) return `${day} ${clock(start)} → ${clock(end)}`;
+  const endDay = shortDate(end);
+  if (clock(start) && clock(end)) {
+    if (endDay && day && endDay !== day) return `${day} ${clock(start)} → ${endDay} ${clock(end)}`;
+    return `${day} ${clock(start)} → ${clock(end)}`;
+  }
   if (clock(start)) return `${day} ${clock(start)}`;
   return day || "时间未知";
 }
@@ -807,7 +930,9 @@ function prefetchHistory(keyword, refresh) {
 // 一处，前端不再硬编码一份（index.html 里那份只是没 JS 时的兜底）。
 function syncModeOptions(payload) {
   const box = $("#view-mode");
-  const groups = payload && payload.mode_groups;
+  /* 快捷筛选以后端 mode_filters 为准（竞技/普通/极速/个人乱斗/团队乱斗/武装升级/爆能快攻/其他），
+     老后端只给 mode_groups 时退回分组。 */
+  const groups = (payload && (payload.mode_filters || payload.mode_groups)) || [];
   if (!box || !Array.isArray(groups) || !groups.length) return;
   const sig = groups.map((g) => `${g.id}:${g.label}`).join("|");
   if (box.dataset && box.dataset.modeSig === sig) {
@@ -818,6 +943,12 @@ function syncModeOptions(payload) {
     .map((g) => `<button type="button" class="chip" data-gm="${escapeHtml(g.id)}">${escapeHtml(g.label)}</button>`)
     .join("");
   if (box.dataset) box.dataset.modeSig = sig;
+  const sel = $("#gm-select");
+  if (sel) {
+    sel.innerHTML = groups
+      .map((g) => `<option value="${escapeHtml(g.id)}">${escapeHtml(g.label)}</option>`)
+      .join("");
+  }
   syncModeChips();
 }
 
@@ -825,6 +956,15 @@ function syncModeOptions(payload) {
 function syncModeChips() {
   $$("#view-mode button").forEach((btn) =>
     btn.classList.toggle("active", (btn.dataset.gm || "all") === state.gm));
+  const sel = $("#gm-select");
+  if (sel && sel.value !== state.gm) sel.value = state.gm;
+}
+
+function setGm(value) {
+  state.gm = value || "all";
+  syncModeChips();
+  try { localStorage.setItem("valo.gm", state.gm); } catch (_) { /* 隐私模式忽略 */ }
+  loadPage(1);
 }
 
 async function loadPage(page, refresh = false, prefetched = null) {
@@ -882,6 +1022,9 @@ function clearQuickCards() {
 }
 
 async function loadMatch(matchId, rowEl) {
+  // 列表行是 <a href="#">，浏览器会补一次空跳转；没有 matchId 就直接忽略，
+  // 否则会被当成「打开单局」跳到空详情页（手机端「就地查看」失效就是这个）。
+  if (!matchId) return;
   state.matchId = matchId;
   state.matchLoaded = true;
   // 导出截图只认「单局详情」页里的 #match-body，所以导出模式永远走独立页。
@@ -934,6 +1077,10 @@ async function toggleQuick(matchId, rowEl) {
 const TEAM_COLORS = ["#3d9ef0", "#e85a5a", "#f0b429", "#3ec98a", "#a97bf0", "#f08a3d", "#3dc9cf", "#ef7fc0"];
 const TEAM_COLOR_NAMES = ["蓝", "红", "黄", "绿", "紫", "橙", "青", "粉"];
 
+// 红蓝两方制模式（有 A/B 队徽的意义）；异变轮战、斗牛等 8 队模式不算。
+const TWO_SIDE_MODES = new Set(["competitive", "unrated", "swiftplay", "premier", "onefa", "custom", "hurm"]);
+
+
 // 队名 → 队伍编号（Team_7 → 7）；PD 的 teams[] 里有 team_number 就优先用。
 function teamNumber(teamId, teams) {
   const info = (teams || []).find((t) => String(t.team_id || "") === String(teamId || ""));
@@ -977,6 +1124,8 @@ function renderQuickMatch(payload, matchId, host) {
   // 只有异变轮战（8 队各有颜色/动物名）才分组；团队乱斗、斗牛虽然也是 8 队，
   // 但掌瓦没给队伍名，强行分组会把它们画成异变轮战的样子。
   const multiTeam = !!payload.multi_team;
+  // 快速卡里也要判断「是不是红蓝两方制」：三方式(异变/乱斗)不画 A/B 队徽
+  const sideGrouped = !multiTeam && TWO_SIDE_MODES.has(String(detail.game_mode || ""));
   const srv = detail.server || {};
   const srvLabel = srv.label || srv.region || srv.code || "";
   const whenText = detail.start_text || (detail.start_millis ? msFullDay(detail.start_millis) : "");
@@ -1098,9 +1247,13 @@ function renderMatch(payload, matchId, host) {
   const endClock = endMillis ? msClock(endMillis) : clock(endText);
   const clockRange = startClock && endClock ? `${startClock} → ${endClock}` : startClock;
   // 单局详情要看到完整年月日 + 开局/结束时间（列表页仍然只显示月-日）
-  const dayText = startMillis ? msFullDay(startMillis) : (startText || "").slice(0, 10);
+  const dayText = startMillis ? msFullDay(startMillis) : shortDate(startText);
+  // 跨零点的局（23:38 开、次日 00:17 结束）结束时间要用结束自己的日期，
+  // 不能跟着开始日期走，否则会写成「11-01 23:38 · 结束 11-01 00:17」。
+  const endDayText = endMillis ? msFullDay(endMillis) : shortDate(endText);
   const startFull = [dayText, startClock].filter(Boolean).join(" ");
-  const endFull = [dayText || (endText || "").slice(0, 10), endClock].filter(Boolean).join(" ");
+  const crossDay = Boolean(dayText && endDayText && dayText !== endDayText);
+  const endFull = crossDay ? [endDayText, endClock].filter(Boolean).join(" ") : endClock;
   const whenText = startFull
     ? `开局 ${startFull}${endClock ? ` · 结束 ${endFull || endClock}` : ""}`
     : "";
@@ -1171,7 +1324,6 @@ function renderMatch(payload, matchId, host) {
   };
 
   // 死斗、斗牛这类没有红蓝阵营的模式，不要硬分「我方/对方」——掌瓦那边全是同一队。
-  const TWO_SIDE_MODES = new Set(["competitive", "unrated", "swiftplay", "premier", "onefa", "custom", "hurm"]);
   const sideGrouped = !multiTeam && TWO_SIDE_MODES.has(String(detail.game_mode || ""));
   const groups = sideGrouped
     ? [
@@ -1645,9 +1797,9 @@ function renderParty() {
       const letter = escapeHtml((m.name || "?").slice(0, 1));
       const av = m.avatar ? `<img class="mate-av" src="${img(m.avatar)}" alt="" loading="lazy" onerror="this.remove()" />` : "";
       // data-name 必须是完整的「昵称#编号」：只回填前缀的话，筛选条件会丢掉编号
-      return `<button type="button" class="mate" data-name="${escapeHtml(String(m.name || ""))}" title="${escapeHtml(String(m.name || ""))}"><span class="av${m.avatar ? " has" : ""}">${letter}${av}</span><span class="mate-name">${escapeHtml(m.name)}</span><b>${m.n} 场</b></button>`;
+      return `<button type="button" class="mate" data-name="${escapeHtml(String(m.name || ""))}" title="${escapeHtml(String(m.name || ""))}"><span class="av${m.avatar ? " has" : ""}">${letter}${av}</span><span class="mate-name">${escapeHtml(m.name)}</span><b>${m.n} 场</b>${(m.last || m.last_text) ? `<em class="mate-when">最近 ${m.last ? fullDate(m.last) : m.last_text}</em>` : ""}</button>`;
     })
-    .join("") || '<p class="dim">队友统计需要 PD 详情，当前无法计算。</p>';
+    .join("") || '<p class="dim">队友统计的详情暂时没取到，稍后再试。</p>';
   $$("#party-mates .mate").forEach((el) => {
     el.addEventListener("click", () => {
       if (!input) return;
@@ -1712,7 +1864,7 @@ async function loadAssets() {
       ["枪皮", counts.skins], ["卡面", counts.cards], ["喷漆", counts.sprays],
       ["挂饰", counts.charms], ["英雄", `${counts.agents ?? 0}/${counts.agents_total ?? 0}`],
       ["枪械", counts.guns],
-      ["已花费 VP", vp.toLocaleString("en-US")], ["已消耗 R 点", rp.toLocaleString("en-US")],
+      ["已花费点券", vp.toLocaleString("en-US")], ["已消耗 R 点", rp.toLocaleString("en-US")],
     ].map(([k, v]) => `<div class="count"><div class="k">${k}</div><div class="v">${v ?? 0}</div></div>`).join("");
 
     const card = (item, sub) => `
@@ -1808,8 +1960,8 @@ function personCard(p) {
     <article class="person">
       <div class="person-avatar${p.avatar ? " has" : ""}"><span>${(p.name || "?").slice(0, 1)}</span>${p.avatar ? `<img src="${img(p.avatar)}" alt="" loading="lazy" onerror="this.remove()" />` : ""}</div>
       <div class="person-main">
-        <b>${escapeHtml(p.name)}</b>
-        <span>${p.group} · 上次组排 ${fullDate(p.last)}${ago ? `（${ago}）` : ""}</span>
+        <span class="p-top"><b>${escapeHtml(p.name)}</b><em class="p-tag${p.group === "好友" ? " friend" : ""}">${p.group === "好友" ? "组排好友" : "组排非好友"}</em></span>
+        <span class="p-when">最近组排 ${fullDate(p.last)}${ago ? ` · ${ago}` : ""}</span>
       </div>
       <div class="person-stat"><b>${p.games}</b><span>场</span></div>
       <div class="person-stat"><b>${p.win_rate}<small>%</small></b><span>胜率</span></div>
@@ -2253,9 +2405,29 @@ document.addEventListener("visibilitychange", () => {
 async function refreshHealth(force) {
   let health;
   try {
-    health = await api.get(`/api/health${force ? "?refresh=1" : ""}`);
-  } catch (_) {
+    /* 不用 api.get：它遇到 401 会弹登录卡，未登录访客刚进首页就被拦住。 */
+    const res = await fetch(`/api/health${force ? "?refresh=1" : ""}`);
+    if (res.status === 401 || res.status === 403) {
+      const box = $("#health");
+      if (box) box.classList.add("hidden");
+      const chip = $("#cred-chip");
+      if (chip) chip.classList.add("hidden");
+      return null;
+    }
+    if (!res.ok) throw new Error(String(res.status));
+    health = await res.json();
+  } catch (err) {
+    const status = err && err.status;
+    if (status === 401 || status === 403) {
+      /* 未登录访客：后端活着，只是 /api/health 不对匿名开放，别谎报「未启动」。 */
+      const box = $("#health");
+      if (box) box.classList.add("hidden");
+      const chip = $("#cred-chip");
+      if (chip) chip.classList.add("hidden");
+      return null;
+    }
     $("#health").textContent = "后端未启动";
+    $("#health").classList.remove("hidden");
     return null;
   }
   renderHealth(health);
@@ -2264,21 +2436,12 @@ async function refreshHealth(force) {
 }
 
 function renderHealth(health) {
-  /* 普通用户看不到后台细节：连“PD / 助手 / WG”这三颗灯都别显示，
-     只留“上游服务到期”这一句（后端已经过滤过 credential_states）。 */
-  if (health && health.admin === false) {
-    const box = $("#health");
-    if (box) box.classList.add("hidden");
-    const foot = $("#footer-cred");
-    if (foot) foot.textContent = "";
-    renderCredChip(health);
-    return;
-  }
-  const cred = health.credentials || {};
-  const mark = (ok) => (ok ? "<b>●</b>" : "<s>●</s>");
-  $("#health").innerHTML = `${mark(cred.pd)}PD ${mark(cred.aclos)}助手 ${mark(cred.wegame)}WG`;
-  $("#footer-cred").textContent =
-    `战绩 ${cred.pd ? "ready" : "missing"} · 长历史 ${cred.aclos ? "ready" : "missing"} · 名字 ${cred.wegame ? "ready" : "missing"}`;
+  /* 不在前台暴露数据来源：PD / 助手 / WG 三颗灯、页脚 cred 文案一律不渲染。
+     站长要看登录态去 /valoadmin「登录态」卡片。 */
+  const box = $("#health");
+  if (box) box.classList.add("hidden");
+  const foot = $("#footer-cred");
+  if (foot) foot.textContent = "";
   renderCredChip(health);
 }
 
@@ -2385,6 +2548,17 @@ function rememberSearch(keyword) {
   writeNameList(RECENT_KEY, list.slice(0, RECENT_LIMIT));
 }
 
+function syncFavButton(keyword) {
+  const btn = $("#p-fav");
+  if (!btn) return;
+  const key = String(keyword || "").trim();
+  const saved = Boolean(key) && readNameList(FAV_KEY).includes(key);
+  btn.textContent = saved ? "★ 已收藏" : "☆ 收藏";
+  btn.classList.toggle("on", saved);
+  btn.disabled = !key;
+  btn.onclick = () => { toggleFavorite(key); syncFavButton(key); };
+}
+
 function toggleFavorite(keyword) {
   const key = String(keyword || "").trim();
   if (!key) return;
@@ -2394,6 +2568,7 @@ function toggleFavorite(keyword) {
   else list.unshift(key);
   writeNameList(FAV_KEY, list);
   renderSearchHistory();
+  syncFavButton(key);
 }
 
 function renderSearchHistory() {
@@ -2478,6 +2653,7 @@ function initSearchHistory() {
 
 async function boot() {
   await refreshHealth();
+  loadPlan();
   setInterval(() => refreshHealth(true).catch(() => {}), 90000);
 
   // 单局详情的打开方式（就地快速查看 / 单页完整查看）
@@ -2545,15 +2721,17 @@ async function boot() {
       loadPage(1);
     });
   }
+  const gmSel = $("#gm-select");
+  if (gmSel) {
+    gmSel.value = state.gm;
+    gmSel.addEventListener("change", () => setGm(gmSel.value));
+  }
   const gmBox = $("#view-mode");
   if (gmBox) {
     gmBox.addEventListener("click", (ev) => {
       const btn = ev.target.closest("button[data-gm]");
       if (!btn) return;
-      state.gm = btn.dataset.gm || "all";
-      syncModeChips();
-      try { localStorage.setItem("valo.gm", state.gm); } catch (_) { /* 隐私模式忽略 */ }
-      loadPage(1);
+      setGm(btn.dataset.gm);
     });
   }
 
@@ -2701,9 +2879,9 @@ async function boot() {
     syncExportHint();
   };
   if ($("#export-modal")) syncExportFormats();
-  const openExportDialog = () => {
+  const openExportDialog = (ev) => {
     if (!state.keyword) {
-      showError("先查一个人，再导出。");
+      showError("先查一个人，再导出。", "", ev && ev.currentTarget ? ev.currentTarget : $("#export-open"));
       return;
     }
     const modal = $("#export-modal");
@@ -2831,6 +3009,10 @@ async function boot() {
 
   if ($("#share-btn")) $("#share-btn").addEventListener("click", async () => {
     if (!state.keyword) return;
+    if (PLAN && !PLAN.vip) {
+      showError("分享链接是会员功能：到 /account 用授权码开通后即可生成。");
+      return;
+    }
     const btn = $("#share-btn");
     const original = btn.textContent;
     btn.disabled = true;
@@ -2854,10 +3036,12 @@ async function boot() {
       }
       const hint = $("#export-hint");
       if (hint) {
-        hint.innerHTML = `${copied ? "分享链接已复制" : "分享链接"}：<a href="${escapeHtml(data.url)}" target="_blank" rel="noopener">${escapeHtml(url)}</a>`;
+        const cost = data.seconds ? `（生成用时 ${data.seconds} 秒）` : "";
+        hint.innerHTML = `${copied ? "分享链接已复制" : "分享链接"}${cost}：`
+          + `<a href="${escapeHtml(data.url)}" target="_blank" rel="noopener">${escapeHtml(url)}</a>`;
       }
     } catch (err) {
-      showError(err);
+      showError(err.message || String(err));
     } finally {
       btn.disabled = false;
       btn.textContent = original;
@@ -2914,12 +3098,27 @@ async function boot() {
 
     btn.disabled = true;
     const started = Date.now();
+    let queueNote = "";
     const tick = () => {
-      const sec = Math.round((Date.now() - started) / 1000);
-      btn.textContent = `导出中… ${sec}s`;
+      const sec = ((Date.now() - started) / 1000).toFixed(1);
+      btn.textContent = `导出中… ${sec}s${queueNote}`;
     };
-    btn.textContent = "导出中… 0s";
-    const timer = setInterval(tick, 1000);
+    btn.textContent = "导出中… 0.0s";
+    const timer = setInterval(tick, 500);
+    // 排队情况问一次后端：2G 机器只有一个渲染名额，别人在导出时这里要如实说。
+    const watch = setInterval(async () => {
+      try {
+        const r = await fetch("/api/render/status", { cache: "no-store" });
+        if (!r.ok) return;
+        const d = await r.json();
+        const active = Number(d.active || 0);
+        const slots = Number(d.slots || 1);
+        const waiting = Number(d.waiting || 0);
+        if (active >= slots && waiting > 0) queueNote = `（当前 ${active} 个导出，需要排队）`;
+        else if (active > 0) queueNote = `（当前 ${active} 个导出在跑）`;
+        else queueNote = "";
+      } catch (_) { /* 状态接口挂了不影响导出本身 */ }
+    }, 1500);
     try {
       const res = await fetch(url);
       if (!res.ok) {
@@ -2938,12 +3137,18 @@ async function boot() {
       link.click();
       setTimeout(() => { URL.revokeObjectURL(link.href); link.remove(); }, 4000);
       closeExportDialog();
-      btn.textContent = `已下载 ${name}`;
-      setTimeout(() => { btn.textContent = original; }, 3000);
+      // 后端会回「真正渲染用了多久」，代理剥掉这个头就用本地计时兜底。
+      const cost = res.headers.get("x-export-seconds")
+        || ((Date.now() - started) / 1000).toFixed(1);
+      const queued = res.headers.get("x-export-queue");
+      btn.textContent = `已下载 · 用时 ${cost} 秒`;
+      btn.title = name + (queued && Number(queued) > 0 ? `（导出时还有 ${queued} 个在排队）` : "");
+      setTimeout(() => { btn.textContent = original; btn.title = ""; }, 4000);
     } catch (err) {
-      showError(`导出失败：${err.message}`);
+      showError(`导出失败：${err.message}`, "", btn);
     } finally {
       clearInterval(timer);
+      clearInterval(watch);
       btn.disabled = false;
       if (/^导出中/.test(btn.textContent)) btn.textContent = original;
     }
@@ -2968,7 +3173,20 @@ async function boot() {
   }
   if (EXPORT_KIND) {
     document.body.classList.add("export");
+    document.body.classList.add("exporting");
     if (EXPORT_KIND === "match") document.body.classList.add("export-match");
+    const link = $("#export-brand-link");
+    if (link) {
+      link.href = location.origin;
+      link.textContent = location.origin.replace(/^https?:\/\//, "");
+    }
+    const when = $("#export-brand-time");
+    if (when) {
+      const d = new Date();
+      const pad = (n) => (n < 10 ? "0" : "") + n;
+      when.textContent = "生成于 " + d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate())
+        + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()) + " · 数据仅供参考";
+    }
   }
   if (EXPORT_KIND) document.body.dataset.exportPending = "1";
   // 分享页没有查询串，玩家从内联快照里读（window.__SHARE__）。
@@ -3067,7 +3285,7 @@ function skinSortValue(sort, order = "desc") {
   };
 }
 
-const SORT_LABELS = { gun: "类型分类", price: "VP 价格", unlock: "获取时间", level: "等级", quality: "品质" };
+const SORT_LABELS = { gun: "类型分类", price: "点券价格", unlock: "获取时间", level: "等级", quality: "品质" };
 const ORDER_LABELS = { asc: "正序 ↑", desc: "逆序 ↓" };
 
 function skinMeta(item) {
@@ -3081,7 +3299,7 @@ function skinMeta(item) {
   if (item.variants > 1) parts.push(`炫彩 ${item.variants}`);
   if (item.use_count) parts.push(`用过 ${item.use_count} 次`);
   if (item.quality) parts.push(`品质 ${item.quality}`);
-  if (Number.isFinite(price) && price > 0) parts.push(`${price} VP`);
+  if (Number.isFinite(price) && price > 0) parts.push(`${price} 点券`);
   const unlocked = String(item.unlock || "").slice(0, 10);
   if (/^\d{4}-\d{2}-\d{2}$/.test(unlocked)) parts.push(`解锁于 ${unlocked}`);
   return parts.join(" · ");

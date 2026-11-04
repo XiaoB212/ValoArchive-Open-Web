@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>我的账号 · VALO ARCHIVE</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=5" sizes="any" />
+  <meta name="theme-color" content="#0e7c6b" />
+  <link rel="stylesheet" href="/static/style.css?v=210" />
+  <style>
+    .ac-bg{position:fixed;inset:0;pointer-events:none;z-index:0;
+      background:radial-gradient(900px 460px at 8% -10%,rgba(14,124,107,.10),transparent 62%),
+                 radial-gradient(760px 420px at 96% 2%,rgba(201,162,39,.12),transparent 60%)}
+    .ac-top{position:sticky;top:0;z-index:5;background:rgba(255,255,255,.82);
+      backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+    .ac-top-inner{max-width:1120px;margin:0 auto;padding:14px 22px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+    .ac-logo{display:flex;align-items:baseline;gap:10px;font-weight:800;letter-spacing:.14em;font-size:15px;color:var(--ink);text-decoration:none}
+    .ac-logo em{font-style:normal;color:var(--accent);font-weight:500}
+    .ac-logo span{font-size:11px;letter-spacing:.18em;color:var(--muted);font-weight:500}
+    .ac-home{font-size:12.5px;color:var(--muted);text-decoration:none;white-space:nowrap}
+    .ac-home:hover{color:var(--accent)}
+
+    .ac-main{position:relative;z-index:1;max-width:1120px;margin:0 auto;padding:40px 22px 64px}
+    .ac-hero{max-width:660px;margin-bottom:28px}
+    .ac-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.22em;color:var(--accent);margin:0 0 10px;text-transform:uppercase}
+    .ac-hero h1{margin:0 0 10px;font-size:clamp(28px,3.4vw,40px);line-height:1.12;letter-spacing:-.015em}
+    .ac-sub{margin:0;font-size:14px;line-height:1.75;color:var(--muted)}
+
+    .ac-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:22px;align-items:start}
+    .ac-panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:26px;
+      box-shadow:0 1px 2px rgba(16,24,22,.04),0 18px 40px -32px rgba(16,24,22,.45);margin-bottom:22px}
+    .ac-panel h2{margin:0 0 6px;font-size:18px;letter-spacing:-.01em}
+    .ac-panel .hint{margin:0 0 18px;font-size:12.5px;color:var(--muted);line-height:1.7}
+
+    .ac-tabs{display:inline-flex;padding:4px;gap:4px;background:var(--paper);border:1px solid var(--line);border-radius:999px;margin-bottom:20px}
+    .ac-tab{font:inherit;font-size:13px;padding:8px 22px;border:0;border-radius:999px;background:transparent;color:var(--muted);cursor:pointer}
+    .ac-tab.on{background:var(--card);color:var(--ink);font-weight:600;box-shadow:0 1px 4px rgba(16,24,22,.14)}
+
+    .ac-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}'
+    .ac-agree{margin:4px 0 14px}
+    .ac-check{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;line-height:1.7;color:var(--muted)}
+    .ac-check input{margin-top:2px;width:16px;height:16px;flex:none;accent-color:var(--accent)}
+    .ac-check a{color:var(--accent);text-decoration:none}
+    .ac-check a:hover{text-decoration:underline}
+    .ac-group{border:1px dashed var(--line);border-radius:12px;padding:12px 14px;margin:0 0 14px;background:var(--paper)}
+    .ac-group-t{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+    .ac-group-t b{font-size:13px;color:var(--ink)}
+    .ac-group-a{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:9px}
+    .ac-group-qq{font-family:var(--mono);font-size:13px;color:var(--ink);text-decoration:none;border-bottom:1px dashed var(--line);padding-bottom:1px}
+    .ac-group-qq:hover{color:var(--accent);border-color:var(--accent)}
+    .ac-btn.tiny{height:30px;padding:0 12px;font-size:12px;border-radius:8px}
+
+    .ac-row.one{grid-template-columns:1fr}
+    .ac-row label{display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--muted);font-weight:500}
+    .ac-row input{height:44px;padding:0 13px;font:inherit;font-size:14px;color:var(--ink);
+      background:var(--card);border:1px solid var(--line-strong);border-radius:10px;transition:border-color .15s,box-shadow .15s}
+    .ac-row input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft)}
+    .ac-row input[readonly]{background:var(--paper);color:var(--muted)}
+
+    .ac-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:18px}
+    button.ac-btn,a.ac-btn{display:inline-flex;align-items:center;justify-content:center;height:44px;padding:0 22px;
+      font:inherit;font-size:13.5px;font-weight:600;border-radius:10px;border:1px solid var(--accent);
+      background:var(--accent);color:#fff;cursor:pointer;text-decoration:none;transition:transform .12s,box-shadow .15s,background .15s}
+    button.ac-btn:hover,a.ac-btn:hover{background:var(--accent-ink);box-shadow:0 8px 20px -10px rgba(14,124,107,.65)}
+    button.ac-btn:active,a.ac-btn:active{transform:translateY(1px)}
+    button.ac-btn.ghost,a.ac-btn.ghost{background:transparent;color:var(--accent);border-color:var(--line-strong)}
+    button.ac-btn.ghost:hover,a.ac-btn.ghost:hover{border-color:var(--accent);background:var(--accent-soft);box-shadow:none}
+    button.ac-btn:disabled{opacity:.45;cursor:default;box-shadow:none}
+
+    .ac-out{margin-top:16px;font-size:13px;line-height:1.7;padding:12px 14px;border-radius:10px;
+      background:var(--paper);color:var(--muted);white-space:pre-wrap}
+    .ac-out:empty{display:none}
+    .ac-out.ok{background:rgba(14,124,107,.08);color:var(--accent-ink)}
+    .ac-out.err{background:rgba(180,69,59,.09);color:#a4392f}
+
+    .ac-id{display:flex;align-items:center;gap:14px;margin:0 0 20px}
+    .ac-id .av-lg{width:54px;height:54px;flex:0 0 54px;border-radius:50%;display:grid;place-items:center;
+      font-size:20px;font-weight:700;color:#fff;background:linear-gradient(135deg,var(--accent),#0a5f52)}
+    .ac-id b{display:block;font-size:16px;letter-spacing:-.01em}
+    .ac-id small{color:var(--muted);font-size:12px}
+
+    .ac-kv{display:grid;grid-template-columns:88px 1fr;font-size:13.5px;margin:0 0 18px;border-top:1px solid var(--line)}
+    .ac-kv b,.ac-kv span{padding:11px 2px;border-bottom:1px solid var(--line)}
+    .ac-kv b{color:var(--muted);font-weight:500}
+
+    .ac-badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600}
+    .ac-badge.on{background:rgba(14,124,107,.12);color:var(--accent-ink)}
+    .ac-badge.off{background:rgba(180,69,59,.10);color:#a4392f}
+
+    .ac-table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;margin:4px 0 14px}
+    .ac-table th{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:left;padding:0 10px 10px;font-weight:600}
+    .ac-table td{padding:11px 10px;border-top:1px solid var(--line);vertical-align:top}
+    .ac-table td:first-child{font-weight:600;width:38%}
+    .ac-table th:last-child,.ac-table td:last-child{background:rgba(201,162,39,.07)}
+    .ac-table th:last-child{border-radius:9px 9px 0 0}
+    .ac-table tr:last-child td:last-child{border-radius:0 0 9px 9px}
+    .ac-no{color:var(--muted);opacity:.55}
+    .ac-yes{color:var(--accent-ink);font-weight:600}
+
+    .ac-tip{font-size:12px;line-height:1.75;color:var(--muted);margin:12px 0 0}
+    .ac-invite{margin-top:22px;padding:18px;border:1px dashed var(--line-strong);border-radius:12px;background:var(--paper)}
+    .ac-invite h2{font-size:15px;margin:0 0 4px}
+    .ac-invite .code{font-family:var(--mono);font-size:20px;letter-spacing:.14em;color:var(--accent-ink);margin:12px 0 14px}
+    .legal{font-size:11.5px;line-height:1.8;color:var(--muted);margin:18px 2px 0}
+    .ac-hide{display:none!important}
+    @media (max-width:900px){.ac-grid{grid-template-columns:1fr}.ac-main{padding-top:30px}}
+    @media (max-width:560px){.ac-row{grid-template-columns:1fr}.ac-panel{padding:20px 18px}}
+    @media (max-width:560px){
+      .ac-top-inner{padding:10px 16px}
+      .ac-main{padding:22px 16px 44px}
+      .ac-hero{margin-bottom:18px}
+      .ac-hero h1{font-size:27px;line-height:1.2}
+      .ac-kicker{font-size:11.5px}
+      .ac-hero p{font-size:13px;line-height:1.75}
+      .ac-tabs{display:flex;width:100%;margin-bottom:16px}
+      .ac-tab{flex:1;padding:0;height:42px;font-size:14px}
+      .ac-panel{padding:18px 16px;border-radius:14px;margin-bottom:16px}
+      .ac-panel h2{font-size:16.5px}
+      .ac-panel .hint{font-size:12.5px}
+      .ac-row label{font-size:12.5px}
+      .ac-row input{height:48px;font-size:15px}
+      .ac-btn{flex:1 1 auto;height:46px;font-size:14px}
+      .ac-table{font-size:13px}
+      .ac-table th{font-size:11px;padding:0 6px 8px}
+      .ac-table td{padding:10px 6px}
+      .ac-table td:first-child{width:42%}
+      .ac-kv{grid-template-columns:76px 1fr;font-size:13px}
+      .ac-invite{padding:16px}
+      .ac-invite .code{font-size:18px}
+      .legal{font-size:11px}
+    }
+  </style>
+</head>
+<body>
+  <div class="ac-bg" aria-hidden="true"></div>
+
+  <header class="ac-top">
+    <div class="ac-top-inner">
+      <a class="ac-logo" href="/">VALO<em>ARCHIVE</em><span>账号中心</span></a>
+      <a class="ac-home" href="/">← 返回首页</a>
+    </div>
+  </header>
+
+  <main class="ac-main">
+    <section class="ac-hero">
+      <p class="ac-kicker">ACCOUNT · 账号中心</p>
+      <h1>登录，开始查战绩</h1>
+      <p class="ac-sub">QQ 号 + 一个密码就够了：不用邮箱、不用手机号。登录后免费看最近 10 场，授权码开通会员后解锁全部历史与导出。</p>
+    </section>
+
+    <div class="ac-grid">
+      <div class="ac-col-main">
+
+        <!-- 未登录：登录 / 注册 -->
+        <section class="ac-panel" id="view-out">
+          <div class="ac-tabs">
+            <button class="ac-tab on" id="tab-login" type="button">登录</button>
+            <button class="ac-tab" id="tab-register" type="button">注册</button>
+          </div>
+
+          <form id="f-login" autocomplete="off">
+            <h2>欢迎回来</h2>
+            <p class="hint">输入注册时用的 QQ 号和密码。</p>
+            <div class="ac-row">
+              <label>QQ 号
+                <input id="l-qq" inputmode="numeric" placeholder="例如 123456789" maxlength="12" required />
+              </label>
+              <label>密码
+                <input id="l-pw" type="password" placeholder="注册时设的密码" maxlength="64" required />
+              </label>
+            </div>
+            <div class="ac-actions">
+              <button class="ac-btn" id="b-login" type="submit">登录</button>
+            </div>
+            <p class="ac-tip">第一次来？切到「注册」，用 QQ 号设个密码，登录后就能核销授权码。</p>
+          </form>
+
+          <form id="f-register" class="ac-hide" autocomplete="off">
+            <h2>创建账号</h2>
+            <p class="hint">只收 QQ 号和一个密码，30 天内免登录。</p>
+            <div class="ac-row">
+              <label>QQ 号（就是用户名）
+                <input id="r-qq" inputmode="numeric" placeholder="5~12 位数字" maxlength="12" required />
+              </label>
+              <label>昵称（可空）
+                <input id="r-nick" placeholder="随便写" maxlength="24" />
+              </label>
+            </div>
+            <div class="ac-row">
+              <label>密码（至少 8 位）
+                <input id="r-pw" type="password" maxlength="64" required />
+              </label>
+              <label>再输一次
+                <input id="r-pw2" type="password" maxlength="64" required />
+              </label>
+            </div>
+            <div class="ac-row one">
+              <label>邀请码（可空）
+                <input id="r-invite" placeholder="满员后必填，例如 K7M2QX9P" maxlength="12" />
+              </label>
+            </div>
+            <div class="ac-agree">
+              <label class="ac-check">
+                <input type="checkbox" id="r-agree" />
+                <span>我已阅读并同意 <a href="/terms" target="_blank" rel="noopener">《用户协议与免责声明》</a>，并承诺不把查询结果用于人肉搜索、骚扰他人、曝光他人隐私等用途。</span>
+              </label>
+            </div>
+            <div class="ac-group" id="reg-group" hidden>
+              <div class="ac-group-t"><b>想开会员？</b><span>本站不开支付，订阅和续费都在群里办理。</span></div>
+              <div class="ac-group-a">
+                <a class="ac-group-qq" id="reg-group-qq" href="#" target="_blank" rel="noopener">群号 —</a>
+                <button class="ac-btn ghost tiny" id="reg-group-copy" type="button">复制群号</button>
+                <a class="ac-btn tiny" id="reg-group-join" href="#" target="_blank" rel="noopener" hidden>直接加群</a>
+              </div>
+            </div>
+            <div class="ac-actions">
+              <button class="ac-btn" id="b-register" type="submit">注册并登录</button>
+            </div>
+            <p class="ac-tip">没有邮箱/手机验证，也没有自助找回；忘了密码找站长重置。满 200 人后只能凭邀请码注册。</p>
+          </form>
+
+          <div class="ac-out" id="out-out"></div>
+          <p class="ac-tip" id="member-cookie-tip" hidden>
+            检测到你已经用授权码激活过。设个密码，以后换设备也能登录。
+          </p>
+        </section>
+
+        <!-- 已登录：我的会员 -->
+        <section class="ac-panel ac-hide" id="view-in">
+          <div class="ac-id">
+            <span class="av-lg" id="i-av">我</span>
+            <span>
+              <b id="i-name">我的账号</b>
+              <small id="i-sub">已登录</small>
+            </span>
+          </div>
+          <div class="ac-kv">
+            <b>账号</b><span id="i-qq">—</span>
+            <b>昵称</b><span id="i-nick">—</span>
+            <b>状态</b><span id="i-status">—</span>
+            <b>到期</b><span id="i-expires">—</span>
+          </div>
+          <div id="contact-box" hidden>
+            <div class="ac-kv"><b>群号</b><span id="contact-qq">—</span></div>
+            <p class="ac-tip" id="contact-note">加群购买订阅服务</p>
+            <div class="ac-actions">
+              <button class="ac-btn ghost" id="contact-copy" type="button">复制群号</button>
+              <a class="ac-btn" id="contact-join" href="#" target="_blank" rel="noopener" hidden>直接加群</a>
+            </div>
+            <p class="ac-tip">本站不开支付、不收钱；订阅和续费都在群里办理。</p>
+          </div>
+          <div class="ac-actions">
+            <a class="ac-btn" id="i-enter" href="/">进入站点</a>
+            <button class="ac-btn ghost" id="b-logout" type="button">退出登录</button>
+          </div>
+          <p class="ac-tip" id="i-tip"></p>
+          <div id="inv-box" class="ac-invite" hidden>
+            <h2>我的邀请码</h2>
+            <p class="ac-tip">你是会员，可以邀请朋友注册。一个码只能注册一个人，把链接发给他就行。</p>
+            <div class="code" id="inv-code">—</div>
+            <div class="ac-actions">
+              <button class="ac-btn ghost" id="inv-copy" type="button">复制邀请链接</button>
+            </div>
+            <p class="ac-tip" id="inv-note"></p>
+          </div>
+        </section>
+
+        <!-- 核销 -->
+        <section class="ac-panel ac-hide" id="view-redeem">
+          <h2>用授权码续期</h2>
+          <p class="hint">一个码只能用一次，绑 QQ 不绑设备；未过期在原到期上叠加，已过期从今天重算。</p>
+          <form id="f-redeem" autocomplete="off">
+            <div class="ac-row">
+              <label>授权码
+                <input id="d-code" placeholder="VALO-XXXX-XXXX-XXXX-XXXX" maxlength="64" required />
+              </label>
+              <label>充到账号
+                <input id="d-qq" inputmode="numeric" maxlength="12" readonly />
+              </label>
+            </div>
+            <div class="ac-actions">
+              <button class="ac-btn" id="b-redeem" type="submit">立即激活</button>
+            </div>
+          </form>
+          <div class="ac-out" id="out-redeem"></div>
+        </section>
+
+        <!-- 改密码 -->
+        <section class="ac-panel ac-hide" id="view-password">
+          <h2>改密码</h2>
+          <p class="hint">改完所有设备都要重新登录。</p>
+          <form id="f-password" autocomplete="off">
+            <div class="ac-row">
+              <label>原密码
+                <input id="p-old" type="password" maxlength="64" required />
+              </label>
+              <label>新密码（至少 8 位）
+                <input id="p-new" type="password" maxlength="64" required />
+              </label>
+            </div>
+            <div class="ac-actions">
+              <button class="ac-btn ghost" id="b-password" type="submit">保存新密码</button>
+            </div>
+          </form>
+          <div class="ac-out" id="out-password"></div>
+        </section>
+      </div>
+
+      <aside class="ac-col-side">
+        <section class="ac-panel">
+          <h2>普通用户 / 会员</h2>
+          <p class="hint">登录就有的免费额度，按自然日重置。</p>
+          <table class="ac-table">
+            <thead>
+              <tr><th>功能</th><th>普通用户</th><th>会员</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>每天查询</td><td><span id="lim-query">5</span> 次</td><td>不限</td></tr>
+              <tr><td>对局历史</td><td>最近 <span id="lim-history">10</span> 场</td><td>全部，可筛选翻页</td></tr>
+              <tr><td>单局详情</td><td>每天 <span id="lim-detail">3</span> 场</td><td>不限次数</td></tr>
+              <tr><td>导出 / 分享</td><td class="ac-no">—</td><td class="ac-yes">✓</td></tr>
+              <tr><td>准星库 / 点位库</td><td class="ac-yes">✓</td><td class="ac-yes">✓</td></tr>
+            </tbody>
+          </table>
+          <p class="ac-tip" id="lim-note">免费额度按自然日重置；会员到期后自动回到普通用户，续期立刻恢复。</p>
+        </section>
+        <p class="legal">本工具为非官方第三方项目，与 Riot Games、腾讯公司及《无畏契约》《掌上无畏契约》运营方无任何关联；相关名称与商标归各自权利人所有。</p>
+      </aside>
+    </div>
+  </main>
+
+  <script src="/static/account.js?v=1"></script>
+</body>
+</html>

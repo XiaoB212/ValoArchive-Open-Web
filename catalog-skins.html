@@ -5,107 +5,564 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>皮肤库 · VALO ARCHIVE</title>
 <link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=4" sizes="any" />
-<link rel="stylesheet" href="/static/style.css?v=147" />
-<link rel="stylesheet" href="/static/tools.css?v=1" />
+<link rel="stylesheet" href="/static/style.css?v=210" />
+<link rel="stylesheet" href="/static/tools.css?v=6" />
 <style>
-  .skin-layout { display: grid; grid-template-columns: 220px minmax(0,1fr); gap: 18px; align-items: start; }
-  @media (max-width: 820px) { .skin-layout { grid-template-columns: 1fr; } }
-  .gun-list { display: flex; flex-direction: column; gap: 4px; max-height: 76vh; overflow: auto; }
-  .gun { display: flex; align-items: center; gap: 8px; border: 1px solid transparent; background: transparent;
-    border-radius: 8px; padding: 6px 8px; cursor: pointer; font: inherit; font-size: 13px; color: var(--ink-2); text-align: left; }
-  .gun img { width: 46px; height: 26px; object-fit: contain; }
-  .gun:hover { border-color: var(--line-strong); }
-  .gun.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); }
+  /* 顶部全局搜索：不挑枪，直接搜皮肤名 */
+  .skin-search { margin-bottom: 18px; padding: 14px; }
+  .search-wrap { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line-strong);
+    border-radius: 10px; background: var(--paper); padding: 0 12px; height: 42px; }
+  .search-wrap svg { flex: 0 0 auto; color: var(--muted); }
+  .search-wrap input { flex: 1 1 auto; min-width: 0; border: 0; background: transparent; font: inherit;
+    font-size: 14px; color: var(--ink); outline: none; height: 100%; }
+  .search-wrap .clr { border: 0; background: transparent; color: var(--muted); cursor: pointer;
+    font-size: 16px; line-height: 1; padding: 4px; border-radius: 6px; }
+  .search-wrap .clr:hover { background: var(--paper-2); color: var(--ink); }
+  .search-wrap:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+  .skin-layout { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 18px; align-items: start; }
+  @media (max-width: 860px) { .skin-layout { grid-template-columns: 1fr; } }
+
+  .skin-side { position: sticky; top: 16px; padding: 12px; }
+  .wlist { display: flex; flex-direction: column; gap: 2px; max-height: min(70vh, 560px); overflow: auto; }
+  @media (max-width: 860px) {
+    .skin-side { position: static; }
+    .wlist { flex-direction: row; gap: 6px; max-height: none; overflow-x: auto; padding-bottom: 4px; }
+    .wlist button { flex: 0 0 auto; }
+  }
+  .wlist button { display: flex; align-items: center; gap: 8px; border: 1px solid transparent; background: transparent;
+    border-radius: 9px; padding: 7px 9px; font: inherit; font-size: 13px; color: var(--ink-2); cursor: pointer;
+    text-align: left; width: 100%; }
+  .wlist button:hover { background: var(--paper-2); }
+  .wlist button.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  .wlist img { width: 44px; height: 20px; object-fit: contain; filter: drop-shadow(0 1px 1px rgba(0,0,0,.18)); }
+  .wlist .n { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .wlist .c { font: 11px/1 var(--mono); color: var(--muted); }
+
+  .skin-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    flex-wrap: wrap; margin: 0 0 12px; }
+  .skin-toolbar .panel-title { margin: 0; letter-spacing: .04em; }
+  .skin-grid { grid-template-columns: repeat(auto-fill, minmax(214px, 1fr)); }
   .skin-card { cursor: pointer; }
-  .skin-card .art { height: 96px; display: grid; place-items: center; background: var(--paper-2); border-radius: 9px; }
-  .skin-card .art img { max-width: 100%; max-height: 88px; object-fit: contain; }
-  .modal { position: fixed; inset: 0; background: rgba(12,14,17,.62); display: none; align-items: flex-start;
-    justify-content: center; padding: 40px 16px; z-index: 60; overflow: auto; }
-  .modal.on { display: flex; }
-  .modal-card { background: var(--card); border-radius: 16px; width: min(820px,100%); padding: 20px; position: relative; }
-  .modal-x { position: absolute; top: 10px; right: 12px; border: 0; background: transparent; font-size: 22px;
-    line-height: 1; color: var(--muted); cursor: pointer; padding: 4px 6px; border-radius: 8px; }
-  .modal-x:hover { background: var(--paper-2); color: var(--ink); }
-  .chromas { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px,1fr)); gap: 10px; margin-top: 12px; }
-  .chroma { background: var(--paper-2); border-radius: 10px; padding: 8px; text-align: center; }
-  .chroma img { width: 100%; height: 74px; object-fit: contain; }
+  .skin-card .art { height: 104px; display: grid; place-items: center; border-radius: 9px;
+    background: linear-gradient(180deg, var(--paper-2), var(--paper)); border: 1px solid var(--line); }
+  .skin-card .art img { max-width: 92%; max-height: 84px; object-fit: contain; }
+  .skin-card .row { display: flex; align-items: center; gap: 6px; justify-content: space-between; flex-wrap: wrap; }
+
+  /* 品质（Select/豪华/卓越/…）小标签，底色取官方 highlightColor */
+  .tier-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; line-height: 1;
+    padding: 4px 8px; border-radius: 999px; border: 1px solid var(--line-strong); color: var(--ink-2); white-space: nowrap; }
+  .tier-chip i { width: 7px; height: 7px; border-radius: 50%; background: var(--tier, var(--accent)); display: inline-block; }
+
+  /* 皮肤详情 */
+  .skin-modal { width: min(880px, 100%); }
+  .skin-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+    flex-wrap: wrap; padding-right: 34px; }
+  .skin-head h2 { margin: 0 0 5px; font-size: 21px; }
+  .skin-stage { position: relative; margin-top: 14px; border-radius: 12px; overflow: hidden;
+    background: linear-gradient(180deg, #1b2128, #12161b); min-height: 210px; display: grid; place-items: center; }
+  .skin-stage video, .skin-stage img { display: block; width: 100%; max-height: 420px; object-fit: contain; }
+  .skin-stage img { padding: 12px; box-sizing: border-box; }
+  .skin-tip { margin-top: 8px; font-size: 12px; color: var(--muted); }
+  .skin-tabs { margin-top: 14px; }
+  .skin-tiles { margin-top: 12px; display: grid; gap: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); }
+  .tile { border: 1px solid var(--line); background: var(--paper); border-radius: 10px; padding: 8px;
+    cursor: pointer; text-align: center; font: inherit; color: var(--ink-2); }
+  .tile:hover { border-color: var(--accent); }
+  .tile.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); }
+  .tile img { display: block; width: 100%; height: 52px; object-fit: contain; margin-bottom: 6px; }
+  .tile .lb { font-size: 11px; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tile .sw { width: 16px; height: 16px; border-radius: 5px; margin: 0 auto 5px; border: 1px solid var(--line-strong); }
 </style>
 </head>
 <body>
 <div class="grid-bg" aria-hidden="true"></div>
 <div class="tool-page">
+  <nav class="tool-nav">
+    <a href="/">← 回首页</a>
+    <a href="/crosshairs">准星库</a>
+    <a href="/lineups">点位库</a>
+    <a href="/catalog/agents">英雄库</a>
+    <a href="/catalog/skins" class="on">皮肤库</a>
+  </nav>
   <div class="tool-head">
     <div>
       <h1>皮肤库</h1>
-      <div class="sub">按武器浏览全部皮肤与炫彩；点开看大图与配色。</div>
+      <div class="sub">全部武器皮肤：逐级看模型、逐色看炫彩，能看的地方都带官方实战演示视频。</div>
     </div>
     <div class="tool-actions"><a class="btn small" href="/catalog/agents">英雄库</a><a class="btn small" href="/">回首页</a></div>
   </div>
-  <div class="skin-layout">
-    <div class="card-panel"><div class="panel-title">武器</div><div class="gun-list" id="guns"></div></div>
-    <div>
-      <div class="toolbar"><div class="card-name" id="guns-title">选一把武器</div><input class="input search" id="q" placeholder="搜皮肤名" /></div>
-      <div class="cards" id="skins"></div>
+
+  <div class="card-panel skin-search">
+    <div class="search-wrap">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.6-3.6"></path></svg>
+      <input id="gq" type="search" autocomplete="off" placeholder="搜全部皮肤：盖亚 / 破坏者 / 电音光谱…（不用先选枪）" />
+      <button class="clr" id="gq-x" type="button" aria-label="清空" hidden>✕</button>
     </div>
+    <div class="hint" id="gq-hint" style="margin-top:8px">也可以点左边挑一把枪，只看这把枪的皮肤。</div>
   </div>
-  <div class="legal">非官方工具，与 Riot Games / 腾讯无关；皮肤数据来自社区公开数据，仅供参考。</div>
+
+  <div class="skin-layout">
+    <aside class="card-panel skin-side">
+      <div class="panel-title">武器</div>
+      <div class="wlist" id="wlist"></div>
+    </aside>
+    <section>
+      <div class="skin-toolbar">
+        <div class="panel-title" id="sk-title">皮肤</div>
+        <div class="skin-sorts">
+          <div class="seg" id="sort">
+            <button type="button" data-sort="tier" class="on">品质</button>
+            <button type="button" data-sort="name">名称</button>
+          </div>
+          <button class="btn small" id="sort-dir" type="button" title="切换排序方向">↓ 高到低</button>
+        </div>
+      </div>
+      <div class="chips" id="tier-filter" style="margin-bottom:12px"></div>
+      <div class="cards skin-grid" id="skins"></div>
+      <div class="empty" id="empty" style="display:none">没有匹配的皮肤。</div>
+    </section>
+  </div>
+
+  <div class="legal">非官方工具，与 Riot Games / 腾讯无关；皮肤数据（含演示视频）来自 Riot 公开的官方素材，仅供参考。</div>
 </div>
-<div class="modal" id="modal"><div class="modal-card"><button class="modal-x" id="modal-x" aria-label="关闭">✕</button><div id="modal-body"></div></div></div>
-<script src="/config.js?v=1"></script>
+
+<div class="modal" id="modal"><div class="modal-card skin-modal">
+  <button class="modal-x" id="modal-x" type="button" aria-label="关闭">✕</button>
+  <div id="skin-body"></div>
+</div></div>
+
+<script src="/static/config.js?v=1"></script>
 <script>
 (function () {
   const $ = (s) => document.querySelector(s);
-  let guns = [], current = null, detail = null, kw = "";
+  const A = (u) => (window.valoAsset ? window.valoAsset(u) : u);
+  const esc = (t) => String(t || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-  function renderSkins() {
-    const box = $("#skins");
-    box.innerHTML = "";
-    if (!detail) return;
-    detail.skins.filter((s) => !kw || s.name.includes(kw)).forEach((s) => {
-      const card = document.createElement("div");
-      card.className = "tool-card skin-card";
-      card.innerHTML = `<div class="art"><img src="${valoAsset(s.icon)}" alt="" loading="lazy"></div>
-        <div class="card-name">${s.name}</div>
-        <div class="card-meta">${s.chromas.length} 个配色</div>`;
-      card.addEventListener("click", () => openSkin(s));
-      box.appendChild(card);
+  const state = { weapons: [], weapon: "", weaponName: "", skins: [], tier: "", q: "", sort: "tier", desc: true };
+  const MAX_ROWS = 240;
+
+  // 图片/视频都直连官方 CDN（本站只出接口，不搬媒体流量）；直连失败才回落到 /img。
+  window.__fb = function (img) {
+    if (!img || img.dataset.fb) return;
+    const src = img.currentSrc || img.src || "";
+    if (!/^https?:/i.test(src)) return;
+    img.dataset.fb = "1";
+    img.src = A("/img?url=" + encodeURIComponent(src));
+  };
+
+  function sortList(list) {
+    const byName = (a, b) => String(a.name || "").localeCompare(String(b.name || ""), "zh-Hans-CN");
+    const key = state.sort;
+    const out = list.slice().sort((a, b) => {
+      if (key === "name") return byName(a, b);
+      const t = (b.tier_rank || 0) - (a.tier_rank || 0);
+      return t || byName(a, b);
     });
+    if (key === "name") return state.desc ? out.reverse() : out;
+    return state.desc ? out : out.reverse();
   }
 
-  function openSkin(s) {
-    $("#modal-body").innerHTML = `<h2 style="margin:0 0 10px">${s.name}</h2>
-      <div class="chromas">${s.chromas.map((c) => `<div class="chroma"><img src="${valoAsset(c.icon)}" alt=""><div class="card-meta">${c.name}</div></div>`).join("")}</div>`;
-    $("#modal").classList.add("on");
-  }
-  const close = () => $("#modal").classList.remove("on");
-  $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") close(); });
-  $("#modal-x").addEventListener("click", close);
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
-  $("#q").addEventListener("input", (e) => { kw = e.target.value.trim(); renderSkins(); });
-
-  function renderGuns() {
-    const box = $("#guns");
+  // ── 左侧武器列表 ─────────────────────────────────────────────
+  function renderWeapons() {
+    const box = $("#wlist");
     box.innerHTML = "";
-    guns.forEach((g) => {
+    state.weapons.forEach((w) => {
       const b = document.createElement("button");
-      b.className = "gun" + (current && g.uuid === current.uuid ? " on" : "");
-      b.innerHTML = `<img src="${valoAsset(g.icon)}" alt="" loading="lazy"><span>${g.name}</span>`;
-      b.addEventListener("click", () => choose(g));
+      b.type = "button";
+      b.dataset.uuid = w.uuid;
+      b.innerHTML = `<img src="${A(w.icon)}" alt="" loading="lazy" onerror="__fb(this)"><span class="n">${esc(w.name)}</span><span class="c">${w.skin_count || 0}</span>`;
+      if (w.uuid === state.weapon) b.classList.add("on");
+      b.addEventListener("click", () => pickWeapon(w));
       box.appendChild(b);
     });
   }
 
-  async function choose(g) {
-    current = g; renderGuns();
-    $("#guns-title").textContent = g.name + " · 共 " + g.skin_count + " 款";
-    detail = await (await fetch("/api/catalog/weapons/" + g.uuid)).json();
-    renderSkins();
+  function tierChip(name, color) {
+    if (!name) return "";
+    return `<span class="tier-chip" style="--tier:${esc(color || "transparent")}"><i></i>${esc(name)}</span>`;
   }
 
-  fetch("/api/catalog/weapons").then((r) => r.json()).then((d) => {
-    guns = d.rows || [];
-    renderGuns();
-    if (guns.length) choose(guns[0]);
+  // ── 卡片 ────────────────────────────────────────────────────
+  function skinCard(s, showWeapon) {
+    const card = document.createElement("div");
+    card.className = "tool-card skin-card";
+    const sub = showWeapon ? (s.weapon || "") : "";
+    const lv = s.level_count != null ? `${s.level_count} 级` : "";
+    const ch = s.chroma_count != null ? `${s.chroma_count} 色` : "";
+    const cnt = [sub, lv, ch].filter(Boolean).join(" · ");
+    const price = s.price ? `<span class="price" title="国服参考价（按品质档位）">${Number(s.price).toLocaleString("zh-CN")} 点券</span>` : "";
+    card.innerHTML = `<div class="art"><img src="${A(s.icon)}" alt="${esc(s.name)}" loading="lazy" onerror="__fb(this)"></div>
+      <div class="card-name" title="${esc(s.name)}">${esc(s.name)}</div>
+      <div class="skin-meta-row"><span class="card-meta">${esc(cnt)}</span>${price}${tierChip(s.tier_name, s.tier_color)}</div>`;
+    card.addEventListener("click", () => openSkin(s));
+    return card;
+  }
+
+  function paintGrid() {
+    const box = $("#skins");
+    box.innerHTML = "";
+    let list = state.skins;
+    if (state.tier) list = list.filter((s) => s.tier_name === state.tier);
+    list = sortList(list);
+    const total = list.length;
+    if (total > MAX_ROWS) list = list.slice(0, MAX_ROWS);
+    list.forEach((s) => box.appendChild(skinCard(s, !!state.q)));
+    $("#empty").style.display = total ? "none" : "block";
+    const title = state.q ? `“${state.q}” 的搜索结果` : `${state.weaponName} · ${total} 款`;
+    $("#sk-title").textContent = total > MAX_ROWS
+      ? `${title}（只显示前 ${MAX_ROWS} 个，写得更具体一点更准）` : title;
+    renderTierFilter();
+  }
+
+  // 视频直连 Riot CDN 播放：不下载到自己服务器，起播也快；连不上再退回本站反代
+  function rawVideoUrl(video) {
+    if (!video) return "";
+    try {
+      const q = new URL(video, location.origin).searchParams.get("u");
+      return q || "";
+    } catch (e) {
+      return video;
+    }
+  }
+
+  function renderTierFilter() {
+    const box = $("#tier-filter");
+    const names = [...new Set(state.skins.map((s) => s.tier_name).filter(Boolean))];
+    if (names.length < 2) { box.innerHTML = ""; return; }
+    const all = `<button class="tool-chip${state.tier ? "" : " on"}" data-tier="">全部</button>`;
+    box.innerHTML = all + names.map((n) =>
+      `<button class="tool-chip${state.tier === n ? " on" : ""}" data-tier="${esc(n)}">${esc(n)}</button>`).join("");
+  }
+
+  // ── 数据 ────────────────────────────────────────────────────
+  function loadWeapons() {
+    return fetch("/api/catalog/weapons").then((r) => r.json()).then((d) => {
+      state.weapons = d.rows || [];
+      renderWeapons();
+      if (state.weapons.length) pickWeapon(state.weapons[0]);
+    });
+  }
+
+  function pickWeapon(w) {
+    state.weapon = w.uuid;
+    state.weaponName = w.name;
+    state.q = "";
+    $("#gq").value = "";
+    $("#gq-x").hidden = true;
+    $("#gq-hint").textContent = "也可以点左边挑一把枪，只看这把枪的皮肤。";
+    renderWeapons();
+    $("#skins").innerHTML = `<div class="empty">正在读 ${esc(w.name)} 的皮肤…</div>`;
+    fetchLite(w.uuid).then((d) => {
+      state.skins = d.skins || [];
+      state.tier = "";
+      paintGrid();
+    });
+  }
+
+  // 列表只要卡片字段：不带等级/配色明细，一份十几 KB（全量带明细要 200 多 KB）
+  function fetchLite(uuid) {
+    return fetch("/api/catalog/weapons/" + encodeURIComponent(uuid) + "?lite=1")
+      .then((r) => r.json());
+  }
+
+  // 单款皮肤的明细，详情弹窗点开才拉
+  function fetchSkin(uuid) {
+    return fetch("/api/catalog/skin?uuid=" + encodeURIComponent(uuid)).then((r) => r.json());
+  }
+
+  let debounce = 0;
+  $("#gq").addEventListener("input", (e) => {
+    const q = e.target.value.trim();
+    $("#gq-x").hidden = !q;
+    clearTimeout(debounce);
+    debounce = setTimeout(() => runSearch(q), 200);
+  });
+  $("#gq-x").addEventListener("click", () => {
+    $("#gq").value = ""; $("#gq-x").hidden = true; runSearch("");
+    $("#gq").focus();
+  });
+  $("#tier-filter").addEventListener("click", (e) => {
+    const b = e.target.closest(".tool-chip[data-tier]");
+    if (!b) return;
+    state.tier = b.dataset.tier || "";
+    paintGrid();
+  });
+
+  // ── 排序：品质 / 收藏量 / 名称，方向可切，偏好记在本机 ────────
+  function syncSort() {
+    document.querySelectorAll("#sort button[data-sort]").forEach((b) => {
+      b.classList.toggle("on", b.dataset.sort === state.sort);
+    });
+    const arrow = state.desc ? "↓" : "↑";
+    const hint = state.sort === "name" ? (state.desc ? "倒序" : "正序") : (state.desc ? "高到低" : "低到高");
+    $("#sort-dir").textContent = `${arrow} ${hint}`;
+    try {
+      localStorage.setItem("valoarchive.skinsort", JSON.stringify({ sort: state.sort, desc: state.desc }));
+    } catch (err) {}
+  }
+
+  $("#sort").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-sort]");
+    if (!b) return;
+    state.sort = b.dataset.sort;
+    // 收藏/名称默认从多到少、从 A 到 Z；品质默认从高到低
+    state.desc = state.sort !== "name";
+    syncSort();
+    paintGrid();
+  });
+  $("#sort-dir").addEventListener("click", () => {
+    state.desc = !state.desc;
+    syncSort();
+    paintGrid();
+  });
+  (function restoreSort() {
+    try {
+      const saved = JSON.parse(localStorage.getItem("valoarchive.skinsort") || "null");
+      if (saved && ["tier", "name"].includes(saved.sort)) {
+        state.sort = saved.sort;
+        state.desc = !!saved.desc;
+      }
+    } catch (err) {}
+    syncSort();
+  })();
+
+  function runSearch(q) {
+    state.q = q;
+    if (!q) { pickWeaponCurrent(); return; }
+    $("#gq-hint").textContent = "正在搜…";
+    // 服务端筛：只回命中的那几十条，不用把 1386 款全量索引拉下来
+    fetch(`/api/catalog/skins?q=${encodeURIComponent(q)}&limit=${MAX_ROWS}`)
+      .then((r) => r.json())
+      .then((d) => {
+        const hit = d.rows || [];
+        state.skins = hit;
+        state.tier = "";
+        $("#gq-hint").textContent = `跨 ${state.weapons.length} 把武器，共命中 ${d.total != null ? d.total : hit.length} 款皮肤。`;
+        paintGrid();
+      })
+      .catch(() => { $("#gq-hint").textContent = "皮肤索引暂时读不到，稍后再试。"; });
+  }
+
+  function pickWeaponCurrent() {
+    const w = state.weapons.find((x) => x.uuid === state.weapon);
+    if (w) pickWeapon(w);
+  }
+
+  // ── 详情：等级 / 配色 / 视频 ─────────────────────────────────
+  // 版式照着游戏里的枪皮展示页来：品质色铺一层底、图标+品质名做标题带，
+  // 等级写成「等级 3」的大字角标，配色只留颜色名（长名字一律省略 + title 兜住）。
+  const hexSoft = (hex, a) => {
+    const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || ""));
+    if (!m) return "transparent";
+    const n = parseInt(m[1], 16);
+    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
+  };
+  const shortLabel = (label, base) => {
+    let t = String(label || "").trim();
+    if (base) t = t.split(base).join("").trim();
+    t = t.replace(/^[（(\[【]\s*/, "").replace(/\s*[）)\]】]$/, "").trim();
+    return t;
+  };
+
+  function openSkin(s) {
+    const body = $("#skin-body");
+    const tierColor = s.tier_color || "#0e7c6b";
+    $("#modal .skin-modal").style.setProperty("--tier", tierColor);
+    $("#modal .skin-modal").style.setProperty("--tier-soft", hexSoft(tierColor, 0.16));
+    $("#modal .skin-modal").style.setProperty("--tier-line", hexSoft(tierColor, 0.55));
+    body.innerHTML = `<div class="skin-hero">
+        ${s.tier_icon ? `<img class="tier-ico" src="${A(s.tier_icon)}" alt="" onerror="this.remove()">` : `<span class="tier-dot"></span>`}
+        <div class="skin-hero-txt">
+          <div class="tier-line">${esc(s.tier_name || "未分级")}<span id="cnt">读数据…</span></div>
+          <h2 title="${esc(s.name)}">${esc(s.name)}</h2>
+          <div class="card-meta">${esc(s.weapon || state.weaponName)}${s.price
+            ? ` · <span class="price" title="国服参考价（按品质档位）">${Number(s.price).toLocaleString("zh-CN")} 点券</span>`
+            : ""}</div>
+        </div>
+      </div>
+      <div class="skin-stage">
+        <video id="mv" controls loop muted playsinline preload="none" style="display:none"></video>
+        <img id="mi" alt="" style="display:none">
+        <button class="mv-snd" id="mv-snd" type="button" hidden>🔇 开启声音</button>
+      </div>
+      <div class="skin-tip" id="skin-tip"></div>
+      <div class="skin-tabs-wrap">
+        <div class="seg skin-tabs" id="skin-tabs" style="display:none">
+          <button type="button" data-tab="levels" class="on">等级</button>
+          <button type="button" data-tab="chromas">配色</button>
+        </div>
+        <span class="skin-hint" id="skin-hint"></span>
+      </div>
+      <div class="skin-tiles" id="skin-tiles"></div>`;
+    $("#modal").classList.add("on");
+    document.body.style.overflow = "hidden";
+
+    fetchSkin(s.uuid).then((full) => {
+      if (!full || !full.uuid) throw new Error("no detail");
+      const levels = full.levels || [];
+      const chromas = full.chromas || [];
+      $("#cnt").textContent = `${levels.length} 级 · ${chromas.length} 色`;
+      let tab = levels.length ? "levels" : "chromas";
+      const items = () => (tab === "levels" ? levels : chromas);
+
+      const tabsBox = $("#skin-tabs");
+      tabsBox.style.display = "flex";
+      tabsBox.querySelectorAll("button").forEach((b) => {
+        const n = b.dataset.tab === "levels" ? levels.length : chromas.length;
+        b.textContent = `${b.dataset.tab === "levels" ? "等级" : "配色"} ${n}`;
+        b.classList.toggle("on", b.dataset.tab === tab);
+        b.disabled = !n;
+      });
+      tabsBox.onclick = (e) => {
+        const b = e.target.closest("button[data-tab]");
+        if (!b || b.disabled) return;
+        tab = b.dataset.tab;
+        tabsBox.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
+        paintTiles(items(), 0);
+      };
+
+      function paintTiles(list, idx) {
+        const box = $("#skin-tiles");
+        box.innerHTML = "";
+        $("#skin-hint").textContent = tab === "levels"
+          ? "同一个皮肤逐级解锁的模型，点一下换图，有视频的直接播"
+          : "同一个皮肤的配色版本（炫彩），点一下换图";
+        if (!list.length) {
+          box.innerHTML = `<p class="hint">这一款没有${tab === "levels" ? "分级模型" : "额外配色"}。</p>`;
+          const v = $("#mv"); if (v) { try { v.pause(); } catch (e) {} v.removeAttribute("src"); v.style.display = "none"; }
+          return;
+        }
+        list.forEach((it, i) => {
+          const el = document.createElement("button");
+          el.type = "button";
+          el.className = "tile" + (i === idx ? " on" : "");
+          const art = it.icon || "";
+          const isLv = tab === "levels";
+          // 等级：角标写「等级 N」，名字只留去掉皮肤名后的部分（多半是空的，就写"原版"）
+          const name = shortLabel(it.name, full.name || s.name);
+          const label = isLv
+            ? `等级 ${it.level || i + 1}`
+            : (name || (i === 0 ? "原版" : `配色 ${i + 1}`));
+          el.title = it.name || label;
+          el.innerHTML = `${isLv ? `<span class="lvn">${it.level || i + 1}</span>` : ""}
+            ${it.swatch && !isLv
+              ? `<div class="art"><span class="sw" style="background:url('${A(it.swatch)}') center/cover"></span></div>`
+              : art ? `<div class="art"><img src="${A(art)}" alt="" loading="lazy" onerror="__fb(this)"></div>` : `<div class="art"></div>`}
+            ${it.video ? `<span class="vmark" title="点开有演示视频">▶</span>` : ""}
+            <div class="lb">${esc(label)}</div>`;
+          el.addEventListener("click", () => {
+            box.querySelectorAll(".tile").forEach((x) => x.classList.toggle("on", x === el));
+            setMedia(it, tab);
+          });
+          box.appendChild(el);
+        });
+      }
+
+      paintTiles(items(), 0);
+      setMedia(items()[0] || {}, tab);
+    }).catch(() => { $("#cnt").textContent = "细节数据读不到"; });
+  }
+
+  function setMedia(it, tab) {
+    const v = $("#mv"), img = $("#mi"), tip = $("#skin-tip"), snd = $("#mv-snd");
+    const poster = it.icon || "";
+    if (it.video) {
+      img.style.display = "none";
+      v.style.display = "block";
+      v.poster = A(poster);
+      // 只连官方 CDN 原地址：本站不过视频流量，连不上就明确提示，不偷偷回落到本站反代
+      const direct = rawVideoUrl(it.video) || it.video;
+      if (v.dataset.src !== direct) {
+        v.dataset.src = direct;
+        delete v.dataset.dead;
+        v.style.display = "block";
+        img.style.display = "none";
+        v.src = direct;
+        v.load();
+      }
+      const p = v.play();
+      if (p && p.catch) p.catch(() => {});
+      if (snd) snd.hidden = false;
+      const ready = tab === "levels" ? "这个等级下的官方实战演示，默认静音，想听声音点右上角喇叭。" : "这个配色下的官方实战演示，默认静音，想听声音点右上角喇叭。";
+      tip.textContent = "正在加载演示视频…";
+      const settled = () => { tip.textContent = ready; };
+      v.addEventListener("playing", settled, { once: true });
+      v.addEventListener("loadeddata", settled, { once: true });
+      clearTimeout(setMedia.slow);
+      setMedia.slow = setTimeout(() => {
+        if (!v.dataset.dead && v.readyState < 3) tip.textContent = "视频还在缓冲（官方素材几十 MB，网速一般要等几秒）。";
+      }, 3000);
+    } else {
+      try { v.pause(); } catch (e) {}
+      v.style.display = "none";
+      v.removeAttribute("src");
+      if (snd) snd.hidden = true;
+      img.style.display = "block";
+      img.src = A(it.full || it.icon || poster);
+      tip.textContent = "官方这一项没有录演示视频，只能看模型图。";
+    }
+  }
+
+  // 默认静音播放（手机不静音会被浏览器拦），要看声音自己点这个喇叭
+  function syncSnd() {
+    const v = $("#mv"), snd = $("#mv-snd");
+    if (!v || !snd) return;
+    snd.textContent = v.muted ? "🔇 开启声音" : "🔊 静音";
+    snd.setAttribute("aria-pressed", v.muted ? "false" : "true");
+  }
+
+  function closeModal() {
+    const v = $("#mv");
+    if (v) {
+      try { v.pause(); } catch (e) {}
+      v.removeAttribute("src");
+      delete v.dataset.src;
+    }
+    $("#modal").classList.remove("on");
+    document.body.style.overflow = "";
+  }
+
+  // 官方 CDN 连不上时：收起视频，回到静态图 + 一句人话，绝不用本站流量硬顶
+  function videoFailed() {
+    const v = $("#mv"), img = $("#mi"), tip = $("#skin-tip"), snd = $("#mv-snd");
+    if (!v || v.style.display === "none") return;
+    try { v.pause(); } catch (e) {}
+    v.removeAttribute("src");
+    delete v.dataset.src;
+    v.dataset.dead = "1";
+    v.style.display = "none";
+    if (snd) snd.hidden = true;
+    if (img && v.poster) img.src = v.poster;
+    if (img) img.style.display = "block";
+    if (tip) tip.textContent = "官方服务器连接不上，这段演示视频暂时看不了；图片还能正常看。";
+  }
+  // 视频元素是弹窗渲染时插进来的，所以用捕获阶段在 #modal 上听（error 不冒泡）
+  $("#modal").addEventListener("error", (e) => {
+    if (e.target && e.target.id === "mv") videoFailed();
+  }, true);
+  $("#modal").addEventListener("stalled", () => setTimeout(() => {
+    const v = $("#mv");
+    if (v && v.style.display !== "none" && v.readyState < 2) videoFailed();
+  }, 8000), true);
+  $("#modal").addEventListener("click", (e) => {
+    if (e.target.closest("#mv-snd")) {
+      const v = $("#mv");
+      if (v) { v.muted = !v.muted; if (!v.muted) v.volume = 1; syncSnd(); }
+      return;
+    }
+    if (e.target.id === "modal") closeModal();
+  });
+  // 音量/静音状态变了就同步按钮文案（volumechange 不冒泡，用捕获阶段听）
+  $("#modal").addEventListener("volumechange", syncSnd, true);
+  $("#modal-x").addEventListener("click", closeModal);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && $("#modal").classList.contains("on")) closeModal(); });
+
+  loadWeapons().catch(() => {
+    $("#empty").style.display = "block";
+    $("#empty").textContent = "皮肤数据暂时读不到，稍后再试。";
   });
 })();
 </script>

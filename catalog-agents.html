@@ -5,33 +5,49 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>英雄库 · VALO ARCHIVE</title>
 <link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=4" sizes="any" />
-<link rel="stylesheet" href="/static/style.css?v=147" />
-<link rel="stylesheet" href="/static/tools.css?v=1" />
+<link rel="stylesheet" href="/static/style.css?v=210" />
+<link rel="stylesheet" href="/static/tools.css?v=6" />
 <style>
+  /* 立绘本身的背景是透明的，这里也别垫深色：用一层极淡的主题色光晕托住人像即可。 */
   .agent-card { cursor: pointer; }
-  .agent-card .portrait { height: 168px; display: grid; place-items: end center; overflow: hidden;
-    background: radial-gradient(circle at 50% 30%, #2a3038, #12161b); border-radius: 10px; }
-  .agent-card .portrait img { width: 100%; height: 100%; object-fit: contain; object-position: bottom center; }
-  .modal { position: fixed; inset: 0; background: rgba(12,14,17,.62); display: none;
-    align-items: flex-start; justify-content: center; padding: 40px 16px; z-index: 60; overflow: auto; }
-  .modal.on { display: flex; }
-  .modal-card { background: var(--card); border-radius: 16px; width: min(760px, 100%); padding: 22px; position: relative; }
-  .modal-x { position: absolute; top: 10px; right: 12px; border: 0; background: transparent; font-size: 22px;
-    line-height: 1; color: var(--muted); cursor: pointer; padding: 4px 6px; border-radius: 8px; }
-  .modal-x:hover { background: var(--paper-2); color: var(--ink); }
-  .ab { display: grid; grid-template-columns: 34px 1fr; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); }
-  .ab img { width: 30px; height: 30px; }
-  .ab b { font-size: 13px; }
-  .ab p { margin: 3px 0 0; font-size: 12px; color: var(--muted); line-height: 1.6; }
+  .agent-card .portrait { height: 176px; display: grid; place-items: end center; overflow: hidden;
+    border-radius: 10px; background:
+      radial-gradient(120% 80% at 50% 8%, var(--accent-soft, rgba(15,118,110,.12)), transparent 72%),
+      linear-gradient(180deg, var(--paper-2), var(--card));
+    border: 1px solid var(--line); }
+  .agent-card .portrait img { width: 100%; height: 100%; object-fit: contain; object-position: bottom center;
+    filter: drop-shadow(0 8px 14px rgba(16,20,24,.16)); }
+  .agent-card .card-meta { display: flex; gap: 6px; align-items: center; }
+
+  .ag-modal { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; }
+  .ag-modal .face { width: 108px; height: 108px; object-fit: contain; border-radius: 14px;
+    background: radial-gradient(120% 80% at 50% 8%, var(--accent-soft, rgba(15,118,110,.12)), var(--paper-2)); }
+  .ag-modal h2 { margin: 0 0 4px; font-size: 22px; }
+  .ag-modal .desc { margin: 8px 0 0; font-size: 13px; line-height: 1.75; color: var(--ink-2); }
+  /* 技能图标是近白色的线稿，白底上几乎看不见，必须垫深色块 */
+  .ab { display: grid; grid-template-columns: 46px 1fr; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+  .ab .ico { width: 46px; height: 46px; border-radius: 11px; background: #151a20; display: grid; place-items: center;
+    padding: 6px; box-sizing: border-box; }
+  .ab .ico img { width: 100%; height: 100%; object-fit: contain; }
+  .ab .slot { font: 11px/1 var(--mono); color: var(--muted); letter-spacing: .06em; }
+  .ab b { font-size: 14px; }
+  .ab p { margin: 4px 0 0; font-size: 12.5px; color: var(--muted); line-height: 1.7; }
 </style>
 </head>
 <body>
 <div class="grid-bg" aria-hidden="true"></div>
 <div class="tool-page">
+  <nav class="tool-nav">
+    <a href="/">← 回首页</a>
+    <a href="/crosshairs">准星库</a>
+    <a href="/lineups">点位库</a>
+    <a href="/catalog/agents" class="on">英雄库</a>
+    <a href="/catalog/skins">皮肤库</a>
+  </nav>
   <div class="tool-head">
     <div>
       <h1>英雄库</h1>
-      <div class="sub">30 位英雄的定位、技能与说明；点卡片看技能详情（数据为中文语料，随版本更新）。</div>
+      <div class="sub">全部英雄的定位、技能与说明；点卡片看技能详情（数据为中文语料，随版本更新）。</div>
     </div>
     <div class="tool-actions"><a class="btn small" href="/catalog/skins">皮肤库</a><a class="btn small" href="/">回首页</a></div>
   </div>
@@ -40,60 +56,88 @@
     <input class="input search" id="q" placeholder="搜英雄名" />
   </div>
   <div class="cards" id="cards"></div>
+  <div class="empty" id="empty" style="display:none">没有匹配的英雄。</div>
   <div class="legal">非官方工具，与 Riot Games / 腾讯无关；英雄资料来自社区公开数据，仅供参考。</div>
 </div>
-<div class="modal" id="modal"><div class="modal-card"><button class="modal-x" id="modal-x" aria-label="关闭">✕</button><div id="modal-body"></div></div></div>
-<script src="/config.js?v=1"></script>
+<div class="modal" id="modal"><div class="modal-card narrow"><button class="modal-x" id="modal-x" type="button" aria-label="关闭">✕</button><div id="modal-body"></div></div></div>
+<script src="/static/config.js?v=1"></script>
 <script>
 (function () {
   const $ = (s) => document.querySelector(s);
+  const A = (u) => (window.valoAsset ? window.valoAsset(u) : u);   // 公开站（带口令/跨域）自动拼地址
+  const esc = (t) => String(t || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  // 图片直连官方 CDN（本站不搬媒体流量）；直连失败再回落本站 /img 代理
+  window.__fb = function (img) {
+    if (!img || img.dataset.fb) return;
+    const src = img.currentSrc || img.src || "";
+    if (!/^https?:/i.test(src)) return;
+    img.dataset.fb = "1";
+    img.src = A("/img?url=" + encodeURIComponent(src));
+  };
+  const SLOT = { Ability1: "Q", Ability2: "E", Grenade: "C", Ultimate: "X", Passive: "被动" };
   let rows = [], role = "", kw = "";
+
+  function portrait(r) {
+    return `<div class="portrait"><img src="${A(r.full || r.icon)}" alt="${esc(r.name)}" loading="lazy" onerror="__fb(this)"></div>`;
+  }
 
   function render() {
     const box = $("#cards");
     box.innerHTML = "";
-    rows.filter((r) => (!role || r.role === role) && (!kw || r.name.includes(kw))).forEach((r) => {
+    const list = rows.filter((r) => (!role || r.role === role) && (!kw || r.name.includes(kw)));
+    list.forEach((r) => {
       const card = document.createElement("div");
       card.className = "tool-card agent-card";
-      card.innerHTML = `<div class="portrait"><img src="${valoAsset(r.full || r.icon)}" alt="${r.name}" loading="lazy"></div>
-        <div class="card-name">${r.name}</div><div class="card-meta">${r.role || "—"}</div>`;
+      card.innerHTML = `${portrait(r)}
+        <div class="card-name">${esc(r.name)}</div>
+        <div class="card-meta">${esc(r.role || "—")}</div>`;
       card.addEventListener("click", () => open(r));
       box.appendChild(card);
     });
+    $("#empty").style.display = list.length ? "none" : "block";
   }
 
   function open(r) {
-    $("#modal-body").innerHTML = `<div style="display:flex;gap:16px;align-items:center;margin-bottom:8px">
-      <img src="${valoAsset(r.icon)}" style="width:96px;height:96px;object-fit:contain">
-      <div><h2 style="margin:0 0 4px">${r.name}</h2>
-      <div class="card-meta">${r.role || ""}</div>
-      <p class="hint" style="margin:8px 0 0">${r.desc || ""}</p></div></div>
-      ${r.abilities.map((a) => `<div class="ab"><img src="${valoAsset(a.icon)}" alt=""><div><b>${a.name}</b><p>${a.desc}</p></div></div>`).join("")}`;
+    const abilities = (r.abilities || []).map((a) => `<div class="ab">
+        <div class="ico"><img src="${A(a.icon)}" alt="" loading="lazy" onerror="__fb(this)"></div>
+        <div><span class="slot">${esc(SLOT[a.slot] || a.slot || "")}</span><br><b>${esc(a.name)}</b>
+        <p>${esc(a.desc)}</p></div></div>`).join("");
+    $("#modal-body").innerHTML = `
+      <div class="ag-modal">
+        <img class="face" src="${A(r.icon || r.full)}" alt="" onerror="this.style.display='none'">
+        <div style="flex:1 1 260px;min-width:0">
+          <h2>${esc(r.name)}</h2>
+          <div class="card-meta">${esc(r.role || "")}</div>
+          ${r.desc ? `<p class="desc">${esc(r.desc)}</p>` : ""}
+        </div>
+      </div>
+      <div style="margin-top:14px">${abilities || `<p class="hint">这位英雄暂时没有技能数据。</p>`}</div>`;
     $("#modal").classList.add("on");
+    document.body.style.overflow = "hidden";
   }
-  const close = () => $("#modal").classList.remove("on");
+  function close() { $("#modal").classList.remove("on"); document.body.style.overflow = ""; }
   $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") close(); });
   $("#modal-x").addEventListener("click", close);
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && $("#modal").classList.contains("on")) close(); });
   $("#q").addEventListener("input", (e) => { kw = e.target.value.trim(); render(); });
+
+  const box = $("#roles");
+  box.addEventListener("click", (e) => {
+    const chip = e.target.closest(".tool-chip[data-role]");
+    if (!chip) return;
+    box.querySelectorAll(".tool-chip").forEach((c) => c.classList.remove("on"));
+    chip.classList.add("on"); role = chip.dataset.role; render();
+  });
 
   fetch("/api/catalog/agents").then((r) => r.json()).then((d) => {
     rows = d.rows || [];
-    const roles = [...new Set(rows.map((r) => r.role).filter(Boolean))];
-    const box = $("#roles");
-    roles.forEach((name) => {
+    [...new Set(rows.map((r) => r.role).filter(Boolean))].forEach((name) => {
       const b = document.createElement("button");
       b.className = "tool-chip"; b.textContent = name; b.dataset.role = name;
       box.appendChild(b);
     });
-    box.addEventListener("click", (e) => {
-      const chip = e.target.closest(".tool-chip[data-role]");
-      if (!chip) return;
-      box.querySelectorAll(".tool-chip").forEach((c) => c.classList.remove("on"));
-      chip.classList.add("on"); role = chip.dataset.role; render();
-    });
     render();
-  });
+  }).catch(() => { $("#empty").style.display = "block"; $("#empty").textContent = "英雄数据暂时读不到，稍后再试。"; });
 })();
 </script>
 </body>

@@ -505,3 +505,344 @@
   font-size: 13px;
   color: var(--ink-2);
 }
+
+/* ===== v2：资料库共用（顶部导航 / 详情弹窗 / 等级配色） ===== */
+
+/* 工具页顶部导航：和首页顶栏同一套入口，走到哪都能横跳 */
+.tool-nav {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin: -4px 0 18px;
+}
+
+.tool-nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--ink-2);
+  font-size: 13px;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.tool-nav a:hover {
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.tool-nav a.on {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+@media (max-width: 720px) {
+  .tool-nav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .tool-nav::-webkit-scrollbar { display: none; }
+  .tool-nav a { flex: 0 0 auto; height: 30px; padding: 0 10px; font-size: 12.5px; }
+}
+
+/* 详情弹窗：卡片右上角一个正经的关闭按钮（手机上点背景容易点歪） */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 12, 15, 0.66);
+  display: none;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 28px 14px 56px;
+  z-index: 60;
+  overflow: auto;
+}
+
+.modal.on { display: flex; }
+
+.modal-card {
+  position: relative;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  width: min(920px, 100%);
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.modal-card.narrow { width: min(740px, 100%); }
+
+.modal-x {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 2;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.modal-x:hover { background: var(--paper-2); color: var(--ink); }
+
+/* 标题别被右上角的叉号压住；详情里的大图统一圆角 */
+.modal-card h2 { padding-right: 40px; }
+.modal-card img.big { width: 100%; border-radius: 12px; background: var(--paper-2); }
+
+@media (max-width: 620px) {
+  .modal { padding: 0; }
+  .modal-card { border-radius: 0 0 16px 16px; min-height: 100%; padding: 16px; }
+}
+
+
+/* ===== v3：英雄库 / 皮肤库专用（立绘底色、技能块、等级配色、视频舞台） ===== */
+
+/* 英雄卡：立绘是透明 PNG，底色给一层浅浅的品牌色渐变，别再是黑框 */
+.agent-card { align-items: stretch; }
+.agent-card .portrait {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 12px;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 96% at 50% 8%, var(--accent-soft) 0%, transparent 62%),
+    linear-gradient(180deg, var(--paper-2), var(--card));
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.agent-card .portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.16));
+}
+
+/* 英雄详情：头像 + 说明 */
+.ag-modal { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+.ag-modal .face {
+  width: 96px; height: 96px; flex: 0 0 auto;
+  border-radius: 14px; object-fit: cover;
+  background: var(--paper-2);
+}
+.ag-modal .desc { margin: 8px 0 0; font-size: 13px; line-height: 1.7; color: var(--ink-2); }
+
+/* 技能：图标是白色线稿，必须坐在深色块上才看得见 */
+.ab {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+.ab:first-child { border-top: 0; }
+.ab .ico {
+  flex: 0 0 auto; width: 46px; height: 46px; border-radius: 11px;
+  background: #151a20;
+  display: grid; place-items: center; overflow: hidden;
+}
+.ab .ico img { width: 30px; height: 30px; object-fit: contain; }
+.ab .slot {
+  display: inline-block; min-width: 16px; padding: 1px 5px; margin-right: 6px;
+  border-radius: 5px; background: var(--accent-soft); color: var(--accent-ink);
+  font-family: var(--mono); font-size: 11px; font-weight: 700; line-height: 1.5;
+}
+.ab b { font-size: 14px; }
+.ab p { margin: 4px 0 0; font-size: 13px; line-height: 1.65; color: var(--ink-2); }
+
+/* 皮肤库：顶部全局搜索（不分枪械） */
+.skin-search { padding: 14px 16px; margin-bottom: 16px; }
+.skin-search .search-wrap {
+  display: flex; align-items: center; gap: 9px;
+  height: 42px; padding: 0 12px;
+  border: 1px solid var(--line); border-radius: 11px; background: var(--paper-2);
+  color: var(--muted);
+}
+.skin-search .search-wrap:focus-within { border-color: var(--accent); background: var(--card); }
+.skin-search .search-wrap input {
+  flex: 1 1 auto; min-width: 0; height: 100%;
+  border: 0; background: transparent; color: var(--ink);
+  font-size: 14px; outline: none;
+}
+.skin-search .search-wrap input::-webkit-search-cancel-button { display: none; }
+.skin-search .clr {
+  flex: 0 0 auto; width: 22px; height: 22px; border: 0; border-radius: 50%;
+  background: var(--line); color: var(--ink-2); font-size: 12px; line-height: 1; cursor: pointer;
+}
+
+/* 皮肤库：左枪械 + 右网格 */
+.skin-layout { display: grid; grid-template-columns: 224px minmax(0, 1fr); gap: 16px; align-items: start; }
+.skin-side { padding: 12px; position: sticky; top: 12px; max-height: calc(100vh - 32px); overflow: auto; }
+.skin-side .panel-title { margin: 2px 0 10px; }
+.wlist { display: flex; flex-direction: column; gap: 4px; }
+.wlist button {
+  display: flex; align-items: center; gap: 9px;
+  width: 100%; padding: 6px 8px; border: 1px solid transparent; border-radius: 10px;
+  background: transparent; color: var(--ink-2); cursor: pointer; text-align: left;
+  font-size: 13px;
+}
+.wlist button:hover { background: var(--paper-2); }
+.wlist button.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.wlist img { width: 46px; height: 20px; object-fit: contain; flex: 0 0 auto; opacity: .85; }
+.wlist .n { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wlist .c { flex: 0 0 auto; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+
+.skin-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.skin-toolbar .panel-title { margin: 0; }
+.skin-grid { grid-template-columns: repeat(auto-fill, minmax(178px, 1fr)); }
+.skin-grid .art { aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden; background: var(--paper-2); display: grid; place-items: center; }
+.skin-grid .art img { width: 100%; height: 100%; object-fit: contain; }
+.skin-meta-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; }
+.skin-meta-row .card-meta { margin: 0; }
+
+/* 品质小标：颜色来自 Riot 的 highlightColor */
+.tier-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 8px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--card);
+  font-size: 11.5px; line-height: 1.6; color: var(--ink-2); white-space: nowrap;
+}
+.tier-chip i { width: 7px; height: 7px; border-radius: 50%; background: var(--tier, var(--line)); }
+
+/* 皮肤详情：照游戏里枪皮展示页的版式——品质色铺底 + 品质图标标题带 */
+.modal-card.skin-modal {
+  width: min(880px, 100%);
+  border-color: var(--tier-line, var(--line));
+  background:
+    radial-gradient(120% 90% at 50% 0%, var(--tier-soft, transparent) 0%, transparent 58%),
+    var(--card);
+  box-shadow: 0 24px 70px -30px var(--tier-line, rgba(0, 0, 0, .4));
+}
+.skin-hero { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.skin-hero .tier-ico { width: 34px; height: 34px; flex: 0 0 auto; object-fit: contain; }
+.skin-hero .tier-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--tier, var(--accent)); flex: 0 0 auto; }
+.skin-hero-txt { min-width: 0; }
+.skin-hero .tier-line {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; font-weight: 700; letter-spacing: .08em;
+  color: var(--tier, var(--accent-ink)); text-transform: none;
+}
+.skin-hero .tier-line #cnt {
+  font-weight: 400; letter-spacing: 0; color: var(--muted);
+  font-family: var(--mono); font-size: 11.5px;
+  padding-left: 8px; border-left: 1px solid var(--line);
+}
+.skin-hero h2 {
+  margin: 2px 0 2px; font-size: 20px; line-height: 1.3;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.skin-hero .card-meta { margin: 0; }
+.skin-stage {
+  position: relative; width: 100%; aspect-ratio: 16 / 9;
+  border-radius: 12px; overflow: hidden; background: #0d1116;
+  display: grid; place-items: center;
+}
+.skin-stage video, .skin-stage img { width: 100%; height: 100%; object-fit: contain; background: transparent; }
+.skin-tip { margin: 8px 0 0; font-size: 12px; color: var(--muted); }
+.skin-tabs-wrap { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 14px 0 10px; }
+.skin-tabs { margin: 0; }
+.skin-hint { font-size: 12px; color: var(--muted); flex: 1 1 200px; min-width: 0; }
+.skin-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 8px; }
+.skin-tiles .tile {
+  position: relative;
+  padding: 6px; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--card); cursor: pointer; text-align: center;
+}
+.skin-tiles .tile:hover { border-color: var(--tier, var(--accent)); }
+.skin-tiles .tile.on {
+  border-color: var(--tier, var(--accent));
+  box-shadow: 0 0 0 2px var(--tier-soft, var(--accent-soft)) inset;
+}
+.skin-tiles .tile .art {
+  width: 100%; aspect-ratio: 16 / 10; border-radius: 7px;
+  overflow: hidden; background: var(--paper-2);
+  display: grid; place-items: center;
+}
+.skin-tiles .tile .art img { width: 100%; height: 100%; object-fit: contain; }
+.skin-tiles .tile .art .sw { width: 100%; height: 100%; display: block; }
+.skin-tiles .tile .lvn {
+  position: absolute; top: 10px; left: 10px; z-index: 1;
+  min-width: 20px; height: 20px; padding: 0 5px;
+  border-radius: 6px; background: var(--tier, var(--accent)); color: #fff;
+  font-family: var(--mono); font-size: 12px; font-weight: 700; line-height: 20px;
+}
+.skin-tiles .tile .lb {
+  margin-top: 6px; font-size: 12px; color: var(--ink-2);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .skin-layout { grid-template-columns: minmax(0, 1fr); }
+  .skin-side { position: static; max-height: none; }
+  .wlist { flex-direction: row; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+  .wlist::-webkit-scrollbar { display: none; }
+  .wlist button { flex: 0 0 auto; border: 1px solid var(--line); }
+  .wlist img { width: 34px; }
+  .wlist .c { display: none; }
+}
+
+@media (max-width: 620px) {
+  .skin-grid { grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); }
+  .skin-tiles { grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); }
+  .ab .ico { width: 40px; height: 40px; }
+}
+
+/* 视频右上角的静音开关：默认静音（手机浏览器要求），想听声音自己点 */
+.skin-stage .mv-snd {
+  position: absolute; top: 8px; right: 8px; z-index: 2;
+  height: 28px; padding: 0 10px; border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, .3);
+  background: rgba(12, 16, 20, .62); color: #fff;
+  font-size: 12px; line-height: 1; cursor: pointer;
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+}
+.skin-stage .mv-snd:hover { background: rgba(12, 16, 20, .82); }
+.skin-stage .mv-snd[aria-pressed="true"] { border-color: var(--tier, var(--accent)); }
+
+@media (max-width: 620px) {
+  .skin-hero h2 { font-size: 17px; }
+  .skin-stage .mv-snd { top: 6px; right: 6px; height: 26px; padding: 0 8px; font-size: 11.5px; }
+}
+
+/* ===== v5：收藏按钮与排序控件 ===== */
+.skin-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between}
+.skin-sorts{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.skin-sorts .seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--card)}
+.skin-sorts .seg button{border:0;background:transparent;color:var(--ink-2);font:inherit;font-size:12.5px;
+  padding:6px 12px;cursor:pointer;border-radius:0}
+.skin-sorts .seg button+button{border-left:1px solid var(--line)}
+.skin-sorts .seg button.on{background:var(--accent-soft);color:var(--accent-ink)}
+.skin-card{position:relative}
+@media (max-width:620px){
+  .skin-sorts .seg button{padding:5px 9px;font-size:12px}
+}
+
+/* ===== v6：等级瓦片上的「有视频」标记 ===== */
+.tile{position:relative}
+.tile .vmark{position:absolute;right:6px;top:6px;width:18px;height:18px;border-radius:50%;
+  background:rgba(15,20,26,.72);color:#fff;font-size:9px;line-height:18px;text-align:center;
+  pointer-events:none;z-index:2}
+.tile .art{position:relative}
+
+/* ===== v7：皮肤价格 ===== */
+.skin-meta-row .price,.modal-card .price{color:var(--accent-ink);font-weight:600;
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+.skin-meta-row .price{margin-left:auto;margin-right:8px}

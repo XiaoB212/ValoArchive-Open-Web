@@ -5,16 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>点位库 · VALO ARCHIVE</title>
 <link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=4" sizes="any" />
-<link rel="stylesheet" href="/static/style.css?v=147" />
-<link rel="stylesheet" href="/static/tools.css?v=1" />
+<link rel="stylesheet" href="/static/style.css?v=210" />
+<link rel="stylesheet" href="/static/tools.css?v=6" />
 <style>
   .lineup-card { cursor: pointer; }
   .lineup-card .shot { height: 118px; width: 100%; object-fit: cover; border-radius: 9px; background: var(--paper-2); margin: 0; }
-  .modal { position: fixed; inset: 0; background: rgba(12,14,17,.64); display: none; align-items: flex-start;
-    justify-content: center; padding: 32px 16px; z-index: 60; overflow: auto; }
-  .modal.on { display: flex; }
-  .modal-card { background: var(--card); border-radius: 16px; width: min(920px, 100%); padding: 18px; }
-  .modal-card img.big { width: 100%; border-radius: 12px; background: var(--paper-2); }
+  /* 弹窗外壳、关闭按钮统一由 tools.css 提供，这里只管点位详情自己的排版 */
+  .img-fallback { display: grid; place-items: center; min-height: 118px; border: 1px dashed var(--line-strong);
+    border-radius: 10px; background: var(--paper-2); color: var(--ink-3, #78848a); font-size: 12px; padding: 12px; }
+  .img-fallback.big { min-height: 220px; }
   .meta-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 0; }
   .pill { border: 1px solid var(--line-strong); border-radius: 999px; padding: 3px 10px; font-size: 11px; color: var(--ink-2); }
   /* 详情：左边地图俯视图（带站位/落点标记），右边分步图 */
@@ -43,6 +42,13 @@
 <div class="grid-bg" aria-hidden="true"></div>
 
 <div class="tool-page">
+  <nav class="tool-nav">
+    <a href="/">← 回首页</a>
+    <a href="/crosshairs">准星库</a>
+    <a href="/lineups" class="on">点位库</a>
+    <a href="/catalog/agents">英雄库</a>
+    <a href="/catalog/skins">皮肤库</a>
+  </nav>
   <div class="tool-head">
     <div>
       <h1>点位库</h1>
@@ -94,10 +100,11 @@
   </div>
 </div>
 
-<div class="modal" id="modal"><div class="modal-card" id="modal-body"></div></div>
+<div class="modal" id="modal"><div class="modal-card" id="modal-body-wrap"><button class="modal-x" id="modal-x" type="button" aria-label="关闭">✕</button><div id="modal-body"></div></div></div>
 <div class="tool-toast" id="toast"></div>
 
-<script src="/config.js?v=1"></script>
+<script src="/static/config.js?v=1"></script>
+
 <script>
 (function () {
   const $ = (s) => document.querySelector(s);
@@ -109,9 +116,17 @@
   };
 
   const esc = (t) => String(t || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  // 两种图源别混：valorant-api 的地图俯视图走通用 /img 代理，点位截图走点位图代理
+  // （后者只放行那几个点位图床，塞错就会被判 400）。
+  const A = (u) => (window.valoAsset ? window.valoAsset(u) : u);
   const img = (u) => {
-    const p = u && u.startsWith("http") ? "/api/lineups/img?u=" + encodeURIComponent(u) : u;
-    return typeof window.valoAsset === "function" ? window.valoAsset(p) : p;
+    if (!u) return "";
+    const s = String(u);
+    if (!s.startsWith("http")) return A(s);
+    const url = s.includes("valorant-api.com")
+      ? "/img?url=" + encodeURIComponent(s)
+      : "/api/lineups/img?u=" + encodeURIComponent(s);
+    return A(url);
   };
   const PURPOSE = { ENTRY: "进点用", INFO: "拿信息", ANTI_RUSH: "防快攻", RETAKE: "回防用", SITE_HOLD: "守点",
     ANTI_DEFUSE: "防拆包", FLASH_ASSIST: "辅助闪光", POST_PLANT: "下包后", SMOKE: "封烟", MOLLY: "燃烧瓶" };
@@ -146,7 +161,8 @@
     box.className = "tool-card lineup-card";
     const img = document.createElement("img");
     img.className = "shot"; img.loading = "lazy"; img.alt = row.title || "";
-    img.src = row.thumb || "/static/favicon.svg";
+    img.src = row.thumb ? A(row.thumb) : "/static/favicon.svg";
+    img.onerror = () => { img.onerror = null; img.replaceWith(fallbackBox()); };
     box.appendChild(img);
     const title = document.createElement("div");
     title.className = "card-name"; title.textContent = row.title || "未命名";
@@ -178,10 +194,10 @@
           ${mk("mk-util", row.util_x, row.util_y)}
         </div>
         <div class="legend"><span><i></i>站位</span><span><i class="cross"></i>落点</span></div>
-      </div>` : (row.full ? `<img class="big" src="${row.full}" alt="">` : "");
+      </div>` : (row.full ? `<img class="big" src="${img(row.full)}" alt="" onerror="imgFail(this)">` : "");
 
     const steps = (row.steps || []).map((st, i) => `<figure class="step">
-        <img src="${img(st.url)}" alt="第 ${i + 1} 步" loading="lazy">
+        <img src="${img(st.url)}" alt="第 ${i + 1} 步" loading="lazy" onerror="imgFail(this)">
         <figcaption><b>${i + 1}</b>${st.desc || "（这一步没有文字说明，看图中的落点标记）"}</figcaption>
       </figure>`).join("");
 
@@ -193,11 +209,12 @@
       ${row.desc ? `<p class="detail-desc">${esc(row.desc)}</p>` : ""}
       <div class="detail-grid" style="margin-top:14px">
         ${mini}
-        <div class="steps">${steps || `<p class="hint">这条点位只有一张示意图：${row.full ? `<img class="big" src="${img(row.full)}" alt="">` : "暂无图片"}</p>`}</div>
+        <div class="steps">${steps || `<p class="hint">这条点位只有一张示意图</p><img class="big" src="${img(row.full)}" alt="" onerror="imgFail(this)">`}</div>
       </div>
       ${tags ? `<div class="meta-row" style="margin-top:12px">${tags}</div>` : ""}
       ${row.note && row.note !== row.desc ? `<p class="hint" style="margin-top:10px">${esc(row.note)}</p>` : ""}`;
     $("#modal").classList.add("on");
+    document.body.style.overflow = "hidden";
   }
 
   async function load() {
@@ -233,7 +250,23 @@
     debounce = setTimeout(() => { state.q = e.target.value.trim(); load(); }, 240);
   });
 
-  $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") e.currentTarget.classList.remove("on"); });
+  function closeModal() { $("#modal").classList.remove("on"); document.body.style.overflow = ""; }
+  window.imgFail = (el) => {
+    const box = document.createElement("div");
+    box.className = (el.classList.contains("big") ? "img-fallback big" : "img-fallback");
+    box.textContent = "这张图暂时打不开";
+    el.replaceWith(box);
+  };
+  function fallbackBox() {
+    const box = document.createElement("div");
+    box.className = "img-fallback";
+    box.textContent = "缩略图暂时打不开";
+    box.style.height = "118px";
+    return box;
+  }
+  $("#modal-x").addEventListener("click", closeModal);
+  $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") closeModal(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && $("#modal").classList.contains("on")) closeModal(); });
   $("#open-form").addEventListener("click", () => {
     const f = $("#form"); f.style.display = f.style.display === "none" ? "block" : "none";
   });
