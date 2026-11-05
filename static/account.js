@@ -95,6 +95,11 @@
       return;
     }
 
+    var heroT = q("hero-title"), heroS = q("hero-sub");
+    if (heroT) heroT.textContent = "你好，" + ((me.nick || me.qq || "").toString().trim() || "指挥官");
+    if (heroS) heroS.textContent = m.active
+      ? "会员有效中，到期 " + fmt(m.expires_at) + "；全部历史、单局详情与导出都解锁了。"
+      : "已登录：免费额度每天重置，会员开通后能看全部历史、单局详情与导出。";
     q("i-qq").textContent = me.qq || "—";
     q("i-nick").textContent = me.nick || "—";
     var dispName = (me.nick || me.qq || "我的账号").toString().trim();
@@ -167,6 +172,13 @@
     }
   }
 
+  function showInviteRow(on) {
+    var row = q("r-invite-row");
+    if (!row) return;
+    if (on) row.removeAttribute("hidden");
+    else row.setAttribute("hidden", "");
+  }
+
   async function loadLimits() {
     try {
       var resp = await fetch("/api/auth/limits", { credentials: "same-origin" });
@@ -177,6 +189,8 @@
         var val = data[k + (k === "query" ? "_per_day" : k === "detail" ? "_per_day" : "")];
         if (el && val != null) el.textContent = String(val);
       });
+      // 免费注册是默认：只有后台把「必须邀请码」打开时，才露出那个输入框。
+      if (data.invite_only) showInviteRow(true);
       var note = q("lim-note");
       if (note) {
         if (!data.register_open) note.textContent = "当前暂停注册；已有账号照常登录。免费额度按自然日重置。";
@@ -252,7 +266,13 @@
         invite: (q("r-invite") ? q("r-invite").value.trim().toUpperCase() : ""),
         agree: !!(q("r-agree") && q("r-agree").checked)
       });
-      if (!r.ok) { say(out, MSG[reasonOf(r.data)] || "注册失败，稍后再试。", "err"); return; }
+      if (!r.ok) {
+        var why = reasonOf(r.data);
+        // 名额满了 / 后台收紧了，才让访客看到并填写邀请码。
+        if (why === "invite_required" || why === "register_full") showInviteRow(true);
+        say(out, MSG[why] || "注册失败，稍后再试。", "err");
+        return;
+      }
       q("r-pw").value = "";
       q("r-pw2").value = "";
       say(out, "", "");

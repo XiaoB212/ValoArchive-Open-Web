@@ -129,6 +129,8 @@
       .ac-invite .code{font-size:18px}
       .legal{font-size:11px}
     }
+    /* .ac-row 是 display:flex，会盖掉 [hidden] 的默认 display:none，这里强制一下 */
+    [hidden] { display: none !important; }
   </style>
 </head>
 <body>
@@ -144,8 +146,8 @@
   <main class="ac-main">
     <section class="ac-hero">
       <p class="ac-kicker">ACCOUNT · 账号中心</p>
-      <h1>登录，开始查战绩</h1>
-      <p class="ac-sub">QQ 号 + 一个密码就够了：不用邮箱、不用手机号。登录后免费看最近 10 场，授权码开通会员后解锁全部历史与导出。</p>
+      <h1 id="hero-title">登录，开始查战绩</h1>
+      <p class="ac-sub" id="hero-sub">QQ 号 + 一个密码就够了：不用邮箱、不用手机号。登录后免费看最近 10 场，授权码开通会员后解锁全部历史与导出。</p>
     </section>
 
     <div class="ac-grid">
@@ -194,9 +196,10 @@
                 <input id="r-pw2" type="password" maxlength="64" required />
               </label>
             </div>
-            <div class="ac-row one">
-              <label>邀请码（可空）
-                <input id="r-invite" placeholder="满员后必填，例如 K7M2QX9P" maxlength="12" />
+            <!-- 默认是免费注册，这个框不出现；只有「必须邀请码」或被后台关掉开放注册时才显示。 -->
+            <div class="ac-row one" id="r-invite-row" hidden>
+              <label>邀请码
+                <input id="r-invite" placeholder="输入邀请码，例如 K7M2QX9P" maxlength="12" />
               </label>
             </div>
             <div class="ac-agree">
@@ -216,7 +219,7 @@
             <div class="ac-actions">
               <button class="ac-btn" id="b-register" type="submit">注册并登录</button>
             </div>
-            <p class="ac-tip">没有邮箱/手机验证，也没有自助找回；忘了密码找站长重置。满 200 人后只能凭邀请码注册。</p>
+            <p class="ac-tip">注册免费，不要邀请码：QQ 号 + 密码就能用。没有邮箱/手机验证，也没有自助找回；忘了密码找站长重置。</p>
           </form>
 
           <div class="ac-out" id="out-out"></div>
@@ -329,6 +332,6 @@
     </div>
   </main>
 
-  <script src="/static/account.js?v=1"></script>
+  <script src="/static/account.js?v=3"></script>
 </body>
 </html>

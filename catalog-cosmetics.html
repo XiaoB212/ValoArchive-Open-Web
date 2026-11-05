@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>个性库 · 卡面 / 喷漆 / 挂饰 · VALO ARCHIVE</title>
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=4" sizes="any" />
+<link rel="stylesheet" href="/static/style.css?v=210" />
+<link rel="stylesheet" href="/static/tools.css?v=6" />
+<style>
+  /* 顶部搜索：在一个库里搜，切标签自动换占位文案 */
+  .cos-search { margin-bottom: 18px; padding: 14px; }
+  .search-wrap { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line-strong);
+    border-radius: 10px; background: var(--paper); padding: 0 12px; height: 42px; }
+  .search-wrap svg { flex: 0 0 auto; color: var(--muted); }
+  .search-wrap input { flex: 1 1 auto; min-width: 0; border: 0; background: transparent; font: inherit;
+    font-size: 14px; color: var(--ink); outline: none; height: 100%; }
+  .search-wrap .clr { border: 0; background: transparent; color: var(--muted); cursor: pointer;
+    font-size: 16px; line-height: 1; padding: 4px; border-radius: 6px; }
+  .search-wrap .clr:hover { background: var(--paper-2); color: var(--ink); }
+  .search-wrap:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+  .cos-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 14px; }
+  .cos-tab { border: 1px solid var(--line-strong); background: var(--paper); color: var(--ink-2);
+    border-radius: 999px; padding: 8px 16px; font: inherit; font-size: 13.5px; font-weight: 700;
+    cursor: pointer; }
+  .cos-tab:hover { border-color: var(--accent); color: var(--accent-ink); }
+  .cos-tab.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); }
+  .cos-tab .n { font: 12px/1 var(--mono); color: var(--muted); margin-left: 6px; }
+
+  .cos-grid { grid-template-columns: repeat(auto-fill, minmax(178px, 1fr)); }
+  .cos-card { cursor: pointer; }
+  .cos-card .art { height: 96px; display: grid; place-items: center; border-radius: 9px;
+    background: linear-gradient(180deg, var(--paper-2), var(--paper)); border: 1px solid var(--line); }
+  .cos-card .art img { max-width: 88%; max-height: 78px; object-fit: contain; }
+  .cos-card .nm { font-size: 13px; font-weight: 600; margin-top: 8px; line-height: 1.35;
+    overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .cos-card .meta { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+
+  .cos-modal { width: min(760px, 100%); }
+  .cos-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+    flex-wrap: wrap; padding-right: 34px; }
+  .cos-head h2 { margin: 0 0 5px; font-size: 20px; }
+  .cos-stage { position: relative; margin-top: 14px; border-radius: 12px; overflow: hidden;
+    background: linear-gradient(180deg, #1b2128, #12161b); min-height: 200px; display: grid; place-items: center; }
+  .cos-stage img { display: block; width: 100%; max-height: 400px; object-fit: contain; padding: 12px; box-sizing: border-box; }
+  .cos-tiles { margin-top: 14px; display: grid; gap: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); }
+  .cos-tile { border: 1px solid var(--line); background: var(--paper); border-radius: 10px; padding: 8px;
+    text-align: center; font: inherit; color: var(--ink-2); }
+  .cos-tile img { display: block; width: 100%; height: 56px; object-fit: contain; margin-bottom: 6px; }
+  .cos-tile .lb { font-size: 11px; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="grid-bg" aria-hidden="true"></div>
+<div class="tool-page">
+  <nav class="tool-nav">
+    <a href="/">← 回首页</a>
+    <a href="/crosshairs">准星库</a>
+    <a href="/lineups">点位库</a>
+    <a href="/catalog/agents">英雄库</a>
+    <a href="/catalog/skins">皮肤库</a>
+    <a href="/catalog/cosmetics" class="on">个性库</a>
+  </nav>
+  <div class="tool-head">
+    <div>
+      <h1>个性库</h1>
+      <div class="sub">玩家卡面、喷漆、枪挂饰：全部官方素材，卡面看大图、挂饰看每一级的样子。</div>
+    </div>
+    <div class="tool-actions"><a class="btn small" href="/catalog/skins">皮肤库</a><a class="btn small" href="/">回首页</a></div>
+  </div>
+
+  <div class="card-panel cos-search">
+    <div class="search-wrap">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.6-3.6"></path></svg>
+      <input id="q" type="search" autocomplete="off" placeholder="搜卡面：例如 2021 / 冠军 / 通行证" />
+      <button class="clr" id="q-x" type="button" aria-label="清空" hidden>✕</button>
+    </div>
+    <div class="hint" id="q-hint" style="margin-top:8px">共 0 项。数据来自 Riot 公开素材，图片直连官方 CDN。</div>
+  </div>
+
+  <div class="cos-tabs" id="tabs">
+    <button class="cos-tab on" type="button" data-tab="cards">卡面<span class="n" id="n-cards">…</span></button>
+    <button class="cos-tab" type="button" data-tab="sprays">喷漆<span class="n" id="n-sprays">…</span></button>
+    <button class="cos-tab" type="button" data-tab="buddies">挂饰<span class="n" id="n-buddies">…</span></button>
+  </div>
+
+  <div class="cards cos-grid" id="grid"></div>
+  <div class="empty" id="empty" style="display:none">没有匹配的内容。</div>
+
+  <div class="legal">非官方工具，与 Riot Games / 腾讯无关；卡面、喷漆、挂饰数据来自 Riot 公开的官方素材，仅供参考。</div>
+</div>
+
+<div class="modal" id="modal"><div class="modal-card cos-modal">
+  <button class="modal-x" id="modal-x" type="button" aria-label="关闭">✕</button>
+  <div id="body"></div>
+</div></div>
+
+<script src="/static/config.js?v=1"></script>
+<script>
+(function () {
+  const $ = (s) => document.querySelector(s);
+  const esc = (t) => String(t || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  const TABS = {
+    cards:   { api: "/api/catalog/cards",   ph: "搜卡面：例如 2021 / 冠军 / 通行证", unit: "张" },
+    sprays:  { api: "/api/catalog/sprays",  ph: "搜喷漆：例如 摸头 / 加油 / 冠军",   unit: "款" },
+    buddies: { api: "/api/catalog/buddies", ph: "搜挂饰：例如 冠军 / 皮蛋 / 小刀",   unit: "款" }
+  };
+
+  const state = { tab: "cards", q: "", cache: {}, rows: [] };
+  const MAX_ROWS = 300;
+
+  // 图片直连官方 CDN；失败才回落本站 /img 代理（每次只回落一次）。
+  window.__fb = function (img) {
+    if (!img || img.dataset.fb) return;
+    const src = img.currentSrc || img.src || "";
+    if (!src || src.indexOf("/img?url=") === 0) return;
+    img.dataset.fb = "1";
+    img.src = (window.valoAsset ? window.valoAsset("/img?url=" + encodeURIComponent(src)) : "/img?url=" + encodeURIComponent(src));
+  };
+
+  function art(url, alt) {
+    if (!url) return '<div class="art"></div>';
+    return '<div class="art"><img loading="lazy" src="' + esc(url) + '" alt="' + esc(alt) +
+      '" onerror="window.__fb(this)" /></div>';
+  }
+
+  function filtered() {
+    const q = state.q.trim().toLowerCase();
+    if (!q) return state.rows;
+    return state.rows.filter((r) => String(r.name || "").toLowerCase().includes(q) ||
+      String(r.cat || "").toLowerCase().includes(q));
+  }
+
+  function render() {
+    const rows = filtered();
+    const shown = rows.slice(0, MAX_ROWS);
+    const t = TABS[state.tab];
+    $("#grid").innerHTML = shown.map((r) => {
+      if (state.tab === "sprays") {
+        return '<div class="card cos-card" data-uuid="' + esc(r.uuid) + '">' + art(r.icon, r.name) +
+          '<div class="nm">' + esc(r.name) + '</div><div class="meta">' + esc(r.cat || "喷漆") + '</div></div>';
+      }
+      if (state.tab === "buddies") {
+        const n = (r.levels || []).length;
+        return '<div class="card cos-card" data-uuid="' + esc(r.uuid) + '">' + art(r.icon, r.name) +
+          '<div class="nm">' + esc(r.name) + '</div><div class="meta">' + (n > 1 ? n + " 级可升级" : "单级挂饰") + '</div></div>';
+      }
+      return '<div class="card cos-card" data-uuid="' + esc(r.uuid) + '">' + art(r.small || r.icon, r.name) +
+        '<div class="nm">' + esc(r.name) + '</div><div class="meta">玩家卡面</div></div>';
+    }).join("");
+    $("#empty").style.display = shown.length ? "none" : "";
+    $("#empty").textContent = state.q ? "没有匹配的内容。" : "这一类暂时没有数据。";
+    const total = rows.length;
+    $("#q-hint").textContent = (state.q ? "筛出 " + total + " " + t.unit : "共 " + total + " " + t.unit) +
+      "（当前显示 " + shown.length + (total > MAX_ROWS ? "，输入关键词缩小范围" : "") + "）。图片直连官方 CDN。";
+    $("#q-x").hidden = !state.q;
+    $("#q").placeholder = t.ph;
+  }
+
+  async function loadTab(tab) {
+    state.tab = tab;
+    document.querySelectorAll(".cos-tab").forEach((b) => b.classList.toggle("on", b.dataset.tab === tab));
+    if (!state.cache[tab]) {
+      $("#grid").innerHTML = "";
+      $("#q-hint").textContent = "正在读取 " + TABS[tab].ph.split("：")[0].replace("搜", "") + "…";
+      try {
+        const res = await fetch(TABS[tab].api, { credentials: "same-origin" });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        state.cache[tab] = data.rows || [];
+        $("#n-" + tab).textContent = String((data.rows || []).length);
+      } catch (err) {
+        $("#q-hint").textContent = "读取失败：" + (err && err.message ? err.message : "网络错误") + "，刷新再试。";
+        state.cache[tab] = [];
+      }
+    }
+    state.rows = state.cache[tab] || [];
+    render();
+  }
+
+  function openDetail(uuid) {
+    const row = (state.cache[state.tab] || []).find((r) => r.uuid === uuid);
+    if (!row) return;
+    let html = "";
+    if (state.tab === "cards") {
+      const big = row.wide || row.large || row.icon;
+      html = '<div class="cos-head"><div><h2>' + esc(row.name) + '</h2><div class="hint">玩家卡面</div></div></div>' +
+        '<div class="cos-stage"><img src="' + esc(big) + '" alt="' + esc(row.name) + '" onerror="window.__fb(this)" /></div>';
+    } else if (state.tab === "sprays") {
+      const big = row.anim || row.full || row.icon;
+      html = '<div class="cos-head"><div><h2>' + esc(row.name) + '</h2><div class="hint">' + esc(row.cat || "喷漆") + '</div></div></div>' +
+        '<div class="cos-stage"><img src="' + esc(big) + '" alt="' + esc(row.name) + '" onerror="window.__fb(this)" /></div>' +
+        (row.anim ? '<div class="hint" style="margin-top:8px">上面是官方动图（GIF），加载不出来就到游戏里看。</div>' : "");
+    } else {
+      const levels = row.levels || [];
+      html = '<div class="cos-head"><div><h2>' + esc(row.name) + '</h2><div class="hint">枪挂饰 · ' +
+        (levels.length > 1 ? levels.length + " 级" : "单级") + '</div></div></div>' +
+        '<div class="cos-stage"><img src="' + esc(row.icon) + '" alt="' + esc(row.name) + '" onerror="window.__fb(this)" /></div>' +
+        (levels.length > 1 ? '<div class="cos-tiles">' + levels.map((lv) =>
+          '<div class="cos-tile"><img src="' + esc(lv.icon) + '" alt="' + esc(lv.name) + '" onerror="window.__fb(this)" />' +
+          '<div class="lb">' + esc(lv.name || ("等级 " + lv.level)) + '</div></div>').join("") + '</div>' : "");
+    }
+    $("#body").innerHTML = html;
+    $("#modal").classList.add("on");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeModal() {
+    $("#modal").classList.remove("on");
+    document.body.style.overflow = "";
+  }
+
+  $("#tabs").addEventListener("click", (ev) => {
+    const btn = ev.target.closest(".cos-tab");
+    if (btn) loadTab(btn.dataset.tab);
+  });
+
+  $("#grid").addEventListener("click", (ev) => {
+    const card = ev.target.closest(".cos-card");
+    if (card) openDetail(card.dataset.uuid);
+  });
+
+  let timer = 0;
+  $("#q").addEventListener("input", () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => { state.q = $("#q").value; render(); }, 120);
+  });
+  $("#q-x").addEventListener("click", () => { $("#q").value = ""; state.q = ""; render(); $("#q").focus(); });
+
+  $("#modal-x").addEventListener("click", closeModal);
+  $("#modal").addEventListener("click", (ev) => { if (ev.target.id === "modal") closeModal(); });
+  document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") closeModal(); });
+
+  loadTab("cards");
+})();
+</script>
+</body>
+</html>
