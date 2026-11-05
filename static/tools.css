@@ -857,6 +857,8 @@
   pointer-events:none;z-index:2}
 .tile .art{position:relative}
 
+.price-note{margin-top:4px;font-size:11.5px;line-height:1.45;color:var(--muted)}
+
 /* ===== v7：皮肤价格 ===== */
 .skin-meta-row .price.free,.modal-card .price.free,.skin-meta-row .price.est,.modal-card .price.est{color:var(--muted);font-weight:600}
 .skin-meta-row .price,.modal-card .price{color:var(--accent-ink);font-weight:600;

@@ -6,7 +6,7 @@
 <title>皮肤库 · VALO ARCHIVE</title>
 <link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=4" sizes="any" />
 <link rel="stylesheet" href="/static/style.css?v=b06979f1a0" />
-<link rel="stylesheet" href="/static/tools.css?v=98af84d750" />
+<link rel="stylesheet" href="/static/tools.css?v=31304f32f0" />
 <style>
   /* 顶部全局搜索：不挑枪，直接搜皮肤名 */
   .skin-search { margin-bottom: 18px; padding: 14px; }
@@ -200,7 +200,10 @@
       return `<span class="price free" title="战令 / 活动皮，本身没有单独售价">无单独售价</span>`;
     }
     if (num > 0) {
-      return `<span class="price est" title="没在掌瓦商城搜到，按品质档位估算，仅供参考">参考 ${num.toLocaleString("zh-CN")} 点券</span>`;
+      const why = s.price_unknown
+        ? "掌瓦搜索里查不到这一款（国服商城没上架），只能按品质档位估算，仅供参考"
+        : "没在掌瓦商城搜到，按品质档位估算，仅供参考";
+      return `<span class="price est" title="${why}">参考 ${num.toLocaleString("zh-CN")} 点券</span>`;
     }
     return "";
   }
@@ -427,6 +430,7 @@
           <div class="tier-line">${esc(s.tier_name || "未分级")}<span id="cnt">读数据…</span></div>
           <h2 title="${esc(s.name)}">${esc(s.name)}</h2>
           <div class="card-meta">${esc(s.weapon || state.weaponName)} ${priceChip(s)}</div>
+          ${s.price_unknown ? `<div class="price-note">掌瓦搜索里查不到这一款（国服没上架），价格按品质档位估算，仅供参考。</div>` : ""}
         </div>
       </div>
       <div class="skin-stage">
