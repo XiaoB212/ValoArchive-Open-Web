@@ -38,7 +38,8 @@ window.VALO_CONFIG = {
     locked: false,
     label: "",
     expires: 0,
-    source: ""
+    source: "",
+    needLogin: false
   });
 
   var readyResolve = null;
@@ -452,6 +453,11 @@ window.VALO_CONFIG = {
           GATE.label = r.label || "";
           GATE.source = r.source || "";
           openDoor();
+        } else if (r && (r.gate === false || r.code === "need_login")) {
+          // 口令层已经关掉（公开站）：不发口令，直接让人看页面。
+          // 真正要数据的接口会回 401，那时前端弹登录卡，login.js 负责引导去 /account。
+          GATE.needLogin = true;
+          openDoor();
         } else {
           showGate();
         }
@@ -466,6 +472,11 @@ window.VALO_CONFIG = {
         GATE.source = r.source || "";
         // 从链接带进来的口令，验证通过就记下来，下次不用再带
         if (urlKey) saveKey(candidate, r.expires);
+        openDoor();
+      } else if (r && (r.gate === false || r.code === "need_login" || r.reason === "need_key")) {
+        // 存过的旧口令在新策略下没用：清掉，按「不需要口令」处理。
+        lsDel(STORE_KEY);
+        GATE.needLogin = true;
         openDoor();
       } else {
         lsDel(STORE_KEY);
