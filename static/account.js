@@ -133,6 +133,38 @@
       q("i-enter").onclick = function (ev) { ev.preventDefault(); q("d-code").focus(); };
       loadInvites(false);
     }
+
+    // 浏览器里还带着另一个 QQ 的卡密会员时：后台按账号 QQ 查是「普通」，用户却在别处
+    // 看到会员，两边对不上。这里直接提示并提供「并入当前账号」。
+    var other = me.other_member || null;
+    var banner = q("merge-banner");
+    if (banner) {
+      if (other && !localStorage.getItem("va-merge-skip")) {
+        banner.hidden = false;
+        q("merge-text").textContent =
+          "这个浏览器上还有一份会员，属于 QQ " + other.qq + "（剩 " + other.days_left +
+          " 天）；当前账号是 " + (me.qq || "—") + "。并过来以后，后台和账号页显示的会员就是同一个身份了。";
+      } else {
+        banner.hidden = true;
+      }
+    }
+  }
+
+  async function adoptMember() {
+    var btn = q("merge-do");
+    if (btn) { btn.disabled = true; btn.textContent = "正在合并…"; }
+    try {
+      var resp = await fetch("/api/auth/adopt-member", { method: "POST", credentials: "same-origin" });
+      var data = await resp.json().catch(function () { return {}; });
+      if (!resp.ok) throw new Error((data.detail && data.detail.message) || "合并失败");
+      if (typeof toast === "function") toast("会员已并入当前账号");
+      localStorage.removeItem("va-merge-skip");
+      await load();
+    } catch (err) {
+      if (typeof toast === "function") toast("合并失败：" + err.message);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = "并入当前账号"; }
+    }
   }
 
   async function loadInvites(active) {
@@ -396,6 +428,12 @@
       }
     } catch (e) { /* 联系信息只是展示，失败就保持隐藏 */ }
   }
+
+  q("merge-do").addEventListener("click", adoptMember);
+  q("merge-skip").addEventListener("click", function () {
+    q("merge-banner").hidden = true;
+    localStorage.setItem("va-merge-skip", "1");
+  });
 
   loadLimits();
   loadContact();

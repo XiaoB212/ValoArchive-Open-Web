@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>站点状态 · VALO ARCHIVE</title>
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=4" sizes="any" />
+<link rel="stylesheet" href="/static/style.css?v=210" />
+<link rel="stylesheet" href="/static/tools.css?v=6" />
+<style>
+  .st-hero { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 16px;
+    padding: 18px 20px; }
+  .st-lamp { width: 12px; height: 12px; border-radius: 50%; background: #7a8794; flex: 0 0 auto;
+    box-shadow: 0 0 0 4px rgba(122,135,148,.16); }
+  .st-lamp.ok { background: #35c07a; box-shadow: 0 0 0 4px rgba(53,192,122,.18); }
+  .st-lamp.bad { background: #e2564a; box-shadow: 0 0 0 4px rgba(226,86,74,.18); }
+  .st-hero h2 { margin: 0; font-size: 18px; }
+  .st-hero .st-msg { color: var(--muted); font-size: 13px; margin-top: 3px; }
+  .st-hero .st-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  .st-hero .st-right .hint { margin: 0; }
+
+  .st-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
+  .st-cell { border: 1px solid var(--line); background: var(--paper); border-radius: 12px;
+    padding: 14px 16px; }
+  .st-cell .k { font-size: 12px; color: var(--muted); letter-spacing: .04em; }
+  .st-cell .v { font: 700 20px/1.25 var(--sans); margin-top: 6px; color: var(--ink); }
+  .st-cell .v small { font-size: 12px; font-weight: 400; color: var(--muted); margin-left: 4px; }
+  .st-cell.warn .v { color: #d8823a; }
+  .st-cell.bad .v { color: #d0492f; }
+  .st-note { margin-top: 16px; font-size: 12.5px; color: var(--muted); line-height: 1.7; }
+</style>
+</head>
+<body>
+<div class="grid-bg" aria-hidden="true"></div>
+<div class="tool-page">
+  <nav class="tool-nav">
+    <a href="/">← 回首页</a>
+    <a href="/crosshairs">准星库</a>
+    <a href="/lineups">点位库</a>
+    <a href="/catalog/agents">英雄库</a>
+    <a href="/catalog/skins">皮肤库</a>
+    <a href="/catalog/cosmetics">个性库</a>
+    <a href="/status" class="on">状态</a>
+  </nav>
+  <div class="tool-head">
+    <div>
+      <h1>站点状态</h1>
+      <div class="sub">服务是否正常、资料库多新、国服价格收录了多少款，全在这一页。</div>
+    </div>
+    <div class="tool-actions"><a class="btn small" href="/">回首页</a></div>
+  </div>
+
+  <div class="card-panel st-hero">
+    <span class="st-lamp" id="lamp"></span>
+    <div>
+      <h2 id="headline">正在检测…</h2>
+      <div class="st-msg" id="headmsg">读取服务状态中</div>
+    </div>
+    <div class="st-right">
+      <span class="hint" id="checked">—</span>
+      <button class="btn small" id="refresh" type="button">刷新</button>
+    </div>
+  </div>
+
+  <div class="st-grid" id="grid">
+    <div class="st-cell"><div class="k">战绩查询服务</div><div class="v" id="v-query">…</div></div>
+    <div class="st-cell"><div class="k">站点运行时长</div><div class="v" id="v-uptime">…</div></div>
+    <div class="st-cell"><div class="k">国服价格收录</div><div class="v" id="v-prices">…</div></div>
+    <div class="st-cell"><div class="k">价格更新时间</div><div class="v" id="v-priceat">…</div></div>
+    <div class="st-cell"><div class="k">英雄</div><div class="v" id="v-agents">…</div></div>
+    <div class="st-cell"><div class="k">皮肤</div><div class="v" id="v-skins">…</div></div>
+    <div class="st-cell"><div class="k">武器</div><div class="v" id="v-weapons">…</div></div>
+    <div class="st-cell"><div class="k">地图</div><div class="v" id="v-maps">…</div></div>
+    <div class="st-cell"><div class="k">玩家卡面</div><div class="v" id="v-cards">…</div></div>
+    <div class="st-cell"><div class="k">喷漆</div><div class="v" id="v-sprays">…</div></div>
+    <div class="st-cell"><div class="k">枪挂饰</div><div class="v" id="v-buddies">…</div></div>
+  </div>
+
+  <div class="st-note" id="note">
+    每 30 秒自动刷新一次；查询服务依赖上游账号状态，出现「上游服务到期」时战绩查询与资料库同步会受影响，已缓存的资料仍然可以浏览。
+  </div>
+
+  <div class="legal">非官方工具，与 Riot Games / 腾讯无关。</div>
+</div>
+
+<script src="/static/config.js?v=1"></script>
+<script>
+(function () {
+  const $ = (s) => document.querySelector(s);
+  const pad = (n) => String(n).padStart(2, "0");
+
+  function dur(sec) {
+    if (!sec || sec < 0) return "—";
+    const d = Math.floor(sec / 86400), h = Math.floor((sec % 86400) / 3600), m = Math.floor((sec % 3600) / 60);
+    if (d) return d + " 天 " + h + " 小时";
+    if (h) return h + " 小时 " + m + " 分";
+    return m + " 分钟";
+  }
+  function when(ts) {
+    if (!ts) return "还没抓取";
+    const t = new Date(ts * 1000), now = new Date();
+    const diff = Math.floor((now - t) / 1000);
+    if (diff < 60) return "刚刚";
+    if (diff < 3600) return Math.floor(diff / 60) + " 分钟前";
+    if (diff < 86400) return Math.floor(diff / 3600) + " 小时前";
+    return (t.getMonth() + 1) + "-" + t.getDate() + " " + pad(t.getHours()) + ":" + pad(t.getMinutes());
+  }
+  function num(n) { return n > 0 ? n.toLocaleString("zh-CN") : "—"; }
+
+  function paint(d) {
+    const ok = !!d.ok;
+    $("#lamp").className = "st-lamp " + (ok ? "ok" : "bad");
+    $("#headline").textContent = ok ? "服务正常" : "上游异常";
+    $("#headmsg").textContent = ok
+      ? "战绩查询、资料库与价格库都在正常工作。"
+      : (d.upstream_message || "上游服务异常，暂时查不到新数据。");
+    const q = $("#v-query");
+    q.textContent = ok ? "正常" : "异常";
+    q.parentNode.className = "st-cell" + (ok ? "" : " bad");
+
+    const up = d.now && d.started_at ? d.now - d.started_at : 0;
+    $("#v-uptime").textContent = dur(up);
+
+    const c = d.counts || {};
+    const p = d.prices || {};
+    $("#v-prices").innerHTML = num(p.priced) + "<small>款</small>";
+    $("#v-priceat").textContent = when(p.updated_at);
+    for (const k of ["agents", "skins", "weapons", "maps", "cards", "sprays", "buddies"]) {
+      const el = $("#v-" + k);
+      if (el) el.innerHTML = num(c[k]) + "<small>项</small>";
+    }
+    const t = new Date();
+    $("#checked").textContent = "检测于 " + pad(t.getHours()) + ":" + pad(t.getMinutes()) + ":" + pad(t.getSeconds());
+  }
+
+  async function load() {
+    try {
+      // 两棵树都同源：公开站的 /api 由 openweb 转发到后端，这里用相对路径即可。
+      const r = await fetch("/api/status", { credentials: "same-origin", cache: "no-store" });
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      paint(await r.json());
+    } catch (e) {
+      $("#lamp").className = "st-lamp bad";
+      $("#headline").textContent = "连接不上服务";
+      $("#headmsg").textContent = "后端没有响应：" + (e && e.message ? e.message : e) +
+        "。稍等片刻再点刷新。";
+      $("#v-query").textContent = "无响应";
+      $("#v-query").parentNode.className = "st-cell bad";
+    }
+  }
+
+  $("#refresh").addEventListener("click", load);
+  load();
+  setInterval(load, 30000);
+})();
+</script>
+</body>
+</html>

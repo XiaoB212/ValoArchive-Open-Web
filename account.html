@@ -230,6 +230,14 @@
 
         <!-- 已登录：我的会员 -->
         <section class="ac-panel ac-hide" id="view-in">
+          <div id="merge-banner" hidden style="border:1px solid #d8a83a;background:rgba(216,168,58,.10);border-radius:10px;padding:12px 14px;margin:0 0 14px">
+            <b style="font-size:13.5px">你的会员挂在另一个 QQ 上</b>
+            <p class="ac-tip" id="merge-text" style="margin:6px 0 10px">—</p>
+            <div class="ac-actions">
+              <button class="ac-btn" id="merge-do" type="button">并入当前账号</button>
+              <button class="ac-btn ghost" id="merge-skip" type="button">先不用</button>
+            </div>
+          </div>
           <div class="ac-id">
             <span class="av-lg" id="i-av">我</span>
             <span>
@@ -332,6 +340,6 @@
     </div>
   </main>
 
-  <script src="/static/account.js?v=3"></script>
+  <script src="/static/account.js?v=8"></script>
 </body>
 </html>
