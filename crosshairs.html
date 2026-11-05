@@ -68,7 +68,6 @@
 
 <div class="tool-toast" id="toast"></div>
 
-<script src="/config.js?v=3"></script>
 <script src="/static/share-kit.js?v=1"></script>
 <script>
 (function () {
@@ -193,6 +192,7 @@
       body: JSON.stringify(payload),
     });
     btn.disabled = false;
+    if (res.status === 401) return toast("提交准星要先登录：打开 /account 注册或登录");
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       return toast(err.detail || "发布失败");
