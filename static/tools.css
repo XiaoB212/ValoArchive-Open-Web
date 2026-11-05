@@ -791,7 +791,11 @@
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 /* 炫彩：标签前面带一个真实颜色的小圆点，色卡图挂了也能看出是啥色 */
-.skin-tiles .tile .lb { display: flex; align-items: center; justify-content: center; gap: 5px; }
+.skin-tiles .tile .lb {
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  /* 「等级5 炫彩1 粉/白」这样的标签一行放不下，允许折两行，别又变成省略号 */
+  white-space: normal; line-height: 1.3; font-size: 11.5px;
+}
 .skin-tiles .tile .cdot {
   flex: 0 0 auto; width: 9px; height: 9px; border-radius: 50%;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .18);

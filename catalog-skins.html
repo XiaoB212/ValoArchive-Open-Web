@@ -6,7 +6,7 @@
 <title>皮肤库 · VALO ARCHIVE</title>
 <link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=4" sizes="any" />
 <link rel="stylesheet" href="/static/style.css?v=b06979f1a0" />
-<link rel="stylesheet" href="/static/tools.css?v=2bb3736698" />
+<link rel="stylesheet" href="/static/tools.css?v=e167a23d22" />
 <style>
   /* 顶部全局搜索：不挑枪，直接搜皮肤名 */
   .skin-search { margin-bottom: 18px; padding: 14px; }
@@ -490,9 +490,15 @@
           // 等级：角标写「等级 N」，名字只留去掉皮肤名后的部分（多半是空的，就写"原版"）
           const name = shortLabel(it.name, full.name || s.name);
           const color = isLv ? "" : String(it.color || "").trim();
+          // 配色的一律写成「等级4炫彩1 红色」这种一眼能看懂的形式：
+          // 上游名字里本来就带等级，把等级 + 第几色 + 颜色直接拼出来。
+          const lvNo = Number(it.level || 0);
+          const chNo = Number(it.index || 0);
           const label = isLv
             ? `等级 ${it.level || i + 1}`
-            : (color || name || (i === 0 ? "原版" : `配色 ${i + 1}`));
+            : (color
+                ? `${lvNo ? `等级${lvNo} ` : ""}${chNo ? `炫彩${chNo} ` : ""}${color}`
+                : (name || (i === 0 ? "原版" : `配色 ${i + 1}`)));
           el.title = it.name || label;
           const dot = color
             ? `<i class="cdot" style="background:${chromaDot(color)}"></i>` : "";
