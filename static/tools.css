@@ -843,6 +843,7 @@
 .tile .art{position:relative}
 
 /* ===== v7：皮肤价格 ===== */
+.skin-meta-row .price.free,.modal-card .price.free,.skin-meta-row .price.est,.modal-card .price.est{color:var(--muted);font-weight:600}
 .skin-meta-row .price,.modal-card .price{color:var(--accent-ink);font-weight:600;
   font-variant-numeric:tabular-nums;white-space:nowrap}
 .skin-meta-row .price{margin-left:auto;margin-right:8px}

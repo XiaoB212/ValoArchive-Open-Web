@@ -50,6 +50,13 @@
     text-align: center; font: inherit; color: var(--ink-2); }
   .cos-tile img { display: block; width: 100%; height: 56px; object-fit: contain; margin-bottom: 6px; }
   .cos-tile .lb { font-size: 11px; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* 卡面有三种尺寸：竖版大图(268×640) / 横版横幅(452×128) / 方形头像(128×128) */
+  .cos-stage.tall { min-height: 0; padding: 10px 0; }
+  .cos-stage.tall img { width: auto; max-width: 100%; height: auto; max-height: 460px; }
+  .cos-tile img.wide { height: 64px; }
+  .cos-tile img.sq { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; margin: 0 auto 6px;
+    box-shadow: 0 0 0 1px var(--line); }
+  .cos-variants-note { margin-top: 10px; font-size: 12px; color: var(--muted); line-height: 1.5; }
 </style>
 </head>
 <body>
@@ -162,25 +169,53 @@
     $("#q").placeholder = t.ph;
   }
 
+  // 三个库的条数一次就能问到，别让标签一直挂着「…」——那样看着像只做了卡面。
+  async function fillCounts() {
+    try {
+      const res = await fetch("/api/status", { credentials: "same-origin" });
+      if (!res.ok) return;
+      const data = await res.json();
+      const counts = data.counts || {};
+      ["cards", "sprays", "buddies"].forEach((tab) => {
+        const n = Number(counts[tab]);
+        if (Number.isFinite(n) && n > 0) $("#n-" + tab).textContent = String(n);
+      });
+    } catch (err) { /* 状态接口挂了不影响浏览 */ }
+  }
+
+  async function fetchTab(tab) {
+    if (state.cache[tab]) return state.cache[tab];
+    const res = await fetch(TABS[tab].api, { credentials: "same-origin" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    state.cache[tab] = data.rows || [];
+    $("#n-" + tab).textContent = String(state.cache[tab].length);
+    return state.cache[tab];
+  }
+
   async function loadTab(tab) {
     state.tab = tab;
     document.querySelectorAll(".cos-tab").forEach((b) => b.classList.toggle("on", b.dataset.tab === tab));
     if (!state.cache[tab]) {
-      $("#grid").innerHTML = "";
-      $("#q-hint").textContent = "正在读取 " + TABS[tab].ph.split("：")[0].replace("搜", "") + "…";
+      $("#grid").innerHTML = '<div class="cos-loading">正在读取' + TABS[tab].unit + '…（第一次打开要多等一会儿）</div>';
+      $("#empty").style.display = "none";
+      $("#q-hint").textContent = "正在读取" + TABS[tab].unit + "…";
       try {
-        const res = await fetch(TABS[tab].api, { credentials: "same-origin" });
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        const data = await res.json();
-        state.cache[tab] = data.rows || [];
-        $("#n-" + tab).textContent = String((data.rows || []).length);
+        await fetchTab(tab);
       } catch (err) {
-        $("#q-hint").textContent = "读取失败：" + (err && err.message ? err.message : "网络错误") + "，刷新再试。";
         state.cache[tab] = [];
+        $("#q-hint").textContent = "读取失败：" + (err && err.message ? err.message : "网络错误") + "，刷新再试。";
       }
     }
     state.rows = state.cache[tab] || [];
     render();
+  }
+
+  // 首屏出来后把另外两个库悄悄取好，之后切标签就是瞬间的。
+  async function preloadRest() {
+    for (const tab of ["sprays", "buddies"]) {
+      try { await fetchTab(tab); } catch (err) { /* 预取失败等用户点再说 */ }
+    }
   }
 
   function openDetail(uuid) {
@@ -188,9 +223,22 @@
     if (!row) return;
     let html = "";
     if (state.tab === "cards") {
-      const big = row.wide || row.large || row.icon;
-      html = '<div class="cos-head"><div><h2>' + esc(row.name) + '</h2><div class="hint">玩家卡面</div></div></div>' +
-        '<div class="cos-stage"><img src="' + esc(big) + '" alt="' + esc(row.name) + '" onerror="window.__fb(this)" /></div>';
+      // 卡面本来就有三份图：竖版大图、横版横幅、方形头像。以前只放了横版，
+      // 竖版（游戏里加载/结算那种大立绘）和头像都看不到，这里一起给出来。
+      const main = row.large || row.wide || row.icon;
+      const tiles = [];
+      if (row.wide && row.wide !== main) {
+        tiles.push('<div class="cos-tile"><img class="wide" src="' + esc(row.wide) + '" alt="" onerror="window.__fb(this)" />' +
+          '<div class="lb">横版横幅 · 资料页</div></div>');
+      }
+      if (row.icon && row.icon !== main) {
+        tiles.push('<div class="cos-tile"><img class="sq" src="' + esc(row.icon) + '" alt="" onerror="window.__fb(this)" />' +
+          '<div class="lb">方形头像 · 128</div></div>');
+      }
+      html = '<div class="cos-head"><div><h2>' + esc(row.name) + '</h2><div class="hint">玩家卡面 · 竖版大图</div></div></div>' +
+        '<div class="cos-stage tall"><img src="' + esc(main) + '" alt="' + esc(row.name) + '" onerror="window.__fb(this)" /></div>' +
+        (tiles.length ? '<div class="cos-tiles">' + tiles.join("") + '</div>' : "") +
+        '<div class="cos-variants-note">同一张卡面有三种图：竖版大图用在加载/结算界面，横版横幅是资料页那条，方形头像就是游戏里的小头像。</div>';
     } else if (state.tab === "sprays") {
       const big = row.anim || row.full || row.icon;
       html = '<div class="cos-head"><div><h2>' + esc(row.name) + '</h2><div class="hint">' + esc(row.cat || "喷漆") + '</div></div></div>' +
@@ -236,7 +284,10 @@
   $("#modal").addEventListener("click", (ev) => { if (ev.target.id === "modal") closeModal(); });
   document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") closeModal(); });
 
-  loadTab("cards");
+  fillCounts();
+  // 支持 /catalog/cosmetics#sprays、#buddies 直接落到对应标签
+  const first = ({ "#sprays": "sprays", "#buddies": "buddies" })[location.hash] || "cards";
+  loadTab(first).then(preloadRest);
 })();
 </script>
 </body>
