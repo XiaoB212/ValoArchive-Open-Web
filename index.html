@@ -188,19 +188,6 @@
     </div>
     </div>
 
-    <div class="share-row">
-      <button class="em-share" id="share-btn" type="button" title="生成一个别人不用登录也能看的只读页面">生成分享链接</button>
-      <select id="share-hours" class="share-hours" title="链接有效期">
-        <option value="1">1 小时</option>
-        <option value="6">6 小时</option>
-        <option value="12">12 小时</option>
-        <option value="24" selected>24 小时</option>
-        <option value="48">48 小时</option>
-        <option value="72">72 小时</option>
-      </select>
-      <span class="em-hint" id="export-hint">分享出去的是一份只读快照，到期自动失效。</span>
-    </div>
-
     <div class="player-grid">
       <div class="player-main">
         <nav class="tabs" id="tabs">
@@ -494,6 +481,18 @@
           <span><b>Markdown 文档</b><i>能贴进笔记、能再编辑</i></span></label>
       </div>
     </section>
+      <div class="em-sharebar" id="share-bar">
+        <label for="share-hours">分享链接有效期</label>
+        <select id="share-hours" title="生成分享链接时用这个有效期">
+        <option value="1">1 小时</option>
+        <option value="6">6 小时</option>
+        <option value="12">12 小时</option>
+        <option value="24" selected>24 小时</option>
+        <option value="48">48 小时</option>
+        <option value="72">72 小时</option>
+        </select>
+        <span class="em-hint" id="share-hint">生成的是只读快照，别人不用登录就能看，过期自动失效。</span>
+      </div>
     <footer class="em-foot">
       <button class="em-cancel" type="button" data-close="1">取消</button>
       <button class="em-share" id="share-btn" type="button" title="生成一个别人不用登录也能看的只读页面">生成分享链接</button>

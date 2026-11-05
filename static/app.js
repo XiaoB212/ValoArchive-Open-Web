@@ -3034,7 +3034,7 @@ async function boot() {
         copied = document.execCommand("copy");
         box.remove();
       }
-      const hint = $("#export-hint");
+      const hint = $("#share-hint") || $("#export-hint");
       if (hint) {
         const cost = data.seconds ? `（生成用时 ${data.seconds} 秒）` : "";
         hint.innerHTML = `${copied ? "分享链接已复制" : "分享链接"}${cost}：`
