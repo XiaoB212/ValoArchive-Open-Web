@@ -58,6 +58,8 @@
   .cos-stage.sq img { width: auto; height: auto; max-width: 220px; max-height: 220px; padding: 8px; }
   .cos-tile { cursor: pointer; transition: border-color .12s, box-shadow .12s; }
   .cos-tile.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .cos-tile.off { cursor: default; opacity: .5; border-style: dashed; }
+  .cos-tile .ph { height: 64px; display: grid; place-items: center; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
   .cos-tile img.wide { height: 64px; }
   /* 头像是方格的，不是圆的——游戏里就是一张方图 */
   .cos-tile img.sq { width: 64px; height: 64px; border-radius: 0; object-fit: contain;
@@ -230,6 +232,7 @@
     if (row.large) out.push({ k: "large", src: row.large, lb: "竖版大图", size: "268×640", cls: "tall" });
     if (row.wide) out.push({ k: "wide", src: row.wide, lb: "横版横幅", size: "452×128", cls: "wide" });
     if (row.icon) out.push({ k: "icon", src: row.icon, lb: "方形头像", size: "128×128", cls: "sq" });
+    if (!row.large) out.push({ k: "none", src: "", lb: "竖版大图", size: "官方未出", cls: "tall", off: true });
     if (!out.length) out.push({ k: "icon", src: row.small || "", lb: "卡面", size: "", cls: "wide" });
     return out;
   }
@@ -248,10 +251,11 @@
         '<div class="cos-stage ' + first.cls + '" id="cos-stage"><img id="cos-main" src="' + esc(first.src) +
         '" alt="' + esc(row.name) + '" onerror="window.__fb(this)" /></div>' +
         '<div class="cos-tiles">' + variants.map((v, i) =>
-          '<button type="button" class="cos-tile' + (i === 0 ? ' on' : '') + '" data-v="' + i + '">' +
-          '<img class="' + (v.k === "icon" ? "sq" : v.k) + '" src="' + esc(v.src) + '" alt="" onerror="window.__fb(this)" />' +
-          '<div class="lb">' + esc(v.lb) + ' · ' + esc(v.size) + '</div></button>').join("") + '</div>' +
-        '<div class="cos-variants-note">点下面的小图就能切换：竖版大图用在加载/结算界面，横版横幅是资料页那条，方形就是游戏里的头像（方图，不是圆的）。</div>';
+          '<button type="button" class="cos-tile' + (i === 0 ? ' on' : '') + (v.off ? ' off' : '') + '" data-v="' + i + '"' +
+          (v.off ? ' disabled' : '') + '>' +
+          (v.off ? '<div class="ph">—</div>'
+                 : '<img class="' + (v.k === "icon" ? "sq" : v.k) + '" src="' + esc(v.src) + '" alt="" onerror="window.__fb(this)" />') +
+          '<div class="lb">' + esc(v.lb) + ' · ' + esc(v.size) + '</div></button>').join("") + '</div>';
     } else if (state.tab === "sprays") {
       const big = row.anim || row.full || row.icon;
       html = '<div class="cos-head"><div><h2>' + esc(row.name) + '</h2><div class="hint">' + esc(row.cat || "喷漆") + '</div></div></div>' +
@@ -272,7 +276,7 @@
       document.querySelectorAll("#body .cos-tile[data-v]").forEach((el) => {
         el.onclick = () => {
           const v = variants[Number(el.dataset.v)];
-          if (!v) return;
+          if (!v || v.off) return;
           const stage = $("#cos-stage");
           if (stage) stage.className = "cos-stage " + v.cls;
           const img = $("#cos-main");
