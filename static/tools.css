@@ -864,3 +864,39 @@
 .skin-meta-row .price,.modal-card .price{color:var(--accent-ink);font-weight:600;
   font-variant-numeric:tabular-nums;white-space:nowrap}
 .skin-meta-row .price{margin-left:auto;margin-right:0;font-size:11.5px}
+
+/* ---------- 顶栏服务状态小绿灯（statusdot.js） ---------- */
+.svc-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid var(--line-strong, #d8d8d8);
+  border-radius: 999px;
+  background: var(--paper, #fff);
+  color: var(--ink-2, #444);
+  font-size: 12px;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: border-color .15s, color .15s;
+}
+.svc-dot i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #3f9d5a;
+  box-shadow: 0 0 0 3px rgba(63, 157, 90, .16);
+}
+.svc-dot.is-wait i { background: #9aa4ad; box-shadow: none; }
+.svc-dot.is-warn i { background: #e0a92a; box-shadow: 0 0 0 3px rgba(224, 169, 42, .18); }
+.svc-dot.is-bad i { background: #d64545; box-shadow: 0 0 0 3px rgba(214, 69, 69, .18); }
+.svc-dot:hover { border-color: var(--accent, #0e7c6b); color: var(--accent-ink, #0b5f52); }
+.top-tools .svc-dot { margin-left: 4px; }
+@media (max-width: 720px) { .svc-dot span { display: none; } .svc-dot { padding: 6px; } }
+
+/* 手机：导航条是横向滚动的，绿灯放到最前面（order:-1）才不会被滚出屏幕 */
+@media (max-width: 720px) {
+  .tool-nav #svc-dot { order: -1; margin-left: 0 !important; margin-right: 2px; }
+  .top .top-inner #svc-dot { order: -1; margin-left: 0; }
+}
