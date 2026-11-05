@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>皮肤库 · VALO ARCHIVE</title>
 <link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=4" sizes="any" />
-<link rel="stylesheet" href="/static/style.css?v=210" />
-<link rel="stylesheet" href="/static/tools.css?v=6" />
+<link rel="stylesheet" href="/static/style.css?v=b06979f1a0" />
+<link rel="stylesheet" href="/static/tools.css?v=2bb3736698" />
 <style>
   /* 顶部全局搜索：不挑枪，直接搜皮肤名 */
   .skin-search { margin-bottom: 18px; padding: 14px; }
@@ -136,7 +136,7 @@
   <div id="skin-body"></div>
 </div></div>
 
-<script src="/static/config.js?v=3"></script>
+<script src="/static/config.js?v=5159ad9f1b"></script>
 <script>
 (function () {
   const $ = (s) => document.querySelector(s);
@@ -380,6 +380,34 @@
     const n = parseInt(m[1], 16);
     return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
   };
+  // 炫彩颜色：上游只在名字里写「（炫彩1 红色）」，色卡图有时加载不出来，
+  // 所以本地备一份中文色名 → 颜色，保证任何时候都看得见是什么色。
+  const CHROMA_HEX = {
+    红色: "#d64545", 橙色: "#e8842c", 黄色: "#e0be2a", 绿色: "#3f9d5a",
+    青色: "#28a8a8", 蓝色: "#3b73d6", 紫色: "#8a5cd6", 粉色: "#e077a8",
+    白色: "#e8e8e8", 黑色: "#3a3a3a", 灰色: "#8b8b8b", 金色: "#d4af37",
+    银色: "#c0c4c9", 棕色: "#8a5a3b", 原版: "#9aa4ad",
+  };
+  // 上游有些炫彩是双色（「粉/白」「红/蓝」「蓝/绿」），也有本地没收录的色名，
+  // 所以这里给每个色名一个可见的兜底色，双色就画成左右对半的渐变。
+  const chromaDot = (color) => {
+    const key = String(color || "").trim();
+    if (!key) return "#9aa4ad";
+    const parts = key.split(/[\/／、+]/).map((x) => x.trim()).filter(Boolean);
+    const colors = parts.map((x) => CHROMA_HEX[x] || CHROMA_HEX[x.replace(/色$/, "") + "色"] || "#9aa4ad");
+    if (colors.length === 1) return colors[0];
+    if (colors.length === 2) {
+      return `linear-gradient(90deg, ${colors[0]} 0 50%, ${colors[1]} 50% 100%)`;
+    }
+    const step = 100 / colors.length;
+    const stops = colors.map((c, i) => `${c} ${Math.round(i * step)}% ${Math.round((i + 1) * step)}%`);
+    return `linear-gradient(90deg, ${stops.join(", ")})`;
+  };
+  const chromaHex = (color, swatch) => {
+    const key = String(color || "").trim();
+    return CHROMA_HEX[key] || (swatch ? "transparent" : "#9aa4ad");
+  };
+
   const shortLabel = (label, base) => {
     let t = String(label || "").trim();
     if (base) t = t.split(base).join("").trim();
@@ -461,16 +489,19 @@
           const isLv = tab === "levels";
           // 等级：角标写「等级 N」，名字只留去掉皮肤名后的部分（多半是空的，就写"原版"）
           const name = shortLabel(it.name, full.name || s.name);
+          const color = isLv ? "" : String(it.color || "").trim();
           const label = isLv
             ? `等级 ${it.level || i + 1}`
-            : (name || (i === 0 ? "原版" : `配色 ${i + 1}`));
+            : (color || name || (i === 0 ? "原版" : `配色 ${i + 1}`));
           el.title = it.name || label;
+          const dot = color
+            ? `<i class="cdot" style="background:${chromaDot(color)}"></i>` : "";
           el.innerHTML = `${isLv ? `<span class="lvn">${it.level || i + 1}</span>` : ""}
-            ${it.swatch && !isLv
-              ? `<div class="art"><span class="sw" style="background:url('${A(it.swatch)}') center/cover"></span></div>`
+            ${!isLv && (it.swatch || color)
+              ? `<div class="art"><span class="sw" style="background-color:${chromaHex(color, it.swatch)};${it.swatch ? `background-image:url('${A(it.swatch)}')` : ""};background-position:center;background-size:cover"></span></div>`
               : art ? `<div class="art"><img src="${A(art)}" alt="" loading="lazy" onerror="__fb(this)"></div>` : `<div class="art"></div>`}
             ${it.video ? `<span class="vmark" title="点开有演示视频">▶</span>` : ""}
-            <div class="lb">${esc(label)}</div>`;
+            <div class="lb">${dot}${esc(label)}</div>`;
           el.addEventListener("click", () => {
             box.querySelectorAll(".tile").forEach((x) => x.classList.toggle("on", x === el));
             setMedia(it, tab);
