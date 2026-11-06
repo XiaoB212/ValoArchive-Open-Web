@@ -4798,10 +4798,27 @@ footer.shell .legal{text-wrap:pretty;word-break:normal;overflow-wrap:break-word;
    第一行：「💡 固定ID 改名也不变」+ 复制 + 不再提示，同一行；
    第二行：完整固定ID（单独一行，不省略、不折行）。 */
 @media (max-width: 720px) {
-  #fixed-tip { flex-wrap: wrap; row-gap: 6px; column-gap: 6px; }
-  #fixed-tip > span { flex: 0 1 auto; white-space: nowrap; line-height: 1.4; }
-  #fixed-tip > button { flex: 0 0 auto; }
-  #fixed-tip > code { order: 9; flex: 1 0 100%; overflow: visible; text-overflow: clip; white-space: nowrap; }
+  #fixed-tip {
+    display: grid;
+    grid-template-columns: max-content max-content max-content minmax(0, 1fr);
+    align-items: center;
+    gap: 6px;
+    column-gap: 6px;
+    flex-wrap: nowrap;
+  }
+  #fixed-tip > span { grid-row: 1; grid-column: 1; flex: 0 1 auto; white-space: nowrap; line-height: 1.4; }
+  #fixed-tip > button { grid-row: 1; flex: 0 0 auto; }
+  #fixed-tip > #fixed-tip-copy { grid-column: 2; }
+  #fixed-tip > #fixed-tip-hide { grid-column: 3; }
+  /* 固定ID 单独一行，但只占自己的宽度，不拉满整行 */
+  #fixed-tip > code {
+    grid-row: 2; grid-column: 1 / -1;
+    justify-self: start;
+    max-width: 100%;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: nowrap;
+  }
 }
 
 /* ---- v22：手机好友名单再压紧一点（10 行别拖太长） ---- */

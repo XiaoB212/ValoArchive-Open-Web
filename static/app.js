@@ -378,7 +378,7 @@ function fitTipRow(tip) {
   const gap = parseFloat(cs.columnGap) || 6;
   const btns = [...tip.querySelectorAll("button")];
   const btnW = btns.reduce((sum, b) => sum + b.getBoundingClientRect().width, 0);
-  const avail = tip.clientWidth - padX - btnW - gap * btns.length - 1;
+  const avail = tip.clientWidth - padX - btnW - gap * 3 - 1;
   if (avail < 24) return;
   const text = span.textContent.trim();
   let size = 11;
