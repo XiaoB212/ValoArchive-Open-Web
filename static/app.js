@@ -711,6 +711,8 @@ async function loadPlayer(keyword, refresh = false) {
     if (!EXPORT_KIND) {
       rememberSearch(keyword);
       renderSearchHistory();
+      // 第一次查到人就把她记成「我的主页」，下次进站首页直接出好友和最近组队
+      if (!meRead()) meWrite(keyword, state.source);
     }
     if (!EXPORT_KIND && state.pendingTab) switchTab(state.pendingTab);
     if (EXPORT_KIND === "match") {
@@ -2706,10 +2708,165 @@ function initSearchHistory() {
   renderSearchHistory();
 }
 
+/* ---------------- 首页「我的主页」：好友列表 + 最近组队 ---------------- */
+const ME_KEY = "valo.me";
+
+function meRead() {
+  try {
+    const raw = localStorage.getItem(ME_KEY);
+    const obj = raw ? JSON.parse(raw) : null;
+    return obj && obj.keyword ? obj : null;
+  } catch (err) {
+    return null;
+  }
+}
+
+function meWrite(keyword, mode) {
+  const kw = String(keyword || "").normalize("NFKC").replace(/＃/g, "#").trim();
+  if (!kw) return;
+  try {
+    localStorage.setItem(ME_KEY, JSON.stringify({ keyword: kw, mode: mode || "game", at: Date.now() }));
+  } catch (err) {
+    /* 隐私模式下 localStorage 可能不可写，静默降级 */
+  }
+}
+
+function hmRow(p, meta) {
+  const full = String(p.name || "");
+  const name = full.split("#")[0] || "?";
+  return `<button type="button" class="hm-row" data-kw="${escapeHtml(full)}" title="${escapeHtml(full)}">
+      <span class="hm-av">${escapeHtml(name.slice(0, 1))}${p.avatar ? `<img src="${img(p.avatar)}" alt="" loading="lazy" onerror="this.remove()" />` : ""}</span>
+      <span class="hm-m"><b>${escapeHtml(name)}</b><i>${escapeHtml(meta)}</i></span>
+      <span class="hm-n">${Number(p.games) || 0}<em>场</em></span>
+    </button>`;
+}
+
+async function loadHomeMe() {
+  const box = $("#home-me");
+  if (!box) return;
+  const head = box.querySelector(".hm-head");
+  const cols = box.querySelector(".hm-cols");
+  const setup = $("#hm-setup");
+  const me = meRead();
+  if (!me) {
+    // 还没绑：只露出一行设置入口，别让首页先空一块
+    box.hidden = false;
+    if (head) head.hidden = true;
+    if (cols) cols.hidden = true;
+    if (setup) setup.hidden = false;
+    return;
+  }
+  box.hidden = false;
+  if (head) head.hidden = false;
+  if (cols) cols.hidden = false;
+  if (setup) setup.hidden = true;
+  $("#hm-name").textContent = String(me.keyword).split("#")[0] || me.keyword;
+  $("#hm-sub").textContent = String(me.keyword).includes("#") ? me.keyword : `掌瓦号 ${me.keyword}`;
+  $("#hm-friends").innerHTML = skeleton(3);
+  $("#hm-party").innerHTML = skeleton(3);
+  try {
+    const data = await api.get("/api/player/social", {
+      keyword: me.keyword,
+      limit: 30,
+      mode: me.mode || "game",
+    });
+    // 只保留最近一个月一起排过的，按最近同排时间倒序（和「好友与组队」页同一口径）
+    const fresh = (list, label) =>
+      (list || [])
+        .filter((p) => relTime(p.last))
+        .map((p) => ({ ...p, group: label }))
+        .sort((a, b) => (Number(b.last) || 0) - (Number(a.last) || 0));
+    const friends = fresh(data.friends, "好友");
+    // 好友和「组排非好友」偶尔会短暂重叠（刚从好友里删掉的人），按昵称去重，好友优先
+    const seen = new Map();
+    const labelled = [
+      ...(data.friends || []).map((p) => ({ ...p, group: "好友" })),
+      ...(data.strangers || []).map((p) => ({ ...p, group: "非好友" })),
+    ].filter((p) => relTime(p.last));
+    for (const p of labelled) {
+      const key = p.name || "";
+      const prev = seen.get(key);
+      if (!prev || (prev.group !== "好友" && p.group === "好友")) seen.set(key, p);
+    }
+    const mates = [...seen.values()].sort((a, b) => (Number(b.last) || 0) - (Number(a.last) || 0));
+    const cap = window.innerWidth < 720 ? 4 : 6;
+    $("#hm-friends-meta").textContent = friends.length ? `${friends.length} 人 · 近一月同排` : "";
+    $("#hm-friends").innerHTML = friends.length
+      ? friends
+          .slice(0, cap)
+          .map((p) => hmRow(p, `最近同排 ${relTime(p.last) || fullDate(p.last)}`))
+          .join("")
+      : `<div class="hm-empty">最近一个月没有好友一起排过</div>`;
+    $("#hm-party-meta").textContent = mates.length ? `${mates.length} 人` : "";
+    $("#hm-party").innerHTML = mates.length
+      ? mates
+          .slice(0, cap)
+          .map((p) => hmRow(p, `${p.group} · ${relTime(p.last) || fullDate(p.last)}`))
+          .join("")
+      : `<div class="hm-empty">最近一个月没有一起排过的队友</div>`;
+  } catch (err) {
+    const tip = `<div class="hm-empty">${escapeHtml(err.message || "好友与组队加载失败")}</div>`;
+    $("#hm-friends").innerHTML = tip;
+    $("#hm-party").innerHTML = tip;
+    $("#hm-friends-meta").textContent = "";
+    $("#hm-party-meta").textContent = "";
+    if (setup) setup.hidden = false;
+  }
+}
+
+function initHomeMe() {
+  const box = $("#home-me");
+  if (!box) return;
+  const open = $("#hm-open");
+  const swap = $("#hm-switch");
+  const save = $("#hm-save");
+  const input = $("#hm-input");
+  if (open) open.addEventListener("click", () => {
+    const me = meRead();
+    if (!me) return;
+    const field = $("#search-input");
+    if (field) field.value = me.keyword;
+    loadPlayer(me.keyword);
+  });
+  if (swap) swap.addEventListener("click", () => {
+    const setup = $("#hm-setup");
+    if (setup) setup.hidden = false;
+    if (input) input.focus();
+  });
+  const commit = () => {
+    if (!input) return;
+    const raw = input.value.normalize("NFKC").replace(/＃/g, "#").trim();
+    if (!raw) return;
+    const mode = raw.includes("#") ? "game" : /^\d+$/.test(raw) ? "mval" : "game";
+    meWrite(raw, mode);
+    input.value = "";
+    loadHomeMe();
+  };
+  if (save) save.addEventListener("click", commit);
+  if (input) input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      commit();
+    }
+  });
+  // 点名单里的人 → 直接查她（好友和队友都能点）
+  box.addEventListener("click", (event) => {
+    const btn = event.target.closest("button[data-kw]");
+    if (!btn) return;
+    const kw = btn.dataset.kw;
+    if (!kw) return;
+    const field = $("#search-input");
+    if (field) field.value = kw;
+    loadPlayer(kw);
+  });
+  loadHomeMe().catch(() => {});
+}
+
 async function boot() {
   await refreshHealth();
   loadPlan();
   setInterval(() => refreshHealth(true).catch(() => {}), 90000);
+  initHomeMe();
 
   // 单局详情的打开方式（就地快速查看 / 单页完整查看）
   syncOpenModeUI();
