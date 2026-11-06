@@ -4570,9 +4570,26 @@ footer.shell .legal{text-wrap:pretty;word-break:normal;overflow-wrap:break-word;
   #p-name { font-size: 18px; }
 }
 
-/* ---- 概览卡片下面：好友 / 近期组队速览 ---- */
+/* ---- 概览卡片下面：好友 / 近期组队（会员功能，默认只给一条折叠入口） ---- */
 .ov-extras { margin-top: 12px; display: grid; gap: 10px; }
 .ov-extras.hidden { display: none; }
+.ov-toggle {
+  display: flex; align-items: baseline; gap: 8px; width: 100%;
+  padding: 9px 12px; border-radius: 12px; cursor: pointer; text-align: left;
+  border: 1px dashed var(--line, #e5e1d6); background: rgba(14, 124, 107, .035);
+  color: var(--ink-2, #3f4a4d); font-size: 12.5px;
+}
+.ov-toggle b { font-size: 13px; font-weight: 700; color: var(--ink, #1e2a2d); flex: none; }
+.ov-toggle small { font-weight: 400; color: var(--muted, #7b8a8d); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ov-toggle i { margin-left: auto; font-style: normal; font-weight: 600; color: var(--accent, #0e7c6b); flex: none; }
+.ov-toggle:hover { background: rgba(14, 124, 107, .07); border-color: rgba(14, 124, 107, .3); }
+.ov-foot { display: flex; justify-content: flex-end; }
+.ov-foot .ov-more {
+  border: 0; background: none; cursor: pointer; padding: 2px 6px; border-radius: 7px;
+  color: var(--muted, #7b8a8d); font-size: 12px;
+}
+.ov-foot .ov-more:hover { color: var(--accent, #0e7c6b); background: var(--accent-soft, rgba(14, 124, 107, .08)); }
+.ov-wait .ov-more { margin-left: auto; border: 0; background: none; cursor: pointer; color: var(--muted, #7b8a8d); font-size: 12px; }
 .ov-block {
   background: var(--panel, #fff); border: 1px solid var(--line, #e5e1d6);
   border-radius: 14px; padding: 10px 12px 12px;
@@ -4679,8 +4696,25 @@ footer.shell .legal{text-wrap:pretty;word-break:normal;overflow-wrap:break-word;
   background: none; max-width: none; padding: 0;
 }
 
-/* ---- v20：手机顶栏六个入口换行铺开，后端管理不再被挤到屏幕外 ---- */
+/* ---- v21：手机顶栏分站处理 ----
+   个人站有六个入口（多一个「后端管理」）：3×2 铺成两行，图标和文字都保留原尺寸，
+   不再横向挤压、也不会被裁到屏幕外；
+   公开站只有五个入口：保持一排五格，不换行。 */
 @media (max-width: 720px) {
-  .top-tools { flex-wrap: wrap; overflow: visible; row-gap: 4px; }
-  .top-tools[data-hscroll] { padding-bottom: 0; }
+  .top-tools { overflow: visible; padding-bottom: 0; }
+  .top-tools:has(.tool-link[href="/valoadmin"]) {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px; padding: 4px; overflow: visible;
+  }
+  .top-tools:has(.tool-link[href="/valoadmin"]) .tool-link {
+    justify-content: center; height: 34px; padding: 0 6px; gap: 5px;
+    font-size: 12px; border-radius: 9px;
+    border: 1px solid var(--line); background: var(--card);
+  }
+  .top-tools:has(.tool-link[href="/valoadmin"]) .tool-link svg { display: block; width: 14px; height: 14px; }
+  .top-tools:has(.tool-link[href="/valoadmin"]) .tool-link span { display: inline; }
+  .top-tools:not(:has(.tool-link[href="/valoadmin"])) { flex-wrap: nowrap; }
+}
+@media (max-width: 360px) {
+  .top-tools:has(.tool-link[href="/valoadmin"]) .tool-link { font-size: 11.5px; gap: 4px; }
 }

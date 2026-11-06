@@ -599,6 +599,7 @@ async function loadPlayer(keyword, refresh = false) {
   socialCache = null;
   state.partyData = null;
   state.extrasFor = null;
+  state.ovOpen = false;
   const __ov = document.querySelector("#ov-extras");
   if (__ov) { __ov.innerHTML = ""; __ov.classList.add("hidden"); }
   ["#social-people", "#party-bars", "#party-mates", "#party-rows", "#match-body",
@@ -715,8 +716,9 @@ async function loadPlayer(keyword, refresh = false) {
       renderSearchHistory();
     }
     if (!EXPORT_KIND && state.pendingTab) switchTab(state.pendingTab);
-    // 概览卡片下面那两块「好友 / 近期组队」速览：后台静默拉数据，失败就当没有。
-    if (!EXPORT_KIND) primeOverviewExtras();
+    // 概览卡片下面的「好友 / 近期组队」是会员功能：这里只渲染一条折叠入口，
+    // 用户点了才请求（以前是每次查人都静默拉两份数据，页面还白白变长）。
+    if (!EXPORT_KIND) renderOverviewExtras();
     if (EXPORT_KIND === "match") {
       // 后端逐场导出时直接给 match_id：以前按列表下标取，导出页的历史列表和
       // 用户当前页不一致时第 3 场起会退化成同一场，几页长得一模一样。
@@ -1840,7 +1842,7 @@ function renderParty() {
       loadMatch(el.dataset.match, null);
     });
   });
-  renderOverviewExtras();
+  if (state.ovOpen) renderOverviewExtras();
 }
 
 async function loadAssets() {
@@ -2051,14 +2053,31 @@ function renderPeople() {
       </section>`);
   }
   $("#social-people").innerHTML = blocks.join("");
-  renderOverviewExtras();
+  if (state.ovOpen) renderOverviewExtras();
 }
 
-/* ── 概览页下方的「好友 / 近期组队」速览 ──────────────────────────────
-   不占 tab：查完一个人，概览卡片下面直接能看到他跟谁玩、最近跟谁开黑。
-   数据复用 /api/player/social 与 /api/party：loadPlayer 里静默预取一次，
-   切到对应 tab 时那份数据也会顺手把这里补上（不重复请求）。 */
+/* ── 概览页下方的「好友 / 近期组队」入口 ──────────────────────────────
+   这是会员功能（后端要把全量历史扫一遍才凑得出好友和队友）。所以这里：
+   1. 非会员整块不渲染，连入口都不给；
+   2. 会员也默认收成一条细窄的入口，点了才发请求——以前的写法是每查一个人
+      就静默拉两份数据，概览页凭空长出两大栏，页面又长又白花流量。 */
 const OV_LIMIT = 12;
+
+function ovVip() {
+  return !!(PLAN && PLAN.vip);
+}
+
+function ovExpand() {
+  if (!ovVip()) return;
+  state.ovOpen = true;
+  renderOverviewExtras();
+  primeOverviewExtras();
+}
+
+function ovCollapse() {
+  state.ovOpen = false;
+  renderOverviewExtras();
+}
 
 function ovNick(name) {
   return String(name || "").split("#")[0] || "?";
@@ -2091,13 +2110,32 @@ function overviewFriends() {
 function renderOverviewExtras() {
   const box = $("#ov-extras");
   if (!box) return;
+  if (!ovVip()) {
+    if (box.innerHTML) box.innerHTML = "";
+    box.classList.add("hidden");
+    return;
+  }
+  box.classList.remove("hidden");
+  if (!state.ovOpen) {
+    box.innerHTML = `<button type="button" class="ov-toggle" id="ov-toggle">
+        <b>好友与组队</b><small>会员功能 · 好友列表与最近一起开黑的人</small><i>展开 ›</i>
+      </button>`;
+    const open = $("#ov-toggle");
+    if (open) open.addEventListener("click", ovExpand);
+    return;
+  }
   const social = socialCache && socialCache.for === state.keyword ? socialCache : null;
   const party = state.partyData && state.extrasFor === state.keyword ? state.partyData : null;
   const friends = social ? overviewFriends() : [];
   const mates = (party && party.teammates) || [];
   if (!friends.length && !mates.length) {
-    if (box.innerHTML) box.innerHTML = "";
-    box.classList.add("hidden");
+    const waiting = !state.ovDone;
+    box.innerHTML = `<section class="ov-block ov-wait">
+        <header><h4>好友与组队 <small>${waiting ? "正在扫描最近的对局…" : "没有可展示的好友与组队记录"}</small></h4>
+          <button type="button" class="ov-more" id="ov-collapse">收起</button></header>
+      </section>`;
+    const back = $("#ov-collapse");
+    if (back) back.addEventListener("click", ovCollapse);
     return;
   }
   const parts = [];
@@ -2121,20 +2159,22 @@ function renderOverviewExtras() {
         <div class="ov-row">${chips}</div>
       </section>`);
   }
+  parts.push(`<div class="ov-foot"><button type="button" class="ov-more" id="ov-collapse">收起</button></div>`);
   box.innerHTML = parts.join("");
-  box.classList.remove("hidden");
-  box.querySelectorAll(".ov-more").forEach((btn) => {
+  box.querySelectorAll(".ov-more[data-tab]").forEach((btn) => {
     btn.addEventListener("click", () => switchTab(btn.dataset.tab || "social"));
   });
+  const back = $("#ov-collapse");
+  if (back) back.addEventListener("click", ovCollapse);
 }
 
 async function primeOverviewExtras() {
-  const box = $("#ov-extras");
-  if (box) { box.innerHTML = ""; box.classList.add("hidden"); }
   const keyword = state.keyword;
-  if (!keyword) return;
+  if (!keyword || !ovVip()) return;
   state.extrasFor = keyword;
   state.partyData = null;
+  state.ovDone = false;
+  renderOverviewExtras();
   const jobs = [];
   if (!socialCache || socialCache.for !== keyword) {
     jobs.push(api.get("/api/player/social", { keyword, limit: 50, mode: state.source })
@@ -2145,7 +2185,9 @@ async function primeOverviewExtras() {
     .then((data) => { if (keyword === state.keyword) state.partyData = data; })
     .catch(() => {}));
   await Promise.all(jobs);
-  if (keyword === state.keyword) renderOverviewExtras();
+  if (keyword !== state.keyword) return;
+  state.ovDone = true;
+  renderOverviewExtras();
 }
 
 async function loadSeason() {
@@ -2771,7 +2813,8 @@ function initSearchHistory() {
 
 async function boot() {
   await refreshHealth();
-  loadPlan();
+  // 会员身份决定概览下面要不要给「好友与组队」入口，拿到结果再补渲染一次。
+  loadPlan().then(() => { if (!EXPORT_KIND) renderOverviewExtras(); });
   setInterval(() => refreshHealth(true).catch(() => {}), 90000);
 
   // 单局详情的打开方式（就地快速查看 / 单页完整查看）
