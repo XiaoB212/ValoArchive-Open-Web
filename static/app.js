@@ -357,6 +357,68 @@ function fitOneLine(el, minPx = 10) {
   }
 }
 
+/* 手机端固定ID提示条：第一行 = 说明 + 复制 + 不再提示，第二行 = 完整ID。
+   用 canvas 量真实字宽，按「扣掉按钮和间隙后的可用宽度」缩字号，保证第一行不换行。 */
+const TIP_MEASURE = document.createElement("canvas").getContext("2d");
+
+function tipTextWidth(el, text, size) {
+  const cs = getComputedStyle(el);
+  TIP_MEASURE.font = `${cs.fontWeight} ${size}px ${cs.fontFamily}`;
+  return TIP_MEASURE.measureText(text).width;
+}
+
+function fitTipRow(tip) {
+  if (!tip || tip.hidden) return;
+  const span = tip.querySelector("span");
+  if (!span) return;
+  span.style.fontSize = "";
+  if (window.innerWidth > 720) return;
+  const cs = getComputedStyle(tip);
+  const padX = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+  const gap = parseFloat(cs.columnGap) || 6;
+  const btns = [...tip.querySelectorAll("button")];
+  const btnW = btns.reduce((sum, b) => sum + b.getBoundingClientRect().width, 0);
+  const avail = tip.clientWidth - padX - btnW - gap * btns.length - 1;
+  if (avail < 24) return;
+  const text = span.textContent.trim();
+  let size = 11;
+  let guard = 0;
+  span.style.fontSize = size + "px";
+  while (size > 7.5 && tipTextWidth(span, text, size) > avail && guard++ < 24) {
+    size -= 0.25;
+    span.style.fontSize = size + "px";
+  }
+}
+
+function fitTipCode(tip) {
+  if (!tip || tip.hidden) return;
+  const code = tip.querySelector("code");
+  if (!code) return;
+  code.style.fontSize = "";
+  const cs = getComputedStyle(tip);
+  const padX = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+  const avail = tip.clientWidth - padX - 2;
+  if (avail < 24) return;
+  const text = code.textContent.trim();
+  let size = parseFloat(getComputedStyle(code).fontSize) || 11;
+  let guard = 0;
+  code.style.fontSize = size + "px";
+  while (size > 8 && tipTextWidth(code, text, size) > avail && guard++ < 24) {
+    size -= 0.25;
+    code.style.fontSize = size + "px";
+  }
+}
+
+function fitTip(tip) {
+  if (!tip || tip.hidden) return;
+  fitTipRow(tip);
+  fitTipCode(tip);
+  if (window.innerWidth > 720) {
+    fitOneLine(tip.querySelector("span"), 9.5);
+    fitOneLine(tip.querySelector("code"), 9.5);
+  }
+}
+
 function renderSummary(summary) {
   const box = $("#summary");
   if (!box) return;
@@ -647,12 +709,9 @@ async function loadPlayer(keyword, refresh = false) {
         if (fixed) {
           fixedTip.querySelector("code").textContent = fixed;
           fixedTip.hidden = localStorage.getItem("valo.fixedTipSeen") === "1";
-          // 电脑版要整句、ID、按钮都在一行：放不下就缩字号，绝不出「…」
+          // 电脑版：整句 + ID + 按钮一行（放不下缩字号）；手机版：第一行说明+两个按钮，第二行完整ID
           if (!fixedTip.hidden) {
-            requestAnimationFrame(() => {
-              fitOneLine(fixedTip.querySelector("span"), 9.5);
-              fitOneLine(fixedTip.querySelector("code"), 9.5);
-            });
+            requestAnimationFrame(() => fitTip(fixedTip));
           }
         }
       }
@@ -2826,6 +2885,12 @@ async function boot() {
         localStorage.setItem("valo.fixedTipSeen", "1");
         fixedTipEl.hidden = true;
       }
+    });
+    // 转屏/改窗口宽度后重新收字号
+    let tipTimer = 0;
+    window.addEventListener("resize", () => {
+      clearTimeout(tipTimer);
+      tipTimer = setTimeout(() => fitTip(fixedTipEl), 120);
     });
   }
 

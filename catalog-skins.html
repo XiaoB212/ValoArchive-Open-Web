@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>皮肤库 · VALO ARCHIVE</title>
 <link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=4" sizes="any" />
-<link rel="stylesheet" href="/static/style.css?v=61c19bb989" />
+<link rel="stylesheet" href="/static/style.css?v=2e74e79ba9" />
 <link rel="stylesheet" href="/static/tools.css?v=2a245b1dd8" />
 <style>
   /* 顶部全局搜索：不挑枪，直接搜皮肤名 */
@@ -70,7 +70,7 @@
   .skin-tip { margin-top: 8px; font-size: 12px; color: var(--muted); }
   .skin-tabs { margin-top: 14px; }
   .skin-tiles { margin-top: 12px; display: grid; gap: 10px;
-    grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); }
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
   .tile { border: 1px solid var(--line); background: var(--paper); border-radius: 10px; padding: 8px;
     cursor: pointer; text-align: center; font: inherit; color: var(--ink-2); }
   .tile:hover { border-color: var(--accent); }
@@ -529,7 +529,8 @@
           const tile = lb.closest(".tile");
           if (!tile) return;
           const text = (lb.textContent || "").replace(/\s+/g, " ").trim();
-          const room = Math.max(40, tile.clientWidth - 14);
+          // 左右各留 3px 余量，避免文字贴边看着像要溢出去
+          const room = Math.max(40, (lb.clientWidth || tile.clientWidth - 12) - 6);
           let size = 10.5;
           let guard = 0;
           while (size > 7.5 && measureText(lb, text, size) > room && guard++ < 30) size -= 0.25;

@@ -4794,13 +4794,14 @@ footer.shell .legal{text-wrap:pretty;word-break:normal;overflow-wrap:break-word;
   #panel-history .filters .pager { grid-row: 3; grid-column: 1 / -1; order: 0; margin-left: 0; justify-self: start; }
 }
 
-/* ---- v22：手机版固定ID提示条折成两行，别再被压缩成「💡 固定…」 ----
-   第一行整句说明（放得下就一行），第二行固定ID + 复制/不再提示。 */
+/* ---- v22：手机版固定ID提示条 ----
+   第一行：「💡 固定ID 改名也不变」+ 复制 + 不再提示，同一行；
+   第二行：完整固定ID（单独一行，不省略、不折行）。 */
 @media (max-width: 720px) {
-  #fixed-tip { flex-wrap: wrap; row-gap: 7px; }
-  #fixed-tip > span { flex: 1 0 100%; white-space: normal; line-height: 1.4; }
-  #fixed-tip > code { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #fixed-tip { flex-wrap: wrap; row-gap: 6px; column-gap: 6px; }
+  #fixed-tip > span { flex: 0 1 auto; white-space: nowrap; line-height: 1.4; }
   #fixed-tip > button { flex: 0 0 auto; }
+  #fixed-tip > code { order: 9; flex: 1 0 100%; overflow: visible; text-overflow: clip; white-space: nowrap; }
 }
 
 /* ---- v22：手机好友名单再压紧一点（10 行别拖太长） ---- */
