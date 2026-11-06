@@ -4754,7 +4754,13 @@ footer.shell .legal{text-wrap:pretty;word-break:normal;overflow-wrap:break-word;
     align-items: center; gap: 8px 10px; padding: 10px 0 8px;
   }
   .top .top-inner .brand { grid-area: brand; order: 0; min-width: 0; justify-self: start; }
-  .top .top-inner #svc-dot { grid-area: svc; order: 0; justify-self: end; margin-left: 0; }
+  .top .top-inner #svc-dot {
+    grid-area: svc; order: 0; justify-self: end; margin-left: 0;
+    /* 手机顶栏这一颗要把「服务正常」写出来（tools.css 里全局把它藏了，在工具条里才该藏） */
+    width: auto; max-width: none; padding: 0 9px; height: 26px; border-radius: 999px;
+    border: 1px solid var(--line); background: var(--card); gap: 6px;
+  }
+  .top .top-inner #svc-dot span { display: inline; font-size: 11.5px; line-height: 1; }
   .top .top-inner #export-open { grid-area: exp; order: 0; margin-left: 0; justify-self: start; }
   .top .top-inner .acct-entry { grid-area: acct; order: 0; margin-left: 0; justify-self: end; }
   .top .top-inner .top-tools { grid-area: tools; order: 0; margin-left: 0; width: 100%; }
@@ -4786,4 +4792,20 @@ footer.shell .legal{text-wrap:pretty;word-break:normal;overflow-wrap:break-word;
     width: 100%; min-width: 0; margin: 0; padding-left: 0; border-left: 0;
   }
   #panel-history .filters .pager { grid-row: 3; grid-column: 1 / -1; order: 0; margin-left: 0; justify-self: start; }
+}
+
+/* ---- v22：手机版固定ID提示条折成两行，别再被压缩成「💡 固定…」 ----
+   第一行整句说明（放得下就一行），第二行固定ID + 复制/不再提示。 */
+@media (max-width: 720px) {
+  #fixed-tip { flex-wrap: wrap; row-gap: 7px; }
+  #fixed-tip > span { flex: 1 0 100%; white-space: normal; line-height: 1.4; }
+  #fixed-tip > code { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #fixed-tip > button { flex: 0 0 auto; }
+}
+
+/* ---- v22：手机好友名单再压紧一点（10 行别拖太长） ---- */
+@media (max-width: 720px) {
+  .frow { padding: 5px 8px; gap: 8px; grid-template-columns: 26px minmax(0, 1fr) auto; }
+  .frow .fav { width: 26px; height: 26px; }
+  .flist { gap: 5px; }
 }
