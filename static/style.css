@@ -4520,11 +4520,10 @@ footer.shell .legal{text-wrap:pretty;word-break:normal;overflow-wrap:break-word;
 @media (max-width: 640px) { .em-sharebar { padding: 10px 14px 2px; } .em-sharebar .em-hint { flex-basis: 100%; } }
 
 /* ===== v19：手机端体验修复 =========================================
-   1) 概览头像太大 → 收到 44px（≤400px 再小一档）
+   1) 手机概览整块收一档（头像/名字/徽标/瓦片一起小）
    2) 手机顶栏没有后端管理入口 → 放出来
    3) 横向筛选条看不出能滑 → scrollhint.js 画一根常驻细滚动条
-   4) 概览下面加「好友 / 近期组队」速览
-   5) 回合走势的击杀明细看不清谁杀谁 → 左「击杀者」/ 中「武器」/ 右「被击杀」
+   4) 回合走势的击杀明细看不清谁杀谁 → 左「击杀者」/ 中「武器」/ 右「被击杀」
    ================================================================== */
 
 /* ---- 横向滚动提示条（scrollhint.js 生成，挂在容器的父节点上） ---- */
@@ -4555,74 +4554,53 @@ footer.shell .legal{text-wrap:pretty;word-break:normal;overflow-wrap:break-word;
   }
 }
 
-/* ---- 手机：人物概览头像/标题收小 ---- */
+/* ---- 手机：整块概览统一收一档 ----
+   以前只把头像改小，卡片其余部分（名字、徽标、段位、数据瓦片）仍是桌面尺寸，
+   整体还是又高又挤。这里按同一比例把整块压下来，卡片自然矮一大截。 */
 @media (max-width: 720px) {
-  .id-card { padding: 12px; gap: 10px; }
-  .id-card .id-left { gap: 11px; }
-  #p-avatar, #p-avatar-fallback { width: 44px; height: 44px; border-radius: 12px; }
-  #p-name { font-size: 19px; line-height: 1.25; }
-  .id-card .id-meta { gap: 5px; }
-  .id-card .id-meta .pill { font-size: 11.5px; padding: 3px 8px; }
-  .id-card .rank-badge b { font-size: 16px; }
+  #player .id-card { padding: 11px 12px; gap: 9px; border-radius: 12px; }
+  #player .id-card .id-left { gap: 9px; }
+  #player .id-card #p-avatar,
+  #player .id-card #p-avatar-fallback { width: 42px; height: 42px; border-radius: 10px; }
+  #player .id-card #p-name { font-size: 17px; line-height: 1.22; }
+  #player .id-card .id-row { gap: 7px; }
+  #player .id-card .id-meta { gap: 4px; }
+  #player .id-card .id-meta .pill { font-size: 10.5px; padding: 2px 7px; border-radius: 6px; }
+  #player .id-card .fav-btn { font-size: 10.5px; padding: 2px 8px; }
+  #player .id-card .rank-badge { gap: 5px; }
+  #player .id-card .rank-badge i { font-size: 9.5px; letter-spacing: .1em; }
+  #player .id-card .rank-badge b { font-size: 15px; }
+  #player .id-card .rank-badge span { font-size: 11px; }
+  #player .id-card .tiles { gap: 6px; }
+  #player .id-card .tile { padding: 6px 8px; border-radius: 8px; }
+  #player .id-card .tile .k { font-size: 8.5px; letter-spacing: .06em; }
+  #player .id-card .tile .v { font-size: 18px; }
+  #player .id-card .tile .v small { font-size: 9.5px; }
+  /* 徽标矮一点、可以换行，别把卡片撑高 */
+  #player .id-card .id-meta { flex-wrap: wrap; row-gap: 4px; padding-bottom: 0; }
+  #player .id-card .id-meta > * { flex: 0 0 auto; }
+  #player .id-card .id-meta .pill { min-height: 0; height: 24px; line-height: 1; display: inline-flex; align-items: center; }
+  /* 四块数据瓦片并成一行，省掉整整一行高度 */
+  #player .id-card .tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  #player .id-card .tile { padding: 5px 6px; }
+  #player .id-card .tile .k { font-size: 8px; letter-spacing: .02em; }
+  #player .id-card .tile .v { font-size: 15px; }
+  /* 固定ID 提醒条压紧，别在手机上占三行 */
+  #player .id-card .fixed-tip { margin-top: 6px; padding: 6px 9px; gap: 5px; font-size: 11px; border-radius: 8px; }
+  #player .id-card .fixed-tip code { font-size: 11px; padding: 1px 5px; }
+  #player .id-card .fixed-tip button.sm { min-height: 0; padding: 2px 7px; font-size: 11px; }
+  #player .id-card .id-main { gap: 6px; }
+  #player .id-card .fav-btn { height: 26px; }
+  /* 段位条压成一行 */
+  #player .id-card .rank-badge { padding: 4px 9px; gap: 6px; flex-wrap: wrap; row-gap: 1px; }
+  #player .id-card .rank-badge .tier-ico { height: 16px; width: 16px; }
 }
 @media (max-width: 400px) {
-  #p-avatar, #p-avatar-fallback { width: 38px; height: 38px; }
-  #p-name { font-size: 18px; }
-}
-
-/* ---- 概览卡片下面：好友 / 近期组队（会员功能，默认只给一条折叠入口） ---- */
-.ov-extras { margin-top: 12px; display: grid; gap: 10px; }
-.ov-extras.hidden { display: none; }
-.ov-toggle {
-  display: flex; align-items: baseline; gap: 8px; width: 100%;
-  padding: 9px 12px; border-radius: 12px; cursor: pointer; text-align: left;
-  border: 1px dashed var(--line, #e5e1d6); background: rgba(14, 124, 107, .035);
-  color: var(--ink-2, #3f4a4d); font-size: 12.5px;
-}
-.ov-toggle b { font-size: 13px; font-weight: 700; color: var(--ink, #1e2a2d); flex: none; }
-.ov-toggle small { font-weight: 400; color: var(--muted, #7b8a8d); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ov-toggle i { margin-left: auto; font-style: normal; font-weight: 600; color: var(--accent, #0e7c6b); flex: none; }
-.ov-toggle:hover { background: rgba(14, 124, 107, .07); border-color: rgba(14, 124, 107, .3); }
-.ov-foot { display: flex; justify-content: flex-end; }
-.ov-foot .ov-more {
-  border: 0; background: none; cursor: pointer; padding: 2px 6px; border-radius: 7px;
-  color: var(--muted, #7b8a8d); font-size: 12px;
-}
-.ov-foot .ov-more:hover { color: var(--accent, #0e7c6b); background: var(--accent-soft, rgba(14, 124, 107, .08)); }
-.ov-wait .ov-more { margin-left: auto; border: 0; background: none; cursor: pointer; color: var(--muted, #7b8a8d); font-size: 12px; }
-.ov-block {
-  background: var(--panel, #fff); border: 1px solid var(--line, #e5e1d6);
-  border-radius: 14px; padding: 10px 12px 12px;
-}
-.ov-block header { display: flex; align-items: baseline; gap: 10px; margin: 0 0 8px; }
-.ov-block h4 { margin: 0; font-size: 13.5px; font-weight: 700; }
-.ov-block h4 small { margin-left: 6px; font-size: 11.5px; font-weight: 500; color: var(--muted, #7b8a8d); }
-.ov-block .ov-more {
-  margin-left: auto; border: 0; background: none; cursor: pointer;
-  color: var(--accent, #0e7c6b); font-size: 12px; font-weight: 600;
-  padding: 2px 6px; border-radius: 7px;
-}
-.ov-block .ov-more:hover { background: var(--accent-soft, rgba(14, 124, 107, .08)); }
-.ov-row { display: flex; flex-wrap: wrap; gap: 6px; }
-.ov-chip {
-  display: inline-flex; align-items: center; gap: 5px; max-width: 100%;
-  padding: 3px 9px 3px 4px; border-radius: 999px;
-  border: 1px solid var(--line, #e5e1d6); background: #fbfaf6;
-  font-size: 12px; color: var(--ink-2, #3f4a4d);
-}
-.ov-chip img { width: 18px; height: 18px; border-radius: 50%; object-fit: cover; flex: none; }
-.ov-chip i {
-  width: 18px; height: 18px; border-radius: 50%; flex: none;
-  display: grid; place-items: center; background: #e9e5d9;
-  font-size: 10px; font-style: normal; color: #5d6a6e;
-}
-.ov-chip b { font-weight: 600; max-width: 11em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ov-chip em { font-style: normal; font-size: 10.5px; color: var(--muted, #7b8a8d); flex: none; }
-.ov-chip.hot { border-color: rgba(14, 124, 107, .3); background: rgba(14, 124, 107, .06); }
-@media (max-width: 720px) {
-  .ov-extras { margin-top: 10px; }
-  .ov-chip b { max-width: 8.5em; }
-  .ov-block { padding: 9px 10px 10px; }
+  #player .id-card { padding: 9px 10px; gap: 8px; }
+  #player .id-card #p-avatar,
+  #player .id-card #p-avatar-fallback { width: 38px; height: 38px; }
+  #player .id-card #p-name { font-size: 16px; }
+  #player .id-card .tile .v { font-size: 17px; }
 }
 
 /* ---- 单局详情：回合击杀明细（谁 → 什么枪 → 谁） ---- */
