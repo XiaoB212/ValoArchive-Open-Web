@@ -45,6 +45,7 @@ const state = {
   matchLoaded: false,
   tab: "history",
   socialGroup: "all",
+  friendPage: 1,
   seasonData: null,
 };
 
@@ -1598,9 +1599,16 @@ function peopleTable(round) {
       : row.armor
         ? `<em class="armor t">${escapeHtml(row.armor)}</em>`
         : "";
+    // 这把带的枪：有官方图标就用图标（省空间、手机也看得清），没有就退回文字。
+    const gun = row.weapon
+      ? (row.weapon_icon
+          ? `<span class="gun" title="${escapeHtml(row.weapon)}"><img src="${img(row.weapon_icon)}" alt="" loading="lazy" /><em>${escapeHtml(row.weapon)}</em></span>`
+          : `<span class="gun" title="${escapeHtml(row.weapon)}"><em>${escapeHtml(row.weapon)}</em></span>`)
+      : `<span class="gun none" title="这一回合没有采集到武器">—</span>`;
     return `<li class="${row.ally === false ? "enemy" : "ally"}${row.me ? " me" : ""}">
       ${face}
       <span class="who"><b>${escapeHtml(row.name || "—")}</b><em>${escapeHtml(row.agent || "")}</em></span>
+      ${gun}
       <span class="num k" title="击杀 ${row.kills}">${row.kills}</span>
       <span class="num d" title="伤害 ${row.damage}">${row.damage}</span>
       <span class="num a" title="助攻 ${row.assists}">${row.assists}</span>
@@ -2010,23 +2018,53 @@ function renderPeople() {
 
   const strip = $("#social-friends");
   if (strip) {
-    const playedMap = new Map((data.friends || []).map((p) => [p.subject, p.last]));
+    const playedMap = new Map((data.friends || []).map((p) => [p.subject, p]));
     const list = data.friends_list || [];
+    // 曾经横着滑一排胶囊，手机上一屏只看得到 4 个人；现在改成竖列，
+    // 一页 10 个，最近一起排过的排前面（没同排过的按昵称）。
+    const rows = list
+      .map((f) => {
+        const hit = playedMap.get(f.subject);
+        return {
+          ...f,
+          last: hit ? Number(hit.last) || 0 : 0,
+          games: hit ? Number(hit.games) || 0 : 0,
+          hot: !!(hit && relTime(hit.last)),
+        };
+      })
+      .sort((a, b) => (b.last || 0) - (a.last || 0) || String(a.name || "").localeCompare(String(b.name || ""), "zh"));
+    const size = 10;
+    const pages = Math.max(1, Math.ceil(rows.length / size));
+    const page = Math.min(Math.max(1, state.friendPage || 1), pages);
+    state.friendPage = page;
+    const slice = rows.slice((page - 1) * size, page * size);
+    const body = slice
+      .map((f) => {
+        const ago = f.last ? relTime(f.last) : "";
+        const meta = f.last
+          ? `最近同排 ${fullDate(f.last)}${ago ? ` · ${ago}` : ""}`
+          : "近一个月没一起排过";
+        const av = f.avatar
+          ? `<img class="fav" src="${img(f.avatar)}" alt="" loading="lazy" onerror="this.replaceWith(document.createTextNode(''))" />`
+          : `<i class="fav none">${escapeHtml(String(f.name || "?").slice(0, 1))}</i>`;
+        return `<div class="frow${f.hot ? " hot" : ""}" title="${escapeHtml(f.name || "")}">
+          ${av}
+          <div class="fmain"><b class="fname">${escapeHtml(f.name || "—")}</b><span class="fmeta">${meta}</span></div>
+          ${f.games ? `<span class="fgames"><b>${f.games}</b>场</span>` : f.hot ? `<span class="fgames hot">近期同排</span>` : ""}
+        </div>`;
+      })
+      .join("");
+    const pager = pages > 1
+      ? `<div class="fpager">
+          <button type="button" data-fpage="${page - 1}" ${page <= 1 ? "disabled" : ""} aria-label="上一页好友">‹</button>
+          <span>${page} / ${pages}</span>
+          <button type="button" data-fpage="${page + 1}" ${page >= pages ? "disabled" : ""} aria-label="下一页好友">›</button>
+        </div>`
+      : "";
     strip.innerHTML = list.length
-      ? `<span class="strip-label">全部好友名单 ${list.length} 人</span>`
-        + list
-            .map((f) => {
-              const last = playedMap.get(f.subject);
-              const ago = last ? relTime(last) : "";
-              const hot = !!ago;
-              const tip = hot ? `最近同排 ${fullDate(last)}（${ago}）` : `近一个月没有一起排过`;
-              const fav = f.avatar ? `<img class="fchip-av" src="${img(f.avatar)}" alt="" loading="lazy" onerror="this.remove()" />` : `<i class="fchip-av none">${escapeHtml(String(f.name || "?").slice(0, 1))}</i>`;
-              return `<span class="fchip${hot ? " hot" : ""}" title="${escapeHtml(f.name)} · ${tip}">${fav}${escapeHtml(f.name)}${
-                hot ? `<em class="hot-tag">近期同排</em>` : ""
-              }</span>`;
-            })
-            .join("")
-      : '<span class="strip-label">没有拿到好友名单</span>';
+      ? `<div class="flist-head"><span>全部好友名单 ${list.length} 人${rows.some((f) => f.hot) ? ` · 近期同排 ${rows.filter((f) => f.hot).length} 人` : ""}</span><span class="dim">按最近同排排序</span></div>
+         <div class="flist">${body}</div>${pager}`
+      : `<div class="flist-head"><span>没有拿到好友名单</span></div>`;
   }
 
   const blocks = [];
@@ -3179,6 +3217,17 @@ async function boot() {
     renderPeople();
   }));
 
+  // 好友名单翻页（一页 10 个）
+  const friendBox = $("#social-friends");
+  if (friendBox) {
+    friendBox.addEventListener("click", (ev) => {
+      const btn = ev.target.closest("button[data-fpage]");
+      if (!btn) return;
+      state.friendPage = Math.max(1, Number(btn.dataset.fpage) || 1);
+      renderPeople();
+    });
+  }
+
   const params = new URLSearchParams(location.search);
   state.pendingTab = params.get("tab");
   const presetMode = params.get("mode") || (window.__SHARE__ && window.__SHARE__.mode);
@@ -3422,5 +3471,6 @@ function renderAssetGrids(data, card) {
   meta("#agents-meta", `共 ${agents.length} 位`);
   $("#asset-cards").innerHTML = cards.map((item) => card(item, unlockLine(item))).join("");
   $("#asset-sprays").innerHTML = sprays.map((item) => card(item, unlockLine(item))).join("");
-  $("#asset-agents").innerHTML = agents.map((item) => card(item, item.role || "英雄")).join("");
+  // 英雄也顺手显示获取时间（ACLOS 的 unlock_time，「只显示到年月日」）
+  $("#asset-agents").innerHTML = agents.map((item) => card(item, unlockLine(item) || item.role || "英雄")).join("");
 }

@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>个性库 · 卡面 / 喷漆 / 挂饰 · VALO ARCHIVE</title>
 <link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=4" sizes="any" />
-<link rel="stylesheet" href="/static/style.css?v=8255edfce7" />
-<link rel="stylesheet" href="/static/tools.css?v=ac57c506e8" />
+<link rel="stylesheet" href="/static/style.css?v=6469807f97" />
+<link rel="stylesheet" href="/static/tools.css?v=2a245b1dd8" />
 <style>
   /* 顶部搜索：在一个库里搜，切标签自动换占位文案 */
   .cos-search { margin-bottom: 18px; padding: 14px; }
@@ -38,11 +38,15 @@
   .cos-card .meta { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
 
   .cos-modal { width: min(760px, 100%); }
+  /* 弹层后面那层黑遮罩也淡一点，别把米白舞台压成灰 */
+  .modal:has(.cos-modal) { background: rgba(18, 24, 28, 0.38); }
   .cos-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
     flex-wrap: wrap; padding-right: 34px; }
   .cos-head h2 { margin: 0 0 5px; font-size: 20px; }
+  /* 大图区取消黑底：改成和全站一致的米白舞台，图片本身带一圈很淡的内阴影 */
   .cos-stage { position: relative; margin-top: 14px; border-radius: 12px; overflow: hidden;
-    background: linear-gradient(180deg, #1b2128, #12161b); min-height: 200px; display: grid; place-items: center; }
+    background: radial-gradient(120% 90% at 50% 0, #ffffff 0%, #f4f8f7 55%, #edf3f2 100%);
+    box-shadow: inset 0 0 0 1px rgba(20,101,79,.08); min-height: 200px; display: grid; place-items: center; }
   .cos-stage img { display: block; width: 100%; max-height: 400px; object-fit: contain; padding: 12px; box-sizing: border-box; }
   .cos-tiles { margin-top: 14px; display: grid; gap: 10px;
     grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); }
@@ -84,7 +88,7 @@
       <h1>个性库</h1>
       <div class="sub">玩家卡面、喷漆、枪挂饰：全部官方素材，卡面看大图、挂饰看每一级的样子。</div>
     </div>
-    <div class="tool-actions"><a class="btn small" href="/catalog/skins">皮肤库</a><a class="btn small" href="/">回首页</a></div>
+    <div class="tool-actions"><a class="btn small" href="/crosshairs">准星库</a><a class="btn small" href="/lineups">点位库</a><a class="btn small" href="/catalog/agents">英雄库</a><a class="btn small" href="/catalog/skins">皮肤库</a><a class="btn small" href="/">回首页</a></div>
   </div>
 
   <div class="card-panel cos-search">
