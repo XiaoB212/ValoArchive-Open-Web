@@ -3566,9 +3566,9 @@ body.modal-open { overflow: hidden; }
   border: 1px solid var(--line);
   font-size: 12.5px; color: var(--ink-2); min-width: 0;
 }
-/* 一行放得下：文字和 ID 该省略就省略，按钮永不换行（电脑版以前「不再提示」会掉到第二排） */
-.fixed-tip > span { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.fixed-tip code { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: var(--mono, ui-monospace, monospace); font-size: 12px; color: var(--ink); background: var(--card); padding: 2px 6px; border-radius: 6px; }
+/* 一行放得下：不用省略号，放不下时由 fitOneLine() 缩字号，按钮永不换行 */
+.fixed-tip > span { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: visible; text-overflow: clip; }
+.fixed-tip code { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: visible; text-overflow: clip; font-family: var(--mono, ui-monospace, monospace); font-size: 12px; color: var(--ink); background: var(--card); padding: 2px 6px; border-radius: 6px; }
 .fixed-tip button.sm { flex: 0 0 auto; padding: 3px 9px; font-size: 12px; }
 .fixed-tip[hidden] { display: none; }
 
@@ -4808,71 +4808,4 @@ footer.shell .legal{text-wrap:pretty;word-break:normal;overflow-wrap:break-word;
   .frow { padding: 5px 8px; gap: 8px; grid-template-columns: 26px minmax(0, 1fr) auto; }
   .frow .fav { width: 26px; height: 26px; }
   .flist { gap: 5px; }
-}
-
-/* ---- v23：首页「我的主页」：好友列表 + 最近组队 ---- */
-.home-me {
-  margin-top: 26px; padding: 14px 16px 16px;
-  border: 1px solid var(--line); border-radius: 14px;
-  background: var(--card, #fff);
-  box-shadow: 0 1px 0 rgba(20, 40, 34, .03);
-}
-.hm-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-bottom: 12px; }
-.hm-who { display: flex; align-items: baseline; gap: 8px; min-width: 0; flex: 1 1 auto; }
-.hm-kicker {
-  font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase;
-  color: var(--accent, #0e7c6b); font-weight: 700; white-space: nowrap;
-}
-.hm-who b { font-size: 16px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.hm-who i { font-style: normal; font-size: 11.5px; color: var(--muted, #8a9694); font-family: var(--mono, monospace); white-space: nowrap; }
-.hm-acts { display: flex; gap: 8px; align-items: center; flex: 0 0 auto; }
-.hm-btn {
-  height: 30px; padding: 0 12px; border-radius: 9px; font: inherit; font-size: 12.5px;
-  border: 1px solid var(--line-strong, #d3cfc2); background: var(--card, #fff); color: var(--ink);
-  cursor: pointer; white-space: nowrap; text-decoration: none;
-}
-.hm-btn:hover { border-color: var(--ink-2, #3c4347); }
-.hm-btn.ghost { background: transparent; color: var(--ink-2, #3c4347); border-color: var(--line, #e6e3da); }
-.hm-btn.ghost:hover { background: var(--paper-2, #faf9f5); }
-.hm-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-.hm-col { min-width: 0; }
-.hm-col-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 7px; }
-.hm-col-head b { font-size: 12.5px; color: var(--ink); font-weight: 600; }
-.hm-col-head span { font-size: 10.5px; color: var(--muted, #8a9694); font-family: var(--mono, monospace); }
-.hm-list { display: grid; gap: 5px; }
-.hm-row {
-  display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; align-items: center; gap: 8px;
-  width: 100%; text-align: left; cursor: pointer; font: inherit;
-  padding: 5px 8px; border: 1px solid var(--line); border-radius: 9px; background: var(--paper-2, #faf9f5);
-  color: var(--ink);
-}
-.hm-row:hover { border-color: var(--line-strong); background: var(--card, #fff); }
-.hm-av {
-  position: relative; width: 26px; height: 26px; border-radius: 8px; overflow: hidden;
-  background: var(--card, #fff); border: 1px solid var(--line);
-  display: inline-flex; align-items: center; justify-content: center;
-  font-size: 11px; color: var(--ink-2);
-}
-.hm-av img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.hm-m { display: grid; min-width: 0; }
-.hm-m b { font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.hm-m i { font-style: normal; font-size: 10.5px; color: var(--muted, #8a9694); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.hm-n { font-family: var(--mono, monospace); font-size: 11.5px; color: var(--ink-2); white-space: nowrap; }
-.hm-n em { font-style: normal; font-size: 10px; color: var(--muted, #8a9694); margin-left: 1px; }
-.hm-empty { font-size: 11.5px; color: var(--muted, #8a9694); padding: 6px 2px; }
-.hm-setup {
-  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-  margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line);
-}
-.hm-setup span { font-size: 11.5px; color: var(--ink-2); }
-.hm-setup input {
-  flex: 1 1 200px; min-width: 0; height: 32px; padding: 0 11px; font: inherit; font-size: 12.5px;
-  border: 1px solid var(--line-strong); border-radius: 9px; background: var(--card, #fff); color: var(--ink);
-}
-@media (max-width: 720px) {
-  .home-me { margin-top: 18px; padding: 12px 12px 14px; border-radius: 12px; }
-  .hm-cols { grid-template-columns: minmax(0, 1fr); gap: 12px; }
-  .hm-who b { font-size: 15px; }
-  .hm-acts { width: 100%; justify-content: flex-start; }
-  .hm-row { padding: 5px 7px; }
 }
