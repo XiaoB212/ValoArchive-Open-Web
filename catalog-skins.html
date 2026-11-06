@@ -44,6 +44,8 @@
   .skin-toolbar .panel-title { margin: 0; letter-spacing: .04em; }
   .skin-grid { grid-template-columns: repeat(auto-fill, minmax(214px, 1fr)); }
   .skin-card { cursor: pointer; }
+  /* 皮肤名只要一行：宁可缩字号也不用「…」、也不折行 */
+  .skin-card .card-name { white-space: nowrap; overflow: visible; text-overflow: clip; }
   .skin-card .art { height: 104px; display: grid; place-items: center; border-radius: 9px;
     background: linear-gradient(180deg, var(--paper-2), var(--paper)); border: 1px solid var(--line); }
   .skin-card .art img { max-width: 92%; max-height: 84px; object-fit: contain; }
@@ -75,6 +77,8 @@
   .tile.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); }
   .tile img { display: block; width: 100%; height: 52px; object-fit: contain; margin-bottom: 6px; }
   .tile .lb { font-size: 11px; line-height: 1.35; white-space: nowrap; overflow: visible; text-overflow: clip; }
+  /* tools.css 里 .skin-tiles .tile .lb 带省略号，特异性比上面高，这里必须同权重覆盖 */
+  .skin-tiles .tile .lb { white-space: nowrap; overflow: visible; text-overflow: clip; }
   .tile .sw { width: 16px; height: 16px; border-radius: 5px; margin: 0 auto 5px; border: 1px solid var(--line-strong); }
 
   /* 手机/平板：武器条改成真正「一行三把枪」的小胶囊。
@@ -248,6 +252,24 @@
     return card;
   }
 
+  /* 卡片上的皮肤名：一行放不下就收字号（14px 起，最小 10px），不出「…」不折行 */
+  const MEASURE_CTX = document.createElement("canvas").getContext("2d");
+  function measureText(el, text, size) {
+    const cs = getComputedStyle(el);
+    MEASURE_CTX.font = `${cs.fontWeight} ${size}px ${cs.fontFamily}`;
+    return MEASURE_CTX.measureText(text).width;
+  }
+  function fitCardNames(box) {
+    (box || document).querySelectorAll(".skin-card .card-name").forEach((el) => {
+      const text = (el.textContent || "").replace(/\s+/g, " ").trim();
+      const room = Math.max(60, el.parentElement.clientWidth - 8);
+      let size = 14;
+      let guard = 0;
+      while (size > 10 && measureText(el, text, size) > room && guard++ < 24) size -= 0.25;
+      el.style.fontSize = size + "px";
+    });
+  }
+
   function paintGrid() {
     const box = $("#skins");
     box.innerHTML = "";
@@ -257,6 +279,7 @@
     const total = list.length;
     if (total > MAX_ROWS) list = list.slice(0, MAX_ROWS);
     list.forEach((s) => box.appendChild(skinCard(s, !!state.q)));
+    fitCardNames(box);
     $("#empty").style.display = total ? "none" : "block";
     const title = state.q ? `“${state.q}” 的搜索结果` : `${state.weaponName} · ${total} 款`;
     $("#sk-title").textContent = total > MAX_ROWS
@@ -496,21 +519,21 @@
         tab = b.dataset.tab;
         tabsBox.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
         paintTiles(items(), 0);
+        fitTileLabels($("#skin-tiles"));
       };
 
-      /* 皮肤名只要一行：放不下就缩字号，不用「…」也不用折行 */
+      /* 一行放不下就缩字号，不用「…」也不用折行。
+         用 canvas 量文字真实宽度：overflow:visible 的元素 scrollWidth 不可靠。 */
       function fitTileLabels(box) {
         (box || document).querySelectorAll(".tile .lb").forEach((lb) => {
           const tile = lb.closest(".tile");
           if (!tile) return;
-          let size = 11;
-          lb.style.fontSize = size + "px";
-          const room = Math.max(40, tile.clientWidth - 10);
+          const text = (lb.textContent || "").replace(/\s+/g, " ").trim();
+          const room = Math.max(40, tile.clientWidth - 14);
+          let size = 10.5;
           let guard = 0;
-          while (size > 8 && lb.scrollWidth > room && guard++ < 20) {
-            size -= 0.5;
-            lb.style.fontSize = size + "px";
-          }
+          while (size > 7.5 && measureText(lb, text, size) > room && guard++ < 30) size -= 0.25;
+          lb.style.fontSize = size + "px";
         });
       }
 
