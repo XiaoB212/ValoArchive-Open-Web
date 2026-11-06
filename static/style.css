@@ -4518,3 +4518,169 @@ footer.shell .legal{text-wrap:pretty;word-break:normal;overflow-wrap:break-word;
 .em-sharebar select { padding: 5px 8px; font-size: 12.5px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel, #fff); color: inherit; }
 .em-sharebar .em-hint { margin: 0; flex: 1 1 220px; min-width: 160px; }
 @media (max-width: 640px) { .em-sharebar { padding: 10px 14px 2px; } .em-sharebar .em-hint { flex-basis: 100%; } }
+
+/* ===== v19：手机端体验修复 =========================================
+   1) 概览头像太大 → 收到 44px（≤400px 再小一档）
+   2) 手机顶栏没有后端管理入口 → 放出来
+   3) 横向筛选条看不出能滑 → scrollhint.js 画一根常驻细滚动条
+   4) 概览下面加「好友 / 近期组队」速览
+   5) 回合走势的击杀明细看不清谁杀谁 → 左「击杀者」/ 中「武器」/ 右「被击杀」
+   ================================================================== */
+
+/* ---- 横向滚动提示条（scrollhint.js 生成，挂在容器的父节点上） ---- */
+.hscroll-hint {
+  position: absolute; height: 6px; border-radius: 999px;
+  background: rgba(16, 24, 40, .10);
+  display: none; z-index: 4; cursor: grab; touch-action: none;
+}
+.hscroll-hint i {
+  position: absolute; left: 0; top: 0; height: 100%; min-width: 22px;
+  border-radius: 999px; background: rgba(16, 24, 40, .42);
+}
+.hscroll-hint:active { cursor: grabbing; }
+.hscroll-hint:active i { background: rgba(16, 24, 40, .62); }
+/* 有提示条的地方把原生滚动条藏掉，免得两条叠在一起 */
+#wlist, #view-mode, #tabs { scrollbar-width: none; -ms-overflow-style: none; }
+#wlist::-webkit-scrollbar, #view-mode::-webkit-scrollbar, #tabs::-webkit-scrollbar { display: none; height: 0; }
+
+/* ---- 手机：后端管理入口 ----
+   顶栏本来就是横向可滚的，之前为了挤进五个入口把它 display:none 了，
+   结果手机端完全找不到后台。 */
+@media (max-width: 720px) {
+  .top-tools .tool-link[href="/valoadmin"] {
+    display: inline-flex;
+    color: #0a5b4e;
+    background: rgba(14, 124, 107, .10);
+    border: 1px solid rgba(14, 124, 107, .22);
+  }
+}
+
+/* ---- 手机：人物概览头像/标题收小 ---- */
+@media (max-width: 720px) {
+  .id-card { padding: 12px; gap: 10px; }
+  .id-card .id-left { gap: 11px; }
+  #p-avatar, #p-avatar-fallback { width: 44px; height: 44px; border-radius: 12px; }
+  #p-name { font-size: 19px; line-height: 1.25; }
+  .id-card .id-meta { gap: 5px; }
+  .id-card .id-meta .pill { font-size: 11.5px; padding: 3px 8px; }
+  .id-card .rank-badge b { font-size: 16px; }
+}
+@media (max-width: 400px) {
+  #p-avatar, #p-avatar-fallback { width: 38px; height: 38px; }
+  #p-name { font-size: 18px; }
+}
+
+/* ---- 概览卡片下面：好友 / 近期组队速览 ---- */
+.ov-extras { margin-top: 12px; display: grid; gap: 10px; }
+.ov-extras.hidden { display: none; }
+.ov-block {
+  background: var(--panel, #fff); border: 1px solid var(--line, #e5e1d6);
+  border-radius: 14px; padding: 10px 12px 12px;
+}
+.ov-block header { display: flex; align-items: baseline; gap: 10px; margin: 0 0 8px; }
+.ov-block h4 { margin: 0; font-size: 13.5px; font-weight: 700; }
+.ov-block h4 small { margin-left: 6px; font-size: 11.5px; font-weight: 500; color: var(--muted, #7b8a8d); }
+.ov-block .ov-more {
+  margin-left: auto; border: 0; background: none; cursor: pointer;
+  color: var(--accent, #0e7c6b); font-size: 12px; font-weight: 600;
+  padding: 2px 6px; border-radius: 7px;
+}
+.ov-block .ov-more:hover { background: var(--accent-soft, rgba(14, 124, 107, .08)); }
+.ov-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.ov-chip {
+  display: inline-flex; align-items: center; gap: 5px; max-width: 100%;
+  padding: 3px 9px 3px 4px; border-radius: 999px;
+  border: 1px solid var(--line, #e5e1d6); background: #fbfaf6;
+  font-size: 12px; color: var(--ink-2, #3f4a4d);
+}
+.ov-chip img { width: 18px; height: 18px; border-radius: 50%; object-fit: cover; flex: none; }
+.ov-chip i {
+  width: 18px; height: 18px; border-radius: 50%; flex: none;
+  display: grid; place-items: center; background: #e9e5d9;
+  font-size: 10px; font-style: normal; color: #5d6a6e;
+}
+.ov-chip b { font-weight: 600; max-width: 11em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ov-chip em { font-style: normal; font-size: 10.5px; color: var(--muted, #7b8a8d); flex: none; }
+.ov-chip.hot { border-color: rgba(14, 124, 107, .3); background: rgba(14, 124, 107, .06); }
+@media (max-width: 720px) {
+  .ov-extras { margin-top: 10px; }
+  .ov-chip b { max-width: 8.5em; }
+  .ov-block { padding: 9px 10px 10px; }
+}
+
+/* ---- 单局详情：回合击杀明细（谁 → 什么枪 → 谁） ---- */
+.rdks {
+  margin-top: 12px; border: 1px solid var(--line, #e5e1d6);
+  border-radius: 12px; overflow: hidden; background: var(--panel, #fff);
+}
+.rdks-head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 10px; border-bottom: 1px solid var(--line, #e5e1d6);
+  background: rgba(0, 0, 0, .03);
+}
+.rdks-head b { font-size: 12.5px; font-weight: 700; }
+.rdks-legend {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
+  font-size: 10.5px; color: var(--muted, #7b8a8d);
+}
+.rdks-legend .lg { width: 7px; height: 7px; border-radius: 2px; display: inline-block; }
+.rdks-legend .lg.ally { background: var(--win, #2f9e6b); }
+.rdks-legend .lg.enemy { background: var(--loss, #d64545); }
+.rdks-legend .lg.ally + .lg.enemy { margin-left: 6px; }
+.rdk-list { list-style: none; margin: 0; padding: 4px 6px 6px; display: grid; gap: 3px; }
+.rdk {
+  display: grid; grid-template-columns: 22px 34px minmax(0, 1fr);
+  align-items: center; gap: 6px; padding: 5px 6px;
+  border-radius: 9px; background: #fbfaf6; border-left: 3px solid transparent;
+}
+.rdk.ally { border-left-color: var(--win, #2f9e6b); }
+.rdk.enemy { border-left-color: var(--loss, #d64545); }
+.rdk-no { font-family: var(--mono); font-size: 10px; color: var(--dim, #9aa4ad); text-align: right; }
+.rdk-t { font-family: var(--mono); font-size: 10.5px; color: var(--muted, #7b8a8d); }
+.rdk-flow {
+  display: grid; grid-template-columns: minmax(0, 1fr) 42px minmax(0, 1fr);
+  align-items: center; gap: 6px; min-width: 0;
+}
+.rdk-a, .rdk-b { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.rdk-b { justify-content: flex-end; }
+.rdk-a .kn, .rdk-b .kn {
+  font-size: 12px; font-weight: 600; min-width: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.rdk img.ka { width: 16px; height: 16px; border-radius: 50%; object-fit: cover; flex: none; }
+.rdk-w { display: grid; place-items: center; }
+.rdk-w img { width: 34px; height: 20px; object-fit: contain; }
+.rdk-w .wtext {
+  font-size: 9.5px; color: var(--muted, #7b8a8d);
+  max-width: 44px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.rdk .multi {
+  flex: none; font-size: 9.5px; font-weight: 700; color: #b45309;
+  background: rgba(180, 83, 9, .1); border-radius: 999px; padding: 1px 5px;
+}
+.rdk .helper { display: inline-flex; align-items: center; gap: 2px; flex: none; }
+.rdk .helper .hb { font-style: normal; font-size: 9px; color: var(--muted, #7b8a8d); }
+.rdk .helper img { width: 13px; height: 13px; border-radius: 50%; object-fit: cover; }
+@media (max-width: 720px) {
+  .rdk { grid-template-columns: 16px 30px minmax(0, 1fr); gap: 5px; padding: 5px 4px; }
+  .rdk-flow { grid-template-columns: minmax(0, 1fr) 34px minmax(0, 1fr); gap: 5px; }
+  .rdk-a .kn, .rdk-b .kn { font-size: 11.5px; }
+  .rdk-w img { width: 28px; height: 16px; }
+}
+
+/* ---- v20：滚动提示条留出位置（14px 内边距 + 条子往下 10px 才不压住 chip） ---- */
+@media (max-width: 900px) {
+  nav.tabs[data-hscroll], #panel-history #view-mode[data-hscroll], #panel-history .view-mode[data-hscroll] { padding-bottom: 14px; }
+}
+
+/* ---- v20：手机上没采集到武器时用箭头表明「谁打谁」，别让中间空着 ---- */
+.rdk-w .wtext.arrow {
+  font-size: 14px; line-height: 1; color: var(--dim, #a9b4b6);
+  background: none; max-width: none; padding: 0;
+}
+
+/* ---- v20：手机顶栏六个入口换行铺开，后端管理不再被挤到屏幕外 ---- */
+@media (max-width: 720px) {
+  .top-tools { flex-wrap: wrap; overflow: visible; row-gap: 4px; }
+  .top-tools[data-hscroll] { padding-bottom: 0; }
+}

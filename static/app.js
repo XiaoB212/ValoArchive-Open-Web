@@ -597,6 +597,10 @@ async function loadPlayer(keyword, refresh = false) {
   state.matchLoaded = false;
   state.matchId = null;
   socialCache = null;
+  state.partyData = null;
+  state.extrasFor = null;
+  const __ov = document.querySelector("#ov-extras");
+  if (__ov) { __ov.innerHTML = ""; __ov.classList.add("hidden"); }
   ["#social-people", "#party-bars", "#party-mates", "#party-rows", "#match-body",
     "#asset-skins", "#asset-cards", "#asset-sprays", "#asset-charms", "#asset-agents"].forEach((sel) => {
     const node = document.querySelector(sel);
@@ -711,6 +715,8 @@ async function loadPlayer(keyword, refresh = false) {
       renderSearchHistory();
     }
     if (!EXPORT_KIND && state.pendingTab) switchTab(state.pendingTab);
+    // 概览卡片下面那两块「好友 / 近期组队」速览：后台静默拉数据，失败就当没有。
+    if (!EXPORT_KIND) primeOverviewExtras();
     if (EXPORT_KIND === "match") {
       // 后端逐场导出时直接给 match_id：以前按列表下标取，导出页的历史列表和
       // 用户当前页不一致时第 3 场起会退化成同一场，几页长得一模一样。
@@ -1645,12 +1651,17 @@ function roundDetail(round, payload, index = 0) {
   const extra = [round.why, round.site ? `${round.site} 点` : "", round.planted ? "已下包" : "", round.defused ? "已拆包" : ""]
     .filter(Boolean)
     .join(" · ");
-  const kills = (round.kills || [])
+  // 击杀明细：一条击杀 = 「谁 → 什么枪 → 谁」，左右各占一半，枪放正中间。
+  // 旧版是五个等宽 span 平铺，手机窄屏上名字/枪/名字挤成一团分不清谁杀谁。
+  const killRows = (round.kills || [])
     .map((kill) => {
       const cls = kill.ally === true ? "ally" : kill.ally === false ? "enemy" : "";
+      // 手机上左右各只有半屏，名字带 #编号 会被截成「老实人#3…」，行内只留昵称，
+      // 完整「昵称#编号」放 title，长按/悬停还能看全。
+      const nick = (name) => String(name || "—").split("#")[0];
       const weapon = kill.weapon_icon
         ? `<img src="${img(kill.weapon_icon)}" alt="" title="${escapeHtml(kill.weapon || "")}" loading="lazy" />`
-        : `<span class="wtext">${escapeHtml(kill.weapon || "")}</span>`;
+        : `<span class="wtext${kill.weapon ? "" : " arrow"}" title="${kill.weapon ? escapeHtml(kill.weapon) : "武器未知"}">${kill.weapon ? escapeHtml(kill.weapon) : "→"}</span>`;
       const multi = kill.multi ? `<b class="multi">${escapeHtml(kill.multi)}</b>` : "";
       const helpers = (kill.assist_list || [])
         .map((h) => {
@@ -1662,15 +1673,26 @@ function roundDetail(round, payload, index = 0) {
         .join("");
       const byFace = kill.by_icon ? `<img class="ka" src="${img(kill.by_icon)}" alt="" loading="lazy" />` : "";
       const onFace = kill.on_icon ? `<img class="ka" src="${img(kill.on_icon)}" alt="" loading="lazy" />` : "";
-      return `<li class="${cls}">
-        <span class="no">${kill.no || ""}</span>
-        <span class="t">${kill.t || ""}</span>
-        <span class="by">${byFace}<span class="kn">${escapeHtml(kill.by || "—")}</span>${multi}</span>
-        <span class="wpn">${weapon}</span>
-        <span class="on"><span class="kn">${escapeHtml(kill.on || "—")}</span>${onFace}${helpers}</span>
+      return `<li class="rdk ${cls}">
+        <span class="rdk-no">${kill.no || ""}</span>
+        <span class="rdk-t">${kill.t || ""}</span>
+        <span class="rdk-flow">
+          <span class="rdk-a" title="击杀者：${escapeHtml(kill.by || "—")}">${byFace}<b class="kn">${escapeHtml(nick(kill.by))}</b>${multi}</span>
+          <span class="rdk-w" title="武器：${escapeHtml(kill.weapon || "未知")}">${weapon}</span>
+          <span class="rdk-b" title="被击杀：${escapeHtml(kill.on || "—")}"><b class="kn">${escapeHtml(nick(kill.on))}</b>${onFace}${helpers}</span>
+        </span>
       </li>`;
     })
     .join("");
+  const killBlock = killRows
+    ? `<div class="rdks">
+        <div class="rdks-head">
+          <b>击杀明细</b>
+          <span class="rdks-legend"><i class="lg ally"></i>我方击杀<i class="lg enemy"></i>我方阵亡</span>
+        </div>
+        <ul class="rdk-list">${killRows}</ul>
+      </div>`
+    : `<div class="rdks"><div class="rdks-head"><b>击杀明细</b></div><p class="dim">这一回合没有击杀记录。</p></div>`;
   const info = (payload && payload.rounds) || {};
   const score = roundScore(info, index);
   const side = round.ally_side_cn
@@ -1691,7 +1713,7 @@ function roundDetail(round, payload, index = 0) {
       <div class="econ enemy"><span>对方经济</span><b>${enemyEcon.toLocaleString()}</b>${guns(round.enemy_weapons)}<i style="width:${Math.round((enemyEcon / peak) * 100)}%"></i></div>
     </div>
     ${peopleTable(round)}
-    <ul class="rd-kills">${kills || '<li class="dim">这一回合没有击杀记录</li>'}</ul>`;
+    ${killBlock}`;
 }
 
 async function loadParty() {
@@ -1818,6 +1840,7 @@ function renderParty() {
       loadMatch(el.dataset.match, null);
     });
   });
+  renderOverviewExtras();
 }
 
 async function loadAssets() {
@@ -2028,6 +2051,101 @@ function renderPeople() {
       </section>`);
   }
   $("#social-people").innerHTML = blocks.join("");
+  renderOverviewExtras();
+}
+
+/* ── 概览页下方的「好友 / 近期组队」速览 ──────────────────────────────
+   不占 tab：查完一个人，概览卡片下面直接能看到他跟谁玩、最近跟谁开黑。
+   数据复用 /api/player/social 与 /api/party：loadPlayer 里静默预取一次，
+   切到对应 tab 时那份数据也会顺手把这里补上（不重复请求）。 */
+const OV_LIMIT = 12;
+
+function ovNick(name) {
+  return String(name || "").split("#")[0] || "?";
+}
+
+function ovChip(name, avatar, note, hot) {
+  const av = avatar
+    ? `<img src="${img(avatar)}" alt="" loading="lazy" onerror="this.remove()" />`
+    : `<i>${escapeHtml(String(name || "?").slice(0, 1))}</i>`;
+  return `<span class="ov-chip${hot ? " hot" : ""}" title="${escapeHtml(String(name || ""))}">${av}<b>${escapeHtml(ovNick(name))}</b>${note ? `<em>${escapeHtml(note)}</em>` : ""}</span>`;
+}
+
+function overviewFriends() {
+  const data = socialCache;
+  if (!data || data.for !== state.keyword) return [];
+  const played = new Map((data.friends || []).map((p) => [p.subject, p]));
+  return (data.friends_list || [])
+    .map((f) => {
+      const met = played.get(f.subject);
+      return {
+        name: f.name,
+        avatar: f.avatar,
+        last: met ? Number(met.last) || 0 : 0,
+        games: met ? met.games : 0,
+      };
+    })
+    .sort((a, b) => b.last - a.last);
+}
+
+function renderOverviewExtras() {
+  const box = $("#ov-extras");
+  if (!box) return;
+  const social = socialCache && socialCache.for === state.keyword ? socialCache : null;
+  const party = state.partyData && state.extrasFor === state.keyword ? state.partyData : null;
+  const friends = social ? overviewFriends() : [];
+  const mates = (party && party.teammates) || [];
+  if (!friends.length && !mates.length) {
+    if (box.innerHTML) box.innerHTML = "";
+    box.classList.add("hidden");
+    return;
+  }
+  const parts = [];
+  if (friends.length) {
+    const hot = friends.filter((f) => f.last && relTime(f.last)).length;
+    const chips = friends.slice(0, OV_LIMIT).map((f) => {
+      const ago = f.last ? relTime(f.last) : "";
+      return ovChip(f.name, f.avatar, ago || "近一月没同排", !!ago);
+    }).join("");
+    parts.push(`<section class="ov-block">
+        <header><h4>好友 <small>${friends.length} 人${hot ? ` · 近一月同排 ${hot} 人` : ""}</small></h4>
+          <button type="button" class="ov-more" data-tab="social">查看全部 ›</button></header>
+        <div class="ov-row">${chips}</div>
+      </section>`);
+  }
+  if (mates.length) {
+    const chips = mates.slice(0, OV_LIMIT).map((m) => ovChip(m.name, m.avatar, m.n ? `${m.n} 场` : "", false)).join("");
+    parts.push(`<section class="ov-block">
+        <header><h4>近期组队 <small>近 ${party.scanned || 0} 场里一起排过的人</small></h4>
+          <button type="button" class="ov-more" data-tab="party">查看全部 ›</button></header>
+        <div class="ov-row">${chips}</div>
+      </section>`);
+  }
+  box.innerHTML = parts.join("");
+  box.classList.remove("hidden");
+  box.querySelectorAll(".ov-more").forEach((btn) => {
+    btn.addEventListener("click", () => switchTab(btn.dataset.tab || "social"));
+  });
+}
+
+async function primeOverviewExtras() {
+  const box = $("#ov-extras");
+  if (box) { box.innerHTML = ""; box.classList.add("hidden"); }
+  const keyword = state.keyword;
+  if (!keyword) return;
+  state.extrasFor = keyword;
+  state.partyData = null;
+  const jobs = [];
+  if (!socialCache || socialCache.for !== keyword) {
+    jobs.push(api.get("/api/player/social", { keyword, limit: 50, mode: state.source })
+      .then((data) => { data.for = keyword; if (keyword === state.keyword) socialCache = data; })
+      .catch(() => {}));
+  }
+  jobs.push(api.get("/api/party", { keyword, mode: state.source })
+    .then((data) => { if (keyword === state.keyword) state.partyData = data; })
+    .catch(() => {}));
+  await Promise.all(jobs);
+  if (keyword === state.keyword) renderOverviewExtras();
 }
 
 async function loadSeason() {

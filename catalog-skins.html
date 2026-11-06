@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>皮肤库 · VALO ARCHIVE</title>
 <link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=4" sizes="any" />
-<link rel="stylesheet" href="/static/style.css?v=56f72e90f9" />
-<link rel="stylesheet" href="/static/tools.css?v=a372421517" />
+<link rel="stylesheet" href="/static/style.css?v=527ee3ac8f" />
+<link rel="stylesheet" href="/static/tools.css?v=ac57c506e8" />
 <style>
   /* 顶部全局搜索：不挑枪，直接搜皮肤名 */
   .skin-search { margin-bottom: 18px; padding: 14px; }
@@ -74,6 +74,28 @@
   .tile img { display: block; width: 100%; height: 52px; object-fit: contain; margin-bottom: 6px; }
   .tile .lb { font-size: 11px; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .tile .sw { width: 16px; height: 16px; border-radius: 5px; margin: 0 auto 5px; border: 1px solid var(--line-strong); }
+
+  /* 手机/平板：武器条改成真正「一行三把枪」的小胶囊。
+     之前 .wlist 转成横排后，按钮仍带着 width:100%，每个都被撑成一屏宽，
+     左边图标+名字、右边一大片空白，看着像只能点一个。 */
+  @media (max-width: 860px) {
+    .wlist {
+      flex-direction: row; gap: 6px; max-height: none;
+      overflow-x: auto; overflow-y: hidden; padding: 2px 2px 4px;
+      scrollbar-width: none; -ms-overflow-style: none;
+    }
+    .wlist::-webkit-scrollbar { display: none; height: 0; }
+    .wlist button {
+      flex: 0 0 auto; width: auto; max-width: 168px;
+      gap: 6px; padding: 6px 10px 6px 7px; border-radius: 999px;
+      border-color: var(--line); background: var(--paper);
+    }
+    .wlist button.on { border-color: var(--accent); }
+    .wlist img { width: 34px; height: 16px; }
+    .wlist[data-hscroll] { padding-bottom: 14px; }
+    .wlist .n { flex: 0 1 auto; max-width: 92px; }
+    .wlist .c { flex: none; }
+  }
 </style>
 </head>
 <body>
@@ -109,7 +131,7 @@
   <div class="skin-layout">
     <aside class="card-panel skin-side">
       <div class="panel-title">武器</div>
-      <div class="wlist" id="wlist"></div>
+      <div class="wlist" id="wlist" data-hscroll></div>
     </aside>
     <section>
       <div class="skin-toolbar">
@@ -136,7 +158,7 @@
   <div id="skin-body"></div>
 </div></div>
 
-<script src="/static/config.js?v=5159ad9f1b"></script>
+<script src="/static/config.js?v=4822873cf0"></script>
 <script>
 (function () {
   const $ = (s) => document.querySelector(s);
@@ -625,6 +647,7 @@
   });
 })();
 </script>
+<script src="/static/scrollhint.js?v=a434965f20" defer></script>
 <script src="/static/statusdot.js?v=e4f8a35baa" defer></script>
 </body>
 </html>
