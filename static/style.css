@@ -4866,3 +4866,77 @@ footer.shell .legal{text-wrap:pretty;word-break:normal;overflow-wrap:break-word;
   #export-date-row > span.dim { flex: 1 0 100%; font-size: 11.5px; }
   .em-parts label > span { white-space: nowrap; }
 }
+
+/* ---- 我的主页（会员）：首页搜索区下面、功能卡上面的一条 ---- */
+.home-me {
+  margin: 4px 0 18px;
+  padding: 12px 14px;
+  border: 1px solid rgba(20, 101, 79, 0.12);
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ffffff 0%, #f7fbfa 100%);
+}
+.hm-head { display: flex; align-items: center; gap: 10px; }
+.hm-ava {
+  width: 38px; height: 38px; border-radius: 10px;
+  object-fit: cover; background: #eef3f2; flex: 0 0 auto;
+}
+.hm-id { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.hm-id b { font-size: 15px; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hm-meta { font-size: 11.5px; color: #7b8a88; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hm-tools { margin-left: auto; display: flex; gap: 6px; flex: 0 0 auto; }
+.hm-btn {
+  border: 1px solid rgba(20, 101, 79, 0.22);
+  background: #0e7c6b; color: #fff;
+  border-radius: 999px; padding: 6px 12px;
+  font-size: 12px; line-height: 1.2; cursor: pointer;
+}
+.hm-btn.ghost { background: #fff; color: #0e7c6b; }
+.hm-btn[disabled] { opacity: 0.6; cursor: default; }
+.hm-lock { margin: 10px 0 0; font-size: 12.5px; line-height: 1.6; color: #6f7f7d; }
+.hm-body {
+  display: grid; gap: 8px; margin-top: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.hm-sec {
+  padding: 8px 10px; border-radius: 10px;
+  background: #f4f8f7; border: 1px solid rgba(20, 101, 79, 0.08);
+  min-width: 0;
+}
+.hm-k { display: block; font-size: 11px; color: #7b8a88; margin-bottom: 4px; }
+.hm-v { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: 12.5px; line-height: 1.5; }
+.hm-v b { font-size: 14px; }
+.hm-row { display: inline-flex; align-items: center; gap: 5px; min-width: 0; }
+.hm-map { font-weight: 600; }
+.hm-kda, .hm-dim { color: #7b8a88; font-weight: 500; }
+.hm-kda { font-variant-numeric: tabular-nums; }
+.hm-up, .hm-dot.w { color: #0e7c6b; }
+.hm-down, .hm-dot.l { color: #c0504d; }
+.hm-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; display: inline-block; }
+.hm-bind { display: flex; gap: 8px; margin-top: 10px; }
+.hm-bind input {
+  flex: 1 1 auto; min-width: 0; height: 34px; padding: 0 10px;
+  border: 1px solid rgba(20, 101, 79, 0.18); border-radius: 9px;
+  font-size: 13px; background: #fff;
+}
+.hm-upd {
+  margin: 10px 0 0; padding: 7px 10px; border-radius: 9px;
+  background: #eaf6f2; border: 1px solid rgba(20, 101, 79, 0.16);
+  font-size: 12px; color: #0a5b4e;
+}
+.hm-foot {
+  margin: 8px 0 0; display: flex; align-items: center; gap: 8px;
+  font-size: 11.5px;
+}
+.hm-mini {
+  border: 1px solid rgba(20, 101, 79, 0.18); background: #fff; color: #0e7c6b;
+  border-radius: 999px; padding: 3px 10px; font-size: 11.5px; cursor: pointer;
+}
+
+@media (max-width: 560px) {
+  .home-me { padding: 10px 11px; border-radius: 12px; }
+  .hm-ava { width: 32px; height: 32px; border-radius: 9px; }
+  .hm-id b { font-size: 14px; }
+  .hm-body { grid-template-columns: minmax(0, 1fr); }
+  .hm-btn { padding: 5px 10px; font-size: 11.5px; }
+  .hm-v { font-size: 12px; }
+}

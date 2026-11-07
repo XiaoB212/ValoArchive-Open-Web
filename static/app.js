@@ -2789,9 +2789,266 @@ function initSearchHistory() {
   renderSearchHistory();
 }
 
+/* ==================== 我的主页（会员） ====================
+   会员把一个人钉在首页：数据缓存在浏览器本地，打开网站先秒开缓存，
+   再悄悄去服务器对一遍 rev；变了就列「更新了什么」。绑定/换人都是显式操作。 */
+
+const HOME_KEY = "va.home.v1";
+const HOME_LABELS = { skins: "皮肤", cards: "卡面", sprays: "喷漆", charms: "挂饰" };
+
+function homeRead() {
+  try {
+    const raw = localStorage.getItem(HOME_KEY);
+    if (!raw) return null;
+    const one = JSON.parse(raw);
+    return one && one.keyword ? one : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function homeWrite(patch) {
+  const old = homeRead() || {};
+  const next = { ...old, ...patch };
+  try { localStorage.setItem(HOME_KEY, JSON.stringify(next)); } catch (_) { /* 隐私模式就别缓存了 */ }
+  return next;
+}
+
+function homeNick(label) {
+  return String(label || "—").split("#")[0];
+}
+
+/** 上次缓存 vs 这次服务器：只挑「能一眼看懂」的几条，别列流水账。 */
+function homeDiff(before, after) {
+  if (!before || !after) return [];
+  const out = [];
+  const a = before.recent || {};
+  const b = after.recent || {};
+  const added = Math.max(0, (b.total || 0) - (a.total || 0));
+  if (added) out.push(`多了 ${added} 场对局`);
+
+  const oldIds = new Set((a.rows || []).map((row) => row.id));
+  const fresh = (b.rows || []).filter((row) => row.id && !oldIds.has(row.id));
+  if (fresh.length) {
+    const last = fresh[0];
+    const win = last.win ? "赢" : "输";
+    out.push(`最新一场 ${last.map || "?"} ${win} ${last.k}/${last.d}/${last.a}`);
+  }
+
+  const pa = before.party || {};
+  const pb = after.party || {};
+  if ((pb.matches || 0) > (pa.matches || 0)) {
+    out.push(`组队场次 ${pa.matches || 0} → ${pb.matches}`);
+  }
+  const mateBefore = new Map((pa.top || []).map((m) => [m.name, m.count]));
+  (pb.top || []).forEach((m) => {
+    const was = mateBefore.get(m.name);
+    if (was === undefined) out.push(`新队友 ${homeNick(m.name)} ×${m.count}`);
+    else if (m.count > was) out.push(`和 ${homeNick(m.name)} 又排了 ${m.count - was} 场`);
+  });
+
+  const ca = (before.assets || {}).counts || {};
+  const cb = (after.assets || {}).counts || {};
+  Object.keys(HOME_LABELS).forEach((key) => {
+    const grow = (cb[key] || 0) - (ca[key] || 0);
+    if (grow > 0) out.push(`${HOME_LABELS[key]} +${grow}`);
+  });
+  return out.slice(0, 4);
+}
+
+function homeRankHtml(data) {
+  const p = data.player || {};
+  const rows = (data.recent && data.recent.rows) || [];
+  const rr = rows.reduce((sum, row) => sum + (row.rr || 0), 0);
+  const tier = p.tier || rows[0]?.tier || "未定级";
+  const bits = [`<b>${escapeHtml(String(tier))}</b>`];
+  if (p.level) bits.push(`<span class="hm-dim">Lv.${escapeHtml(String(p.level))}</span>`);
+  if (rows.length) {
+    const sign = rr > 0 ? "+" : "";
+    bits.push(`<span class="${rr > 0 ? "hm-up" : rr < 0 ? "hm-down" : "hm-dim"}">近 ${rows.length} 场 RR ${sign}${rr}</span>`);
+  }
+  return bits.join("");
+}
+
+function homeRecentHtml(data) {
+  const rows = (data.recent && data.recent.rows) || [];
+  if (!rows.length) return '<span class="hm-dim">还没有对局记录</span>';
+  return rows.map((row) => `
+    <span class="hm-row" title="${escapeHtml(`${row.time} · ${row.map} · ${row.k}/${row.d}/${row.a} · ${row.acs} ACS`)}">
+      <i class="hm-dot ${row.win ? "w" : "l"}"></i>
+      <span class="hm-map">${escapeHtml(row.map || "?")}</span>
+      <span class="hm-kda">${row.k}/${row.d}/${row.a}</span>
+      <span class="hm-dim">${escapeHtml(row.agent || "")}</span>
+    </span>`).join("");
+}
+
+function homePartyHtml(data) {
+  const party = data.party || {};
+  const top = party.top || [];
+  if (!party.matches) return '<span class="hm-dim">最近没和谁一起排</span>';
+  const head = `<span class="hm-dim">${party.scanned || 0} 场里 ${party.matches} 场有人一起 · ${party.rate || 0}%</span>`;
+  const rows = top.slice(0, 3).map((mate) => `
+    <span class="hm-row">
+      <span class="hm-map">${escapeHtml(homeNick(mate.name))}</span>
+      <span class="hm-dim">×${mate.count}</span>
+    </span>`).join("");
+  return head + rows;
+}
+
+function homeAssetsHtml(data) {
+  const assets = data.assets || {};
+  const counts = assets.counts || {};
+  if (!Object.keys(counts).length) return '<span class="hm-dim">没读到资产</span>';
+  const bits = ["skins", "cards", "sprays", "charms"]
+    .filter((key) => counts[key] !== undefined)
+    .map((key) => `<span class="hm-dim">${HOME_LABELS[key]} <b>${counts[key]}</b></span>`);
+  const fresh = assets.recent || [];
+  if (fresh.length) {
+    bits.push(`<span class="hm-row hm-dim">最近获得 ${escapeHtml(fresh[0].name || "")}</span>`);
+  }
+  return bits.join("");
+}
+
+function homeRender(one, data, note) {
+  const box = $("#home-me");
+  if (!box) return;
+  box.hidden = false;
+  box.classList.remove("hidden");
+  const p = data.player || {};
+  const ava = $("#hm-ava");
+  if (ava) {
+    if (p.avatar) { ava.src = p.avatar; ava.hidden = false; }
+    else ava.hidden = true;
+  }
+  $("#hm-name").textContent = p.label || one.keyword;
+  const meta = [];
+  if (p.tier) meta.push(p.tier);
+  if (p.app_num) meta.push(`掌瓦 ${p.app_num}`);
+  const total = data.recent && data.recent.total;
+  if (total) meta.push(`${total} 场记录`);
+  $("#hm-meta").textContent = meta.join(" · ") || "—";
+
+  $("#hm-body").hidden = false;
+  $("#hm-lock").hidden = true;
+  $("#hm-bind").hidden = true;
+  $("#hm-open").hidden = false;
+  $("#hm-change").hidden = false;
+  $("#hm-rank").innerHTML = homeRankHtml(data);
+  $("#hm-recent").innerHTML = homeRecentHtml(data);
+  $("#hm-party").innerHTML = homePartyHtml(data);
+  $("#hm-assets").innerHTML = homeAssetsHtml(data);
+
+  const upd = $("#hm-upd");
+  if (note && note.length) {
+    upd.hidden = false;
+    upd.innerHTML = `<b>有更新</b> ${escapeHtml(note.join(" · "))}`;
+  } else {
+    upd.hidden = true;
+  }
+  const foot = $("#hm-foot");
+  if (foot) {
+    foot.hidden = false;
+    const when = one.at ? new Date(one.at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" }) : "";
+    foot.innerHTML = `<span class="hm-dim">${note && note.length ? "已同步" : "本地缓存"}${when ? ` · ${escapeHtml(when)}` : ""}</span>` +
+      '<button type="button" class="hm-mini" id="hm-refresh">刷新</button>';
+    const btn = $("#hm-refresh");
+    if (btn) btn.addEventListener("click", (ev) => { ev.stopPropagation(); homeLoad(true); });
+  }
+}
+
+function homeLock(plan) {
+  const box = $("#home-me");
+  if (!box) return;
+  box.hidden = false;
+  box.classList.remove("hidden");
+  $("#hm-lock").hidden = false;
+  $("#hm-body").hidden = true;
+  $("#hm-bind").hidden = true;
+  $("#hm-open").hidden = true;
+  $("#hm-change").hidden = true;
+  $("#hm-upd").hidden = true;
+  $("#hm-foot").hidden = true;
+  $("#hm-name").textContent = "我的主页";
+  $("#hm-meta").textContent = plan === "guest" ? "登录后可用" : "会员功能";
+}
+
+async function homeLoad(force) {
+  const one = homeRead();
+  if (!one) return;
+  if (!force && one.data) homeRender(one, one.data, []);
+  try {
+    const data = await api.get("/api/home/overview", { keyword: one.keyword, mode: one.mode || "game" });
+    const before = one.data || null;
+    const note = force && before ? homeDiff(before, data) : [];
+    const saved = homeWrite({ data, rev: data.rev, at: Date.now(), error: "" });
+    homeRender(saved, data, note);
+  } catch (err) {
+    if (err && (err.status === 401 || err.detail?.reason === "member_only")) {
+      homeLock(err.status === 401 ? "guest" : "locked");
+      return;
+    }
+    if (one.data) return; // 有缓存就先用缓存，别把首页弄成报错
+    const foot = $("#hm-foot");
+    if (foot) { foot.hidden = false; foot.textContent = err.message || "读取失败，稍后再试"; }
+  }
+}
+
+async function homeBind(keyword) {
+  const input = $("#hm-input");
+  const kw = String(keyword || (input && input.value) || "").trim();
+  if (!kw) return;
+  const btn = $("#hm-save");
+  if (btn) { btn.disabled = true; btn.textContent = "读取中…"; }
+  try {
+    const data = await api.get("/api/home/overview", { keyword: kw, mode: /#/.test(kw) || !/^\d+$/.test(kw) ? "game" : "mval" });
+    const saved = homeWrite({ keyword: kw, mode: /#/.test(kw) ? "game" : (data.player && data.player.app_num ? "game" : "mval"), data, rev: data.rev, at: Date.now() });
+    if (input) input.value = "";
+    homeRender(saved, data, []);
+  } catch (err) {
+    const foot = $("#hm-foot");
+    if (foot) { foot.hidden = false; foot.textContent = err.message || "没查到这个人"; }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = "钉到首页"; }
+  }
+}
+
+function initHomeMe() {
+  const box = $("#home-me");
+  if (!box) return;
+  const one = homeRead();
+  if (!PLAN || !PLAN.vip) {
+    // 没登录就看个说明；登录了但没开会员，也说清楚是会员功能
+    homeLock(PLAN && PLAN.qq ? "locked" : "guest");
+    return;
+  }
+  if (!one) {
+    box.hidden = false;
+    box.classList.remove("hidden");
+    $("#hm-lock").hidden = true;
+    $("#hm-body").hidden = true;
+    $("#hm-bind").hidden = false;
+    $("#hm-name").textContent = "我的主页";
+    $("#hm-meta").textContent = "挑一个人钉在首页";
+  } else {
+    homeRender(one, one.data || { player: { label: one.keyword } }, []);
+    homeLoad(false);
+  }
+  $("#hm-save").addEventListener("click", () => homeBind());
+  $("#hm-input").addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter") { ev.preventDefault(); homeBind(); }
+  });
+  $("#hm-open").addEventListener("click", () => { const cur = homeRead(); if (cur) loadPlayer(cur.keyword); });
+  $("#hm-change").addEventListener("click", () => {
+    $("#hm-bind").hidden = false;
+    $("#hm-body").hidden = true;
+    $("#hm-open").hidden = true;
+    $("#hm-change").hidden = true;
+    $("#hm-input").focus();
+  });
+}
 async function boot() {
   await refreshHealth();
-  loadPlan();
+  loadPlan().then(initHomeMe);
   setInterval(() => refreshHealth(true).catch(() => {}), 90000);
 
   // 单局详情的打开方式（就地快速查看 / 单页完整查看）
