@@ -4899,3 +4899,121 @@ footer.shell .legal{text-wrap:pretty;word-break:normal;overflow-wrap:break-word;
     white-space: nowrap;
   }
 }
+
+/* ---------- 我的主页（首页卡片 → /?me=1）----------
+   设计口径（用户口述）：只要精炼概览——段位加分情况、最近 5 场、最近组队
+   好友 / 组队场次、买了东西就加资产；再配一条「这次有什么更新」的对比提示。
+   打开方式改成首页第一张卡，不在首页正文里铺一大块。 */
+body.me-view .home-hero,
+body.me-view .home-cards { display: none; }
+body.me-view .home-me { display: block; }
+
+.home-me {
+  background: linear-gradient(180deg, #ffffff 0%, #f7fbfa 100%);
+  border: 1px solid rgba(20, 101, 79, .14);
+  border-radius: 16px;
+  padding: 18px 20px 16px;
+  margin: 0 0 18px;
+  box-shadow: 0 1px 0 rgba(20, 101, 79, .05);
+}
+.hm-back {
+  display: inline-block;
+  font-size: 12.5px;
+  color: #0e7c6b;
+  text-decoration: none;
+  margin: 0 0 10px;
+}
+.hm-back:hover { text-decoration: underline; }
+
+.hm-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.hm-ava {
+  width: 44px; height: 44px; border-radius: 12px;
+  object-fit: cover; background: #e8f1ef; flex: 0 0 auto;
+}
+.hm-id { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 220px; }
+.hm-id b { font-size: 16px; color: #12312c; font-weight: 700; }
+.hm-meta { font-size: 12px; color: #5d6f6b; }
+.hm-tools { display: flex; gap: 8px; margin-left: auto; }
+
+.hm-btn {
+  height: 32px; padding: 0 12px; border-radius: 9px;
+  border: 1px solid rgba(14, 124, 107, .30);
+  background: #0e7c6b; color: #fff; font-size: 12.5px; cursor: pointer;
+}
+.hm-btn.ghost { background: #fff; color: #0e7c6b; }
+.hm-btn:hover { filter: brightness(.97); }
+
+.hm-lock { margin: 12px 0 0; font-size: 13px; line-height: 1.7; color: #5d6f6b; }
+
+.hm-body { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 12px; margin: 14px 0 0; }
+.hm-sec {
+  background: #fff; border: 1px solid rgba(20, 101, 79, .10);
+  border-radius: 12px; padding: 12px 14px; min-width: 0;
+}
+.hm-sec.rank { grid-column: 1 / -1; }
+.hm-k {
+  display: block; font-size: 10.5px; letter-spacing: .16em;
+  color: #7d8f8a; text-transform: uppercase;
+}
+.hm-v {
+  margin-top: 7px; font-size: 13px; color: #1c2b28; line-height: 1.6;
+  display: flex; flex-direction: column; gap: 6px; min-width: 0;
+}
+.hm-v b { font-size: 15px; color: #12312c; }
+.hm-row { display: flex; align-items: baseline; gap: 8px; font-size: 12.5px; min-width: 0; }
+.hm-map { color: #22302d; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hm-kda { color: #0e7c6b; font-variant-numeric: tabular-nums; flex: 0 0 auto; }
+.hm-dim { color: #7d8f8a; font-size: 12px; }
+.hm-up { color: #0e7c6b; }
+.hm-down { color: #c0504d; }
+.hm-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex: 0 0 auto; }
+.hm-dot.w { background: #1f9a7a; }
+.hm-dot.l { background: #c0504d; }
+
+.hm-bind { display: flex; gap: 8px; margin: 12px 0 0; flex-wrap: wrap; }
+.hm-bind input {
+  flex: 1 1 200px; height: 36px; border-radius: 9px;
+  border: 1px solid rgba(20, 101, 79, .18);
+  padding: 0 12px; font-size: 13px; background: #fff; color: #1c2b28;
+}
+.hm-bind input:focus { outline: none; border-color: rgba(14, 124, 107, .55); }
+
+.hm-upd {
+  margin: 12px 0 0; padding: 8px 12px; border-radius: 10px;
+  background: #eaf7f2; color: #12655a; font-size: 12.5px; line-height: 1.6;
+}
+.hm-foot { margin: 12px 0 0; display: flex; align-items: center; gap: 10px; font-size: 12px; color: #7d8f8a; }
+.hm-mini {
+  height: 26px; padding: 0 10px; border-radius: 8px;
+  border: 1px solid rgba(20, 101, 79, .24); background: #fff;
+  color: #0e7c6b; font-size: 12px; cursor: pointer;
+}
+
+@media (max-width: 720px) {
+  .home-me { padding: 14px 14px 12px; border-radius: 14px; }
+  .hm-body { grid-template-columns: minmax(0, 1fr); }
+  .hm-sec.rank { grid-column: auto; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+  .hm-sec.rank .hm-k { flex: 1 0 100%; }
+  .hm-tools { margin-left: 0; }
+  .hm-id b { font-size: 15px; }
+  .hm-v { font-size: 12.5px; }
+}
+
+/* 我的主页：段位条和资产条都压成一行，别让桌面端出现大片空白 */
+@media (min-width: 721px) {
+  .home-me .hm-sec.rank { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; }
+  .home-me .hm-sec.rank .hm-k { flex: 1 0 100%; }
+  .home-me .hm-sec.rank .hm-v { flex-direction: row; gap: 12px; margin-top: 4px; }
+  .home-me .hm-sec.assets { grid-column: 1 / -1; }
+  .home-me .hm-sec.assets .hm-v { flex-direction: row; flex-wrap: wrap; gap: 6px 18px; margin-top: 4px; }
+}
+.home-me .hm-sec.assets .hm-v { flex-direction: row; flex-wrap: wrap; gap: 6px 16px; }
+
+/* hidden 属性在这些元素上会被 display:flex/grid 覆盖（经典坑），统一按隐藏处理 */
+.home-me [hidden] { display: none !important; }
+
+/* 我的主页是独立视图：首页的「三步走」和 FAQ 都收起来，只留这一块 + 页脚 */
+body.me-view .home-steps,
+body.me-view .home-faq { display: none; }
+/* 段位条在任何宽度都压成一行（放不下就换行，但不再一条一个 line） */
+.home-me .hm-sec.rank .hm-v { flex-direction: row; flex-wrap: wrap; gap: 4px 12px; }

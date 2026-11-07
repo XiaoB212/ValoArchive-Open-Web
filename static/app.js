@@ -3034,6 +3034,11 @@ async function homeBind(keyword) {
 function initHomeMe() {
   const box = $("#home-me");
   if (!box) return;
+  // 「我的主页」是首页上的一张卡片（/?me=1），不在首页正文里铺一大块。
+  // 没有 me=1 就什么都不做，别让首页多一次请求、也别闪一下空壳。
+  const meView = new URLSearchParams(location.search).has("me");
+  document.body.classList.toggle("me-view", meView);
+  if (!meView) return;
   const one = homeRead();
   if (!PLAN || !PLAN.vip) {
     // 没登录就看个说明；登录了但没开会员，也说清楚是会员功能
