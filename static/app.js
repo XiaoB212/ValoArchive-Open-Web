@@ -2813,9 +2813,9 @@ function homeCacheGet(keyword) {
   const one = homeCacheAll()[String(keyword || "")];
   return one && one.data ? one : null;
 }
-function homeCacheSet(keyword, data) {
+function homeCacheSet(keyword, data, extra) {
   const all = homeCacheAll();
-  all[String(keyword || "")] = { data, at: Date.now() };
+  all[String(keyword || "")] = { data, at: Date.now(), extra: extra || null };
   try { localStorage.setItem(HOME_CACHE, JSON.stringify(all)); } catch (_) { /* 隐私模式 */ }
 }
 function homeNick(label) { return String(label || "—").split("#")[0]; }
@@ -2913,10 +2913,117 @@ function homeAssetsHtml(data) {
   return bits.join("");
 }
 
+function homeWhen2(ts) {
+  if (!ts) return "";
+  const diff = Date.now() / 1000 - Number(ts);
+  if (!(diff > 0)) return "";
+  if (diff < 3600) return `${Math.max(1, Math.round(diff / 60))} 分钟前`;
+  if (diff < 86400) return `${Math.round(diff / 3600)} 小时前`;
+  if (diff < 86400 * 30) return `${Math.round(diff / 86400)} 天前`;
+  return "一个月前";
+}
+
+const ASSET_SEEN = "va.home.assets.v1";
+const FRIEND_SEEN = "va.home.friends.v1";
+const MATE_SEEN = "va.home.mates.v1";
+
+function seenAll(key) {
+  try { return JSON.parse(localStorage.getItem(key) || "{}") || {}; } catch (_) { return {}; }
+}
+function seenSave(key, obj) {
+  try { localStorage.setItem(key, JSON.stringify(obj).slice(0, 240000)); } catch (_) { /* 隐私模式 */ }
+}
+
+function homeAssetDelta(kw, data) {
+  const counts = (data.assets && data.assets.counts) || {};
+  if (!counts || !Object.keys(counts).length) return null;
+  const all = seenAll(ASSET_SEEN);
+  const prev = all[kw];
+  const gains = [];
+  if (prev) {
+    ["skins", "cards", "sprays", "charms"].forEach((key) => {
+      const diff = (counts[key] || 0) - (prev[key] || 0);
+      if (diff > 0) gains.push(`${HOME_LABELS[key] || key} +${diff}`);
+    });
+  }
+  all[kw] = { skins: counts.skins || 0, cards: counts.cards || 0, sprays: counts.sprays || 0, charms: counts.charms || 0, at: Date.now() };
+  seenSave(ASSET_SEEN, all);
+  if (!gains.length) return null;
+  const fresh = (data.assets && data.assets.recent) || [];
+  return { gains, newest: fresh.length ? fresh[0].name : "" };
+}
+
+function homeFriendDelta(kw, extra) {
+  const soc = (extra && extra.social) || {};
+  const names = (soc.friends_list || []).map((f) => f.name);
+  if (!names.length) return new Set();
+  const all = seenAll(FRIEND_SEEN);
+  const prev = all[kw];
+  const fresh = prev ? new Set(names.filter((n) => !prev.includes(n))) : new Set();
+  all[kw] = names.slice(0, 400);
+  seenSave(FRIEND_SEEN, all);
+  return fresh;
+}
+
+function homeFriendRows(extra, kw, freshSet) {
+  const soc = extra && extra.social;
+  if (!soc) return '<p class="hf-none">好友列表读取中…</p>';
+  const played = new Map((soc.friends || []).map((f) => [f.subject, f]));
+  const roster = (soc.friends_list || []).map((f) => {
+    const hit = played.get(f.subject) || {};
+    return { name: f.name, avatar: f.avatar, games: hit.games || 0, last: hit.last || 0 };
+  });
+  if (!roster.length) return '<p class="hf-none">这个号没读到好友名单</p>';
+  roster.sort((a, b) => (b.last || 0) - (a.last || 0) || String(a.name).localeCompare(String(b.name), "zh"));
+  const shown = roster.slice(0, 8);
+  const mateNames = new Set(((extra.party && (extra.party.mates || extra.party.teammates)) || []).map((m) => m.name));
+  return shown.map((f) => {
+    const isNew = freshSet && freshSet.has(f.name);
+    const tags = [];
+    if (isNew) tags.push('<i class="hf-tag new">新</i>');
+    if (mateNames.has(f.name)) tags.push('<i class="hf-tag">同排</i>');
+    return `<div class="hf">
+      ${f.avatar ? `<img class="hf-ava" src="${escapeHtml(f.avatar)}" alt="" loading="lazy" />` : '<i class="hf-ava"></i>'}
+      <div class="hf-main"><b>${escapeHtml(homeNick(f.name))}${tags.join("")}</b>
+        <span>${f.last ? `最近同排 ${escapeHtml(homeWhen2(f.last))}` : "近一月没一起排过"}</span></div>
+      <span class="hf-n">${f.games ? `${f.games} 场` : ""}</span>
+    </div>`;
+  }).join("");
+}
+
+function homePartyRows(extra, freshMateSet) {
+  const party = extra && extra.party;
+  if (!party) return '<p class="hf-none">组队记录读取中…</p>';
+  const mates = (party.mates || party.teammates || []).slice(0, 8);
+  if (!mates.length) return '<p class="hf-none">最近没和谁一起排过</p>';
+  const friendNames = new Set(((extra.social && extra.social.friends) || []).map((f) => f.name));
+  return mates.map((m) => `<div class="hf${freshMateSet && freshMateSet.has(m.name) ? " hot" : ""}">
+      ${m.avatar ? `<img class="hf-ava" src="${escapeHtml(m.avatar)}" alt="" loading="lazy" />` : '<i class="hf-ava"></i>'}
+      <div class="hf-main"><b>${escapeHtml(homeNick(m.name))}${freshMateSet && freshMateSet.has(m.name) ? '<i class="hf-tag new">新</i>' : ""}</b>
+        <span>${friendNames.has(m.name) ? "好友" : "非好友"}${m.last ? ` · ${escapeHtml(homeWhen2(m.last))}` : ""}</span></div>
+      <span class="hf-n">${m.count ? `${m.count} 场` : ""}</span>
+    </div>`).join("");
+}
+
+function homePartyStatsHtml(data, party) {
+  const rows = [];
+  if (party.party_rate) rows.push(`<span class="hm-dim">${party.party_matches || 0} 场里 ${party.party_rate}% 有人一起</span>`);
+  const dist = party.distribution || {};
+  const bits = Object.keys(dist).sort((a, b) => Number(b) - Number(a)).slice(0, 3)
+    .map((k) => `<span class="hm-dim">${k} 人组队 <b>${dist[k]}</b></span>`);
+  if (bits.length) rows.push(bits.join(" "));
+  const mates = (party.mates || party.teammates || []).slice(0, 3);
+  if (mates.length) {
+    rows.push(mates.map((m) => `<span class="hm-row"><span class="hm-map">${escapeHtml(homeNick(m.name))}</span><span class="hm-dim">${m.count ? `×${m.count}` : ""}</span></span>`).join(""));
+  }
+  return rows.length ? rows.join("") : '<span class="hm-dim">最近没有组队记录</span>';
+}
+
 function homeSlotHtml(home, i, note) {
   const kw = home.keyword || home.label || "";
   const cached = homeCacheGet(kw) || homeCacheGet(home.label);
   const data = cached && cached.data;
+  const extra = (cached && cached.extra) || {};
   const p = (data && data.player) || {};
   const meta = [];
   if (p.tier) meta.push(p.tier);
@@ -2925,10 +3032,10 @@ function homeSlotHtml(home, i, note) {
   const canSwap = (HOME.state && HOME.state.slots > 0);
   const head = `<div class="hm-chead">
       ${p.avatar ? `<img class="hm-ava" src="${escapeHtml(p.avatar)}" alt="" />` : ""}
-      <div class="hm-id"><b>${escapeHtml(home.label || kw)}</b><span class="hm-meta">${escapeHtml(meta.join(" · ") || "读取中…")}</span></div>
+      <div class="hm-id"><b>${escapeHtml(homeNick(home.label || kw))}</b><span class="hm-meta">${escapeHtml(meta.join(" · ") || "读取中…")}</span></div>
       <div class="hm-tools">
-        <button type="button" class="hm-btn ghost" data-act="open">打开档案</button>
-        ${canSwap ? '<button type="button" class="hm-btn ghost" data-act="swap">换人</button>' : ""}
+        <button type="button" class="hm-btn ghost" data-act="open">打开我的档案</button>
+        ${canSwap ? '<button type="button" class="hm-btn ghost" data-act="swap">换一个</button>' : ""}
       </div>
     </div>`;
   if (!data) {
@@ -2936,13 +3043,43 @@ function homeSlotHtml(home, i, note) {
       <p class="hm-wait">正在读取 ${escapeHtml(homeNick(home.label))} 的数据…</p></article>`;
   }
   const when = homeWhen(cached.at);
+  const soc = extra.social || {};
+  const party = extra.party || {};
+  const friendN = soc.friend_total || (soc.friends_list || []).length;
+  const partyN = (party.mates || party.teammates || []).length;
+  const freshFriends = homeFriendDelta(kw, extra);
+  const assetDelta = homeAssetDelta(kw, data);
+  const mateSeen = seenAll(MATE_SEEN);
+  const prevMates = mateSeen[kw] || [];
+  const mateNamesNow = ((party.mates || party.teammates) || []).map((m) => m.name);
+  mateSeen[kw] = mateNamesNow;
+  seenSave(MATE_SEEN, mateSeen);
+  const mateFresh = new Set(prevMates.length ? mateNamesNow.filter((n) => !prevMates.includes(n)) : []);
+  const assetBlock = assetDelta
+    ? `<section class="hm-sec assets"><span class="hm-k">资产变化</span><div class="hm-v">${assetDelta.gains.map((g) => `<span class="hm-up">${escapeHtml(g)}</span>`).join(" ")}${assetDelta.newest ? `<span class="hm-dim">最近获得 ${escapeHtml(assetDelta.newest)}</span>` : ""}</div></section>`
+    : "";
   return `<article class="hm-card" data-i="${i}" data-kw="${escapeHtml(kw)}">${head}
-    <div class="hm-body">
-      <div class="hm-sec rank"><span class="hm-k">段位与加分</span><div class="hm-v">${homeRankHtml(data)}</div></div>
-      <div class="hm-sec"><span class="hm-k">最近 5 场</span><div class="hm-v">${homeRecentHtml(data)}</div></div>
-      <div class="hm-sec"><span class="hm-k">组队</span><div class="hm-v">${homePartyHtml(data)}</div></div>
-      <div class="hm-sec assets"><span class="hm-k">资产</span><div class="hm-v">${homeAssetsHtml(data)}</div></div>
+    <div class="hm-cols">
+      <section class="hm-col">
+        <header class="hm-colh"><span>好友列表</span><em>${friendN ? `${friendN} 人 · 近一月同排` : ""}</em></header>
+        ${homeFriendRows(extra, kw, freshFriends)}
+      </section>
+      <section class="hm-col">
+        <header class="hm-colh"><span>最近组队</span><em>${partyN ? `${partyN} 人` : ""}</em></header>
+        ${homePartyRows(extra, mateFresh)}
+      </section>
     </div>
+    <div class="hm-cols">
+      <section class="hm-col">
+        <header class="hm-colh"><span>战绩历史</span><em>${(data.recent && data.recent.rows || []).length ? `最近 ${data.recent.rows.length} 场` : ""}</em></header>
+        ${homeRecentHtml(data)}
+      </section>
+      <section class="hm-col">
+        <header class="hm-colh"><span>组队表现</span><em>${party.party_matches ? `${party.party_matches} 场有人一起` : ""}</em></header>
+        ${homePartyStatsHtml(data, party)}
+      </section>
+    </div>
+    ${assetBlock}
     ${note && note.length ? `<p class="hm-upd"><b>有更新</b> ${escapeHtml(note.join(" · "))}</p>` : ""}
     <div class="hm-foot"><span class="hm-dim">${note && note.length ? "已同步" : "本地缓存"}${when ? ` · ${escapeHtml(when)}` : ""}</span>
       <button type="button" class="hm-mini" data-act="refresh">刷新</button></div>
@@ -2961,9 +3098,14 @@ async function homeLoadOne(home, i, force) {
   const kw = home.keyword || home.label;
   const cached = homeCacheGet(kw);
   try {
-    const data = await api.get("/api/home/overview", { keyword: kw, mode: home.mode || "game" });
+    const mode = home.mode || "game";
+    const [data, social, party] = await Promise.all([
+      api.get("/api/home/overview", { keyword: kw, mode }),
+      api.get("/api/player/social", { keyword: kw, mode, limit: 40 }).catch(() => null),
+      api.get("/api/party", { keyword: kw, mode, limit: 20 }).catch(() => null),
+    ]);
     const note = force && cached ? homeDiff(cached.data, data) : [];
-    homeCacheSet(kw, data);
+    homeCacheSet(kw, data, { social, party });
     homePaint({ [i]: note });
   } catch (err) {
     if (cached) return;

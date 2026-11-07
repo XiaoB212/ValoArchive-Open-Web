@@ -5090,3 +5090,56 @@ body.me-view .home-faq { display: none; }
   .hm-card .hm-tools .hm-btn.ghost { padding: 5px 9px; font-size: 11px; }
   .hm-card .hm-foot { padding: 9px 14px 12px; }
 }
+
+/* ===== 我的订阅 v28：照 homeme 那版——头像+好友列表+最近组队两栏名单 ===== */
+.hm-card .hm-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.hm-card .hm-col { padding: 12px 18px 14px; min-width: 0; }
+.hm-card .hm-col + .hm-col { border-left: 1px solid rgba(20, 101, 79, .07); }
+.hm-colh { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 0 0 6px; }
+.hm-colh span { font-size: 12px; font-weight: 700; color: #1d3b32; letter-spacing: .02em; }
+.hm-colh em { font-style: normal; font-size: 11px; color: #8a9994; }
+.hf { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; align-items: center; gap: 9px;
+  padding: 6px 8px; border-radius: 10px; }
+.hf + .hf { margin-top: 2px; }
+.hf:hover { background: #f5fbf8; }
+.hf-ava { width: 30px; height: 30px; border-radius: 9px; object-fit: cover; background: #eef3f1; }
+.hf-main { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.hf-main b { font-size: 12.5px; font-weight: 600; color: #1d2b26; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hf-main span { font-size: 10.5px; color: #8a9994; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hf-n { font-size: 11.5px; color: #6b7d77; font-variant-numeric: tabular-nums; }
+.hf-none { margin: 6px 0 2px; font-size: 11.5px; color: #8a9994; }
+@media (max-width: 720px) {
+  .hm-card .hm-cols { grid-template-columns: minmax(0, 1fr); }
+  .hm-card .hm-col { padding: 11px 14px 12px; }
+  .hm-card .hm-col + .hm-col { border-left: 0; border-top: 1px solid rgba(20, 101, 79, .07); }
+  .hf { padding: 6px 4px; }
+}
+
+/* 手机端卡头：名字一行不折，按钮挪到第二行靠右 */
+@media (max-width: 720px) {
+  .hm-card .hm-chead { flex-wrap: wrap; gap: 8px 10px; }
+  .hm-card .hm-ava { width: 40px; height: 40px; border-radius: 12px; }
+  .hm-card .hm-id { flex: 1 1 60%; min-width: 0; }
+  .hm-card .hm-id b { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hm-card .hm-meta { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hm-card .hm-tools { flex: 1 0 100%; margin-left: 0; justify-content: flex-end; }
+}
+
+/* 我的订阅 v29：好友/组队行上的「新」「同排」标记 + 战绩/组队表现 + 资产变化 */
+.hf-tag { display: inline-block; margin-left: 5px; padding: 0 5px; border-radius: 6px; font-style: normal;
+  font-size: 9.5px; line-height: 15px; color: #14594a; background: #eaf6f1; vertical-align: 1px; }
+.hf-tag.new { color: #95520f; background: #fdf1e3; }
+.hf.hot { background: #f7fcf9; }
+.hm-card .hm-col .hm-row { display: block; padding: 4px 0; font-size: 12px; }
+.hm-card .hm-col .hm-row .hm-map { font-weight: 600; color: #22332d; }
+.hm-card .hm-col .hm-row .hm-kda { color: #2f4a42; margin-left: 6px; }
+.hm-card .hm-col .hm-row .hm-dim { margin-left: 6px; }
+.hm-card .hm-col .hm-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+.hm-card .hm-col .hm-dot.w { background: #16a34a; }
+.hm-card .hm-col .hm-dot.l { background: #dc2626; }
+.hm-card .hm-sec.assets { padding: 10px 18px 13px; border-top: 1px solid rgba(20, 101, 79, .07); }
+.hm-card .hm-sec.assets .hm-v { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; }
+.hm-card .hm-sec.assets .hm-up { color: #0e7c6b; font-weight: 700; }
+@media (max-width: 720px) {
+  .hm-card .hm-sec.assets { padding: 10px 14px 12px; }
+}
