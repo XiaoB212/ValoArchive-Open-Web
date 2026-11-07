@@ -3164,8 +3164,21 @@ async function boot() {
     clearError();
     try {
       const hours = Number(($("#share-hours") || {}).value || 24);
-      const data = await api.post("/api/share", { keyword: state.keyword, mode: state.source || "game", hours });
-      const url = new URL(data.url, location.origin).href;
+      const seed = await api.post("/api/share", { keyword: state.keyword, mode: state.source || "game", hours });
+      // CDN（EdgeOne）30 秒就掐回源，冷缓存下快照要 20 秒左右：改成异步任务 + 轮询。
+      let info = seed || {};
+      const began = Date.now();
+      if (seed && seed.job) {
+        for (let i = 0; i < 200; i += 1) {
+          await new Promise((r) => setTimeout(r, 1500));
+          btn.textContent = `生成中… ${((Date.now() - began) / 1000).toFixed(0)}s`;
+          const st = await api.get(`/api/share/job/${seed.job}`);
+          if (st && st.status === "error") throw new Error(st.message || "生成失败");
+          if (st && st.status === "done" && st.url) { info = st; break; }
+        }
+        if (!info.url) throw new Error("生成超时了，过一会儿再点一次");
+      }
+      const url = new URL(info.url, location.origin).href;
       let copied = false;
       try {
         await navigator.clipboard.writeText(url);
@@ -3180,9 +3193,9 @@ async function boot() {
       }
       const hint = $("#share-hint") || $("#export-hint");
       if (hint) {
-        const cost = data.seconds ? `（生成用时 ${data.seconds} 秒）` : "";
+        const cost = info.seconds ? `（生成用时 ${info.seconds} 秒）` : "";
         hint.innerHTML = `${copied ? "分享链接已复制" : "分享链接"}${cost}：`
-          + `<a href="${escapeHtml(data.url)}" target="_blank" rel="noopener">${escapeHtml(url)}</a>`;
+          + `<a href="${escapeHtml(info.url)}" target="_blank" rel="noopener">${escapeHtml(url)}</a>`;
       }
     } catch (err) {
       showError(err.message || String(err));
@@ -3235,7 +3248,9 @@ async function boot() {
       // 否则后端只能按列表下标猜，换过筛选/翻页就会导成别的一场。
       // 单局详情：选 1 场就导当前这场；选多场则逐场导出（后端按 match_count 取近 N 场）。
       + (!parts && state.tab === "match" && state.matchId && matchCount <= 1
-        ? `&match_id=${encodeURIComponent(state.matchId)}` : "");
+        ? `&match_id=${encodeURIComponent(state.matchId)}` : "")
+      // 先领任务号：渲染一次动辄 40~70 秒，EdgeOne 30 秒就回 524，同步下载必挂。
+      + "&defer=1";
 
     // 一律走 blob 下载：浏览器静默落到下载目录，页面不转圈、不弹新标签。
     // （开新标签看 PDF 时要等几十秒渲染，标签一直转圈，用户以为整页卡死了。）
@@ -3264,7 +3279,26 @@ async function boot() {
       } catch (_) { /* 状态接口挂了不影响导出本身 */ }
     }, 1500);
     try {
-      const res = await fetch(url);
+      let res = await fetch(url);
+      if (res.status === 202) {
+        // 异步任务：POST/GET 领到 job 后轮询，最后再取成品文件（从磁盘直发，秒开）。
+        const seed = await res.json();
+        const jobId = seed && seed.job;
+        if (!jobId) throw new Error("后端没有返回任务号");
+        for (let i = 0; i < 400; i += 1) {
+          await new Promise((r) => setTimeout(r, 1500));
+          const st = await fetch(`/api/export/job/${jobId}`, { cache: "no-store" });
+          if (!st.ok) {
+            let detail = `HTTP ${st.status}`;
+            try { detail = (await st.json()).detail || detail; } catch (_) { /* ignore */ }
+            throw new Error(detail);
+          }
+          const sd = await st.json();
+          if (sd.status === "error") throw new Error(sd.message || "导出失败");
+          if (sd.status === "done" && sd.url) { res = await fetch(sd.url, { cache: "no-store" }); break; }
+        }
+        if (res.status === 202) throw new Error("导出超时了，稍后再试（任务还在后台跑）");
+      }
       if (!res.ok) {
         let detail = `HTTP ${res.status}`;
         try { detail = (await res.json()).detail || detail; } catch (_) { /* ignore */ }

@@ -4827,3 +4827,38 @@ footer.shell .legal{text-wrap:pretty;word-break:normal;overflow-wrap:break-word;
   .frow .fav { width: 26px; height: 26px; }
   .flist { gap: 5px; }
 }
+
+/* ---- v23：手机版导出面板 ----
+   之前「最近 N 场 / 日期区间」被挤成竖排大椭圆（label 高 72px、一个字一行），
+   日期下拉框 42px 高、文字贴顶。这里统一成 32px 的规整控件。 */
+@media (max-width: 720px) {
+  .em-range { flex-wrap: wrap; row-gap: 8px; align-items: center; }
+  .em-range > b { flex: 0 0 100%; }
+  .em-modes { flex: 0 1 auto; flex-wrap: wrap; gap: 6px; min-width: 0; }
+  .em-modes label {
+    flex: 0 0 auto;
+    height: 32px;
+    min-height: 32px;
+    padding: 0 12px;
+    gap: 6px;
+    align-items: center;
+    line-height: 1;
+  }
+  .em-modes label > span { white-space: nowrap; line-height: 1; }
+  .em-modes input { width: 14px; height: 14px; }
+
+  .em-range select,
+  .em-range input[type="date"],
+  .em-range input[type="text"] {
+    width: auto;
+    min-width: 104px;
+    height: 32px;
+    min-height: 32px;
+    padding: 0 8px;
+    font-size: 12.5px;
+    line-height: 30px;
+    text-align: left;
+  }
+  #export-date-row select { min-width: 92px; }
+  .em-parts label > span { white-space: nowrap; }
+}
