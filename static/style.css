@@ -5303,3 +5303,25 @@ body.me-view .home-faq { display: none; }
   .hm-bind { max-width: 340px; }
   .hm-bind .hm-hint { max-width: 340px; }
 }
+
+/* 中文井号自动纠正后的提示条（输入框下方一行，6 秒自动消失） */
+.search-fix {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #0e7c6b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.search-fix::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #0e7c6b;
+  flex: 0 0 auto;
+}
+@media (max-width: 720px) {
+  .search-fix { font-size: 12px; margin-top: 6px; }
+}

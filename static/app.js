@@ -3388,7 +3388,19 @@ async function boot() {
   // 输入法里的「#」五花八门：全角 ＃、小号 ﹟、音乐升号 ♯、⌗ 都当成英文 #，
   // 边打字边纠正，别等提交了才发现查不到。
   const cleanId = idClean;
-  const liveClean = (el) => {
+  // 纠正了就告诉用户一声：哪个字被换成了英文 #，别让人以为自己打对了。
+  const BAD_HASH = /[＃﹟♯⌗]/;
+  let fixTimer = 0;
+  const showFixHint = (raw) => {
+    const box = $("#search-fix");
+    if (!box) return;
+    const bad = (String(raw || "").match(BAD_HASH) || [])[0] || "＃";
+    box.textContent = "已把\u201c" + bad + "\u201d改成英文\u201c#\u201d，点一次检索就行";
+    box.hidden = false;
+    clearTimeout(fixTimer);
+    fixTimer = setTimeout(() => { box.hidden = true; }, 6000);
+  };
+  const liveClean = (el, onFix) => {
     if (!el) return;
     el.addEventListener("input", () => {
       const now = el.value;
@@ -3397,16 +3409,19 @@ async function boot() {
       const pos = el.selectionStart;
       el.value = fixed;
       try { el.setSelectionRange(pos, pos); } catch (err) { /* 只读框忽略 */ }
+      if (onFix) onFix(now);
     });
   };
 
   // 分享页会把搜索框整个摘掉：没有它也要能启动，所以这里判空。
   const searchForm = $("#search-form");
-  liveClean($("#search-input"));
+  liveClean($("#search-input"), showFixHint);
   if (searchForm) searchForm.addEventListener("submit", (event) => {
     event.preventDefault();
     // 全角 ＃ / 全角字母数字先归一化，不然「示例玩家＃12345」这种全角写法查不到
-    const keyword = cleanId($("#search-input").value).trim();
+    const rawKeyword = $("#search-input").value;
+    if (BAD_HASH.test(rawKeyword)) showFixHint(rawKeyword);
+    const keyword = cleanId(rawKeyword).trim();
     if (!keyword) return;
     // 「掌瓦ID」模式下粘了带 # 的游戏 ID：掌瓦号永远没有 #，直接切成游戏ID，
     // 按钮状态跟着变，别让人以为是在查掌瓦号。
