@@ -2798,36 +2798,32 @@ function initSearchHistory() {
   renderSearchHistory();
 }
 
-/* ==================== 我的主页（会员） ====================
-   会员把一个人钉在首页：数据缓存在浏览器本地，打开网站先秒开缓存，
-   再悄悄去服务器对一遍 rev；变了就列「更新了什么」。绑定/换人都是显式操作。 */
+/* ==================== 我的订阅（会员 / 特约订阅） ====================
+   首页正文里直接铺：一个「主页位」就是一整块（段位 / 最近 5 场 / 组队 / 资产）。
+   会员自带 1 个位；每买一份特约订阅授权码，多 1 个位。人由用户自己在首页选。 */
 
-const HOME_KEY = "va.home.v1";
+const HOME_CACHE = "va.home.v2";
 const HOME_LABELS = { skins: "皮肤", cards: "卡面", sprays: "喷漆", charms: "挂饰" };
+const HOME = { state: null, mode: "game" };
 
-function homeRead() {
-  try {
-    const raw = localStorage.getItem(HOME_KEY);
-    if (!raw) return null;
-    const one = JSON.parse(raw);
-    return one && one.keyword ? one : null;
-  } catch (_) {
-    return null;
-  }
+function homeCacheAll() {
+  try { return JSON.parse(localStorage.getItem(HOME_CACHE) || "{}") || {}; } catch (_) { return {}; }
+}
+function homeCacheGet(keyword) {
+  const one = homeCacheAll()[String(keyword || "")];
+  return one && one.data ? one : null;
+}
+function homeCacheSet(keyword, data) {
+  const all = homeCacheAll();
+  all[String(keyword || "")] = { data, at: Date.now() };
+  try { localStorage.setItem(HOME_CACHE, JSON.stringify(all)); } catch (_) { /* 隐私模式 */ }
+}
+function homeNick(label) { return String(label || "—").split("#")[0]; }
+function homeWhen(ts) {
+  return ts ? new Date(ts).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" }) : "";
 }
 
-function homeWrite(patch) {
-  const old = homeRead() || {};
-  const next = { ...old, ...patch };
-  try { localStorage.setItem(HOME_KEY, JSON.stringify(next)); } catch (_) { /* 隐私模式就别缓存了 */ }
-  return next;
-}
-
-function homeNick(label) {
-  return String(label || "—").split("#")[0];
-}
-
-/** 上次缓存 vs 这次服务器：只挑「能一眼看懂」的几条，别列流水账。 */
+/** 上次缓存 vs 这次服务器：只挑「能一眼看懂」的几条。 */
 function homeDiff(before, after) {
   if (!before || !after) return [];
   const out = [];
@@ -2835,50 +2831,47 @@ function homeDiff(before, after) {
   const b = after.recent || {};
   const added = Math.max(0, (b.total || 0) - (a.total || 0));
   if (added) out.push(`多了 ${added} 场对局`);
-
   const oldIds = new Set((a.rows || []).map((row) => row.id));
   const fresh = (b.rows || []).filter((row) => row.id && !oldIds.has(row.id));
   if (fresh.length) {
-    const last = fresh[0];
-    const win = last.win ? "赢" : "输";
-    out.push(`最新一场 ${last.map || "?"} ${win} ${last.k}/${last.d}/${last.a}`);
+    const m = fresh[0];
+    out.push(`最新一场 ${m.map || "?"} ${m.win ? "赢" : "输"} ${m.k}/${m.d}/${m.a}`);
   }
-
   const pa = before.party || {};
   const pb = after.party || {};
-  if ((pb.matches || 0) > (pa.matches || 0)) {
-    out.push(`组队场次 ${pa.matches || 0} → ${pb.matches}`);
-  }
-  const mateBefore = new Map((pa.top || []).map((m) => [m.name, m.count]));
+  if ((pb.matches || 0) > (pa.matches || 0)) out.push(`组队场次 ${pa.matches || 0} → ${pb.matches}`);
+  const oldMates = new Map((pa.top || []).map((m) => [m.name, m.count]));
   (pb.top || []).forEach((m) => {
-    const was = mateBefore.get(m.name);
+    const was = oldMates.get(m.name);
     if (was === undefined) out.push(`新队友 ${homeNick(m.name)} ×${m.count}`);
     else if (m.count > was) out.push(`和 ${homeNick(m.name)} 又排了 ${m.count - was} 场`);
   });
-
   const ca = (before.assets || {}).counts || {};
   const cb = (after.assets || {}).counts || {};
-  Object.keys(HOME_LABELS).forEach((key) => {
-    const grow = (cb[key] || 0) - (ca[key] || 0);
-    if (grow > 0) out.push(`${HOME_LABELS[key]} +${grow}`);
+  const gains = [];
+  Object.keys(cb).forEach((key) => {
+    const diff = (cb[key] || 0) - (ca[key] || 0);
+    if (diff > 0) gains.push(`${HOME_LABELS[key] || key} +${diff}`);
   });
+  if (gains.length) out.push(gains.join(" · "));
   return out.slice(0, 4);
 }
 
 function homeRankHtml(data) {
   const p = data.player || {};
   const rows = (data.recent && data.recent.rows) || [];
-  const rr = rows.reduce((sum, row) => sum + (row.rr || 0), 0);
-  const tier = p.tier || rows[0]?.tier || "未定级";
+  const rr = rows.reduce((sum, row) => sum + (Number(row.rr) || 0), 0);
+  const tier = p.tier || (rows[0] && rows[0].tier) || "未定级";
   const bits = [`<b>${escapeHtml(String(tier))}</b>`];
   if (p.level) bits.push(`<span class="hm-dim">Lv.${escapeHtml(String(p.level))}</span>`);
   if (rows.length) {
     const wins = rows.filter((row) => row.win).length;
-    // 掌瓦那边很多对局不返回 RR / 击杀明细，别硬凑一个「RR 0」或「0/0/0」误导人。
-    const tag = rr ? `近 ${rows.length} 场 RR ${rr > 0 ? "+" : ""}${rr}` : `近 ${rows.length} 场 ${wins} 胜 ${rows.length - wins} 负`;
+    const tag = rr
+      ? `近 ${rows.length} 场 RR ${rr > 0 ? "+" : ""}${rr}`
+      : `近 ${rows.length} 场 ${wins} 胜 ${rows.length - wins} 负`;
     bits.push(`<span class="${rr > 0 ? "hm-up" : rr < 0 ? "hm-down" : "hm-dim"}">${tag}</span>`);
   }
-  return bits.join("");
+  return bits.join(" ");
 }
 
 function homeRecentHtml(data) {
@@ -2887,8 +2880,7 @@ function homeRecentHtml(data) {
   return rows.map((row) => {
     const kda = row.d ? `${row.k}/${row.d}/${row.a}` : "";
     const tip = [row.time, row.map, kda, `${row.acs} ACS`, `${row.party} 人组队`].filter(Boolean).join(" · ");
-    return `
-    <span class="hm-row" title="${escapeHtml(tip)}">
+    return `<span class="hm-row" title="${escapeHtml(tip)}">
       <i class="hm-dot ${row.win ? "w" : "l"}"></i>
       <span class="hm-map">${escapeHtml(row.map || "?")}</span>
       ${kda ? `<span class="hm-kda">${kda}</span>` : ""}
@@ -2902,8 +2894,7 @@ function homePartyHtml(data) {
   const top = party.top || [];
   if (!party.matches) return '<span class="hm-dim">最近没和谁一起排</span>';
   const head = `<span class="hm-dim">${party.scanned || 0} 场里 ${party.matches} 场有人一起 · ${party.rate || 0}%</span>`;
-  const rows = top.slice(0, 3).map((mate) => `
-    <span class="hm-row">
+  const rows = top.slice(0, 3).map((mate) => `<span class="hm-row">
       <span class="hm-map">${escapeHtml(homeNick(mate.name))}</span>
       <span class="hm-dim">×${mate.count}</span>
     </span>`).join("");
@@ -2918,206 +2909,203 @@ function homeAssetsHtml(data) {
     .filter((key) => counts[key] !== undefined)
     .map((key) => `<span class="hm-dim">${HOME_LABELS[key]} <b>${counts[key]}</b></span>`);
   const fresh = assets.recent || [];
-  if (fresh.length) {
-    bits.push(`<span class="hm-row hm-dim">最近获得 ${escapeHtml(fresh[0].name || "")}</span>`);
-  }
+  if (fresh.length) bits.push(`<span class="hm-row hm-dim">最近获得 ${escapeHtml(fresh[0].name || "")}</span>`);
   return bits.join("");
 }
 
-function homeRender(one, data, note) {
-  const box = $("#home-me");
-  if (!box) return;
-  box.hidden = false;
-  box.classList.remove("hidden");
-  const p = data.player || {};
-  const ava = $("#hm-ava");
-  if (ava) {
-    if (p.avatar) { ava.src = p.avatar; ava.hidden = false; }
-    else ava.hidden = true;
-  }
-  $("#hm-name").textContent = p.label || one.keyword;
+function homeSlotHtml(home, i, note) {
+  const kw = home.keyword || home.label || "";
+  const cached = homeCacheGet(kw) || homeCacheGet(home.label);
+  const data = cached && cached.data;
+  const p = (data && data.player) || {};
   const meta = [];
   if (p.tier) meta.push(p.tier);
   if (p.app_num) meta.push(`掌瓦 ${p.app_num}`);
-  const total = data.recent && data.recent.total;
-  if (total) meta.push(`${total} 场记录`);
-  $("#hm-meta").textContent = meta.join(" · ") || "—";
-
-  $("#hm-body").hidden = false;
-  $("#hm-lock").hidden = true;
-  $("#hm-bind").hidden = true;
-  $("#hm-open").hidden = false;
-  // 特约订阅只能看绑定的那一位，「换人」没有意义。
-  $("#hm-change").hidden = !!(PLAN && PLAN.scope);
-  $("#hm-rank").innerHTML = homeRankHtml(data);
-  $("#hm-recent").innerHTML = homeRecentHtml(data);
-  $("#hm-party").innerHTML = homePartyHtml(data);
-  $("#hm-assets").innerHTML = homeAssetsHtml(data);
-
-  const upd = $("#hm-upd");
-  if (note && note.length) {
-    upd.hidden = false;
-    upd.innerHTML = `<b>有更新</b> ${escapeHtml(note.join(" · "))}`;
-  } else {
-    upd.hidden = true;
+  if (data && data.recent && data.recent.total) meta.push(`${data.recent.total} 场记录`);
+  const canSwap = (HOME.state && HOME.state.slots > 0);
+  const head = `<div class="hm-chead">
+      ${p.avatar ? `<img class="hm-ava" src="${escapeHtml(p.avatar)}" alt="" />` : ""}
+      <div class="hm-id"><b>${escapeHtml(home.label || kw)}</b><span class="hm-meta">${escapeHtml(meta.join(" · ") || "读取中…")}</span></div>
+      <div class="hm-tools">
+        <button type="button" class="hm-btn ghost" data-act="open">打开档案</button>
+        ${canSwap ? '<button type="button" class="hm-btn ghost" data-act="swap">换人</button>' : ""}
+      </div>
+    </div>`;
+  if (!data) {
+    return `<article class="hm-card" data-i="${i}" data-kw="${escapeHtml(kw)}">${head}
+      <p class="hm-wait">正在读取 ${escapeHtml(homeNick(home.label))} 的数据…</p></article>`;
   }
-  const foot = $("#hm-foot");
-  if (foot) {
-    foot.hidden = false;
-    const when = one.at ? new Date(one.at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" }) : "";
-    foot.innerHTML = `<span class="hm-dim">${note && note.length ? "已同步" : "本地缓存"}${when ? ` · ${escapeHtml(when)}` : ""}</span>` +
-      '<button type="button" class="hm-mini" id="hm-refresh">刷新</button>';
-    const btn = $("#hm-refresh");
-    if (btn) btn.addEventListener("click", (ev) => { ev.stopPropagation(); homeLoad(true); });
-  }
+  const when = homeWhen(cached.at);
+  return `<article class="hm-card" data-i="${i}" data-kw="${escapeHtml(kw)}">${head}
+    <div class="hm-body">
+      <div class="hm-sec rank"><span class="hm-k">段位与加分</span><div class="hm-v">${homeRankHtml(data)}</div></div>
+      <div class="hm-sec"><span class="hm-k">最近 5 场</span><div class="hm-v">${homeRecentHtml(data)}</div></div>
+      <div class="hm-sec"><span class="hm-k">组队</span><div class="hm-v">${homePartyHtml(data)}</div></div>
+      <div class="hm-sec assets"><span class="hm-k">资产</span><div class="hm-v">${homeAssetsHtml(data)}</div></div>
+    </div>
+    ${note && note.length ? `<p class="hm-upd"><b>有更新</b> ${escapeHtml(note.join(" · "))}</p>` : ""}
+    <div class="hm-foot"><span class="hm-dim">${note && note.length ? "已同步" : "本地缓存"}${when ? ` · ${escapeHtml(when)}` : ""}</span>
+      <button type="button" class="hm-mini" data-act="refresh">刷新</button></div>
+  </article>`;
 }
 
-function homeLock(plan) {
-  const box = $("#home-me");
-  if (!box) return;
-  box.hidden = false;
-  box.classList.remove("hidden");
-  $("#hm-lock").hidden = false;
-  $("#hm-body").hidden = true;
-  $("#hm-bind").hidden = true;
-  $("#hm-open").hidden = true;
-  $("#hm-change").hidden = true;
-  $("#hm-upd").hidden = true;
-  $("#hm-foot").hidden = true;
-  $("#hm-name").textContent = "我的主页";
-  $("#hm-meta").textContent = plan === "guest" ? "登录后可用" : "会员功能";
+function homePaint(notes) {
+  const box = $("#hm-slots");
+  if (!box || !HOME.state) return;
+  const list = HOME.state.homes || [];
+  const map = notes || {};
+  box.innerHTML = list.map((home, i) => homeSlotHtml(home, i, map[i] || [])).join("");
 }
 
-async function homeLoad(force) {
-  const one = homeRead();
-  if (!one) return;
-  if (!force && one.data) homeRender(one, one.data, []);
+async function homeLoadOne(home, i, force) {
+  const kw = home.keyword || home.label;
+  const cached = homeCacheGet(kw);
   try {
-    const data = await api.get("/api/home/overview", { keyword: one.keyword, mode: one.mode || "game" });
-    const before = one.data || null;
-    const note = force && before ? homeDiff(before, data) : [];
-    const saved = homeWrite({ data, rev: data.rev, at: Date.now(), error: "" });
-    homeRender(saved, data, note);
+    const data = await api.get("/api/home/overview", { keyword: kw, mode: home.mode || "game" });
+    const note = force && cached ? homeDiff(cached.data, data) : [];
+    homeCacheSet(kw, data);
+    homePaint({ [i]: note });
   } catch (err) {
-    if (err && (err.status === 401 || err.detail?.reason === "member_only")) {
-      homeLock(err.status === 401 ? "guest" : "locked");
-      return;
-    }
-    if (one.data) return; // 有缓存就先用缓存，别把首页弄成报错
-    const foot = $("#hm-foot");
-    if (foot) { foot.hidden = false; foot.textContent = err.message || "读取失败，稍后再试"; }
+    if (cached) return;
+    const wait = document.querySelector(`.hm-card[data-i="${i}"] .hm-wait`);
+    if (wait) wait.textContent = (err && err.message) || "读取失败，稍后再试";
   }
 }
 
-async function homeBind(keyword) {
-  const input = $("#hm-input");
-  const kw = String(keyword || (input && input.value) || "").trim();
-  if (!kw) return;
-  if (PLAN && PLAN.scope && kw !== PLAN.scope) {
-    // 后端也会挡；这里先把话说人话，省得用户以为坏了。
-    const foot = $("#hm-foot");
-    if (foot) { foot.hidden = false; foot.textContent = `这是「只看 ${PLAN.scope}」的特约订阅，钉不了别人`; }
+function homeLockHtml() {
+  const lock = $("#hm-lock");
+  if (!lock) return;
+  lock.hidden = false;
+  if (!HOME.state || !HOME.state.logged) {
+    lock.innerHTML = '「我的订阅」是会员功能：登录并开通后，进站就直接看到你关注的人——段位、最近 5 场、组队和资产的变化。<a href="/account">去登录 / 开通</a>';
+    $("#hm-meta").textContent = "登录后可用";
     return;
   }
-  const btn = $("#hm-save");
-  if (btn) { btn.disabled = true; btn.textContent = "读取中…"; }
+  lock.innerHTML = '「我的订阅」是会员功能：开通后可以把一个人钉在这里，进站直接看他的段位、最近 5 场、组队和资产。<a href="/account">去开通会员</a>'
+    + '<br><span class="hm-dim">买了特约订阅授权码的，人在首页自己选（一份码一个位置）。</span>';
+  $("#hm-meta").textContent = "会员功能";
+}
+
+async function homeReload() {
+  const box = $("#home-me");
+  if (!box) return;
+  let state = null;
   try {
-    const data = await api.get("/api/home/overview", { keyword: kw, mode: /#/.test(kw) || !/^\d+$/.test(kw) ? "game" : "mval" });
-    const saved = homeWrite({ keyword: kw, mode: /#/.test(kw) ? "game" : (data.player && data.player.app_num ? "game" : "mval"), data, rev: data.rev, at: Date.now() });
+    const res = await fetch("/api/home/homes", { credentials: "same-origin" });
+    state = res.ok ? await res.json() : null;
+  } catch (_) {
+    state = null;
+  }
+  HOME.state = state || { logged: false, vip: false, slots: 0, capacity: 0, homes: [] };
+  const homes = HOME.state.homes || [];
+  const cap = HOME.state.capacity || 0;
+  $("#hm-lock").hidden = true;
+  if (!HOME.state.vip) {
+    $("#hm-slots").innerHTML = "";
+    $("#hm-bind").hidden = true;
+    homeLockHtml();
+    return;
+  }
+  $("#hm-meta").textContent = `${HOME.state.slots > 0 ? "特约订阅" : "会员"} · ${homes.length}/${cap} 个主页位`;
+  if (!homes.length) {
+    $("#hm-lock").hidden = false;
+    $("#hm-lock").innerHTML = '在下面挑一个人钉到首页——游戏 ID、掌瓦 ID、固定 ID 都行，打开网站就直接看到他的段位、最近 5 场、组队和资产。';
+  }
+  $("#hm-bind").hidden = homes.length >= cap;
+  homePaint({});
+  await Promise.all(homes.map((home, i) => homeLoadOne(home, i, false)));
+}
+
+async function homeBind() {
+  const input = $("#hm-input");
+  const kw = String((input && input.value) || "").trim();
+  if (!kw) return;
+  const btn = $("#hm-save");
+  if (btn) { btn.disabled = true; btn.textContent = "绑定中…"; }
+  try {
+    const res = await fetch("/api/home/bind", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ keyword: kw, mode: HOME.mode || "game" }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error((data.detail && data.detail.message) || "绑定失败，稍后再试");
     if (input) input.value = "";
-    homeRender(saved, data, []);
+    await homeReload();
   } catch (err) {
-    const foot = $("#hm-foot");
-    if (foot) { foot.hidden = false; foot.textContent = err.message || "没查到这个人"; }
+    const lock = $("#hm-lock");
+    if (lock) { lock.hidden = false; lock.textContent = err.message || "绑定失败"; }
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = "钉到首页"; }
+    if (btn) { btn.disabled = false; btn.textContent = "绑定"; }
+  }
+}
+
+async function homeSwap(index) {
+  const homes = (HOME.state && HOME.state.homes) || [];
+  const home = homes[index];
+  if (!home) return;
+  if (!confirm(`把「${home.label}」从主页挪走？挪走以后这个位置可以重新钉一个人。`)) return;
+  try {
+    const res = await fetch("/api/home/unbind", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ index }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error((data.detail && data.detail.message) || "换人失败");
+    await homeReload();
+    const input = $("#hm-input");
+    if (input) input.focus();
+  } catch (err) {
+    alert(err.message || "换人失败");
   }
 }
 
 function initHomeMe() {
   const box = $("#home-me");
   if (!box) return;
-  // 「我的主页」是首页上的一张卡片（/?me=1），不在首页正文里铺一大块。
-  // 没有 me=1 就什么都不做，别让首页多一次请求、也别闪一下空壳。
-  const meView = new URLSearchParams(location.search).has("me");
-  document.body.classList.toggle("me-view", meView);
-  if (!meView) return;
-  const one = homeRead();
-  if (!PLAN || !PLAN.vip) {
-    // 没登录就看个说明；登录了但没开会员，也说清楚是会员功能
-    homeLock(PLAN && PLAN.qq ? "locked" : "guest");
-    return;
-  }
-  if (PLAN.scope && (!one || one.keyword !== PLAN.scope)) {
-    // 特约订阅：不用搜、不用绑，打开就显示那一个人。
-    box.hidden = false;
-    box.classList.remove("hidden");
-    $("#hm-lock").hidden = true;
-    $("#hm-body").hidden = true;
-    $("#hm-bind").hidden = true;
-    $("#hm-name").textContent = "我的主页";
-    $("#hm-meta").textContent = `特约订阅 · 只看 ${homeNick(PLAN.scope)}`;
-    const foot = $("#hm-foot");
-    if (foot) { foot.hidden = false; foot.textContent = `正在读取 ${PLAN.scope} …`; }
-    const unb = $("#hm-unbind");
-    if (unb) {
-      unb.hidden = !PLAN.canUnbind;
-      unb.addEventListener("click", () => {
-        if (!confirm(`确定解绑「${PLAN.scope}」？\n\n解绑机会只有这一次，解绑后要核销新的特约授权码才能再查人。`)) return;
-        unb.disabled = true;
-        fetch("/api/sub/unbind", { method: "POST", credentials: "same-origin" })
-          .then((r) => r.json().then((d) => ({ ok: r.ok, d })))
-          .then((res) => {
-            if (!res.ok) throw new Error((res.d && res.d.detail && res.d.detail.message) || "解绑失败");
-            alert("已解绑。要换人，核销一个新的特约授权码就行。");
-            location.reload();
-          })
-          .catch((err) => { unb.disabled = false; alert(err && err.message ? err.message : "解绑失败"); });
-      });
-    }
-    homeBind(PLAN.scope);
-    return;
-  }
-  if (PLAN.scoped && !PLAN.scope) {
-    // 特约订阅解绑过、还没绑新人：不许在这儿随便绑一个，得先核销新的特约授权码。
-    box.hidden = false;
-    box.classList.remove("hidden");
-    $("#hm-body").hidden = true;
-    $("#hm-bind").hidden = true;
-    $("#hm-lock").hidden = false;
-    $("#hm-lock").innerHTML =
-      '你解绑了订阅人，现在查不了任何人。<br>要换人请先核销一个新的<b>特约授权码</b>（管理端生成时填上昵称#编号），核销后这里会自动绑上新的人。';
-    $("#hm-name").textContent = "我的主页";
-    $("#hm-meta").textContent = "特约订阅 · 还没绑定人";
-    const foot2 = $("#hm-foot");
-    if (foot2) { foot2.hidden = true; }
-    return;
-  }
-  if (!one) {
-    box.hidden = false;
-    box.classList.remove("hidden");
-    $("#hm-lock").hidden = true;
-    $("#hm-body").hidden = true;
-    $("#hm-bind").hidden = false;
-    $("#hm-name").textContent = "我的主页";
-    $("#hm-meta").textContent = "挑一个人钉在首页";
-  } else {
-    homeRender(one, one.data || { player: { label: one.keyword } }, []);
-    homeLoad(false);
+  box.hidden = false;
+  box.classList.remove("hidden");
+  const modes = $("#hm-modes");
+  if (modes) {
+    modes.addEventListener("click", (ev) => {
+      const btn = ev.target.closest("button[data-hmode]");
+      if (!btn) return;
+      HOME.mode = btn.dataset.hmode || "game";
+      modes.querySelectorAll("button").forEach((b) => b.classList.toggle("on", b === btn));
+      const input = $("#hm-input");
+      if (input) {
+        input.placeholder = HOME.mode === "mval" ? "掌瓦号，如 009202225"
+          : HOME.mode === "uid" ? "固定 ID（改名不变的那个）" : "名称#编号，如 示例玩家#12345";
+      }
+    });
   }
   $("#hm-save").addEventListener("click", () => homeBind());
   $("#hm-input").addEventListener("keydown", (ev) => {
     if (ev.key === "Enter") { ev.preventDefault(); homeBind(); }
   });
-  $("#hm-open").addEventListener("click", () => { const cur = homeRead(); if (cur) loadPlayer(cur.keyword); });
-  $("#hm-change").addEventListener("click", () => {
-    $("#hm-bind").hidden = false;
-    $("#hm-body").hidden = true;
-    $("#hm-open").hidden = true;
-    $("#hm-change").hidden = true;
-    $("#hm-input").focus();
-  });
+  const slots = $("#hm-slots");
+  if (slots) {
+    slots.addEventListener("click", (ev) => {
+      const card = ev.target.closest(".hm-card");
+      if (!card) return;
+      const act = ev.target.closest("[data-act]");
+      if (!act) return;
+      const i = Number(card.dataset.i || 0);
+      const kw = card.dataset.kw || "";
+      if (act.dataset.act === "open") loadPlayer(kw);
+      if (act.dataset.act === "swap") homeSwap(i);
+      if (act.dataset.act === "refresh") {
+        const home = (HOME.state.homes || [])[i];
+        if (home) homeLoadOne(home, i, true);
+      }
+    });
+  }
+  homeReload();
 }
+
 async function boot() {
   await refreshHealth();
   loadPlan().then(initHomeMe);

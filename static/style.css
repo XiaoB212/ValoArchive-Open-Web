@@ -5017,3 +5017,27 @@ body.me-view .home-steps,
 body.me-view .home-faq { display: none; }
 /* 段位条在任何宽度都压成一行（放不下就换行，但不再一条一个 line） */
 .home-me .hm-sec.rank .hm-v { flex-direction: row; flex-wrap: wrap; gap: 4px 12px; }
+
+/* ---- v26：我的主页改成「一个主页位一整块」，直接铺在首页正文 ---- */
+.home-me { background: none; border: 0; padding: 0; box-shadow: none; }
+.home-me .hm-head { margin-bottom: 10px; }
+.hm-card {
+  background: linear-gradient(180deg, #fff 0%, #f6fbf9 100%);
+  border: 1px solid rgba(20, 101, 79, .12);
+  border-radius: 14px; padding: 16px 18px; margin: 0 0 12px;
+}
+.hm-card .hm-chead { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.hm-card .hm-ava { width: 44px; height: 44px; border-radius: 12px; object-fit: cover; }
+.hm-card .hm-id b { font-size: 16px; }
+.hm-card .hm-meta { display: block; margin-top: 2px; font-size: 12px; color: var(--dim, #7b8a86); }
+.hm-card .hm-wait { margin: 6px 0 4px; font-size: 12.5px; color: #7b8a86; }
+.hm-card .hm-upd { margin: 10px 0 0; padding: 7px 10px; border-radius: 9px; background: #eef8f4; color: #14654f; font-size: 12.5px; }
+.hm-card .hm-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; font-size: 11.5px; }
+.home-me .hm-modes { display: flex; gap: 6px; margin-bottom: 8px; }
+.home-me .hm-modes button {
+  height: 26px; padding: 0 11px; border-radius: 999px; border: 1px solid rgba(20, 101, 79, .18);
+  background: #fff; color: #35544c; font-size: 12px; cursor: pointer;
+}
+.home-me .hm-modes button.on { background: #0e7c6b; border-color: #0e7c6b; color: #fff; }
+.hm-bindrow { display: flex; gap: 8px; }
+.hm-bindrow input { flex: 1 1 auto; min-width: 0; }

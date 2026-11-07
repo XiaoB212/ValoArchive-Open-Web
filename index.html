@@ -8,7 +8,7 @@
 <link rel="alternate icon" type="image/x-icon" href="/favicon.ico?v=4" />
 <meta name="theme-color" content="#0e7c6b" />
 <meta name="description" content="瓦罗兰档案：非官方《无畏契约》社区项目，支持长历史、单局详情、对位击杀热力图与组队分析。" />
-<link rel="stylesheet" href="/static/style.css?v=00bbdc24c0" />
+<link rel="stylesheet" href="/static/style.css?v=cc5ac559ad" />
 </head>
 <body>
 <div class="grid-bg" aria-hidden="true"></div>
@@ -95,39 +95,25 @@
       </div>
     </div>
 
-    <section class="home-me" id="home-me" hidden>
-      <a class="hm-back" href="/">‹ 返回首页</a>
+        <section class="home-me" id="home-me">
       <div class="hm-head">
-        <img class="hm-ava" id="hm-ava" alt="" hidden />
-        <div class="hm-id">
-          <b id="hm-name">—</b>
-          <span class="hm-meta" id="hm-meta">—</span>
-        </div>
-        <div class="hm-tools">
-          <button type="button" class="hm-btn ghost" id="hm-open" hidden>打开档案</button>
-          <button type="button" class="hm-btn ghost" id="hm-change" hidden>换人</button>
-        </div>
+        <div class="hm-id"><b>我的订阅</b><span class="hm-meta" id="hm-meta">—</span></div>
       </div>
-      <p class="hm-lock" id="hm-lock" hidden>「我的主页」是会员功能：开通后挑一个人钉在首页，打开网站直接看段位、最近 5 场、组队和资产的变化。</p>
-      <div class="hm-body" id="hm-body" hidden>
-        <div class="hm-sec rank"><span class="hm-k">段位与加分</span><div class="hm-v" id="hm-rank">—</div></div>
-        <div class="hm-sec"><span class="hm-k">最近 5 场</span><div class="hm-v" id="hm-recent">—</div></div>
-        <div class="hm-sec"><span class="hm-k">组队</span><div class="hm-v" id="hm-party">—</div></div>
-        <div class="hm-sec assets"><span class="hm-k">资产</span><div class="hm-v" id="hm-assets">—</div></div>
-      </div>
+      <p class="hm-lock" id="hm-lock" hidden></p>
+      <div class="hm-slots" id="hm-slots"></div>
       <div class="hm-bind" id="hm-bind" hidden>
-        <input id="hm-input" type="text" placeholder="名字#编号 / 掌瓦号 / 固定ID" autocomplete="off" />
-        <button type="button" class="hm-btn" id="hm-save">钉到首页</button>
+        <div class="hm-modes" id="hm-modes">
+          <button type="button" class="on" data-hmode="game">游戏ID</button>
+          <button type="button" data-hmode="mval">掌瓦ID</button>
+          <button type="button" data-hmode="uid">固定ID</button>
+        </div>
+        <div class="hm-bindrow">
+          <input id="hm-input" type="text" placeholder="名称#编号，如 示例玩家#12345" autocomplete="off" />
+          <button type="button" class="hm-btn" id="hm-save">绑定</button>
+        </div>
       </div>
-      <p class="hm-upd" id="hm-upd" hidden></p>
-      <p class="hm-foot" id="hm-foot" hidden></p>
     </section>
     <div class="home-cards">
-      <a class="hcard hcard-me" href="/?me=1">
-        <span class="hc-ico">◍</span>
-        <b>我的主页</b>
-        <i>钉一个人：段位加分、最近 5 场、组队场次和资产变化</i>
-      </a>
       <button type="button" class="hcard" data-focus="1">
         <span class="hc-ico">▤</span>
         <b>对局历史</b>
@@ -404,7 +390,7 @@
 </footer>
 
 <script src="/config.js?v=4822873cf0"></script>
-<script src="/static/app.js?v=be588b62ea"></script>
+<script src="/static/app.js?v=dc124c70f6"></script>
 <script>
 (function () {
   document.querySelectorAll("#home-try .try").forEach(function (el) {
