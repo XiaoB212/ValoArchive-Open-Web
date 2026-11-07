@@ -8,7 +8,7 @@
 <link rel="alternate icon" type="image/x-icon" href="/favicon.ico?v=4" />
 <meta name="theme-color" content="#0e7c6b" />
 <meta name="description" content="瓦罗兰档案：非官方《无畏契约》社区项目，支持长历史、单局详情、对位击杀热力图与组队分析。" />
-<link rel="stylesheet" href="/static/style.css?v=4508dc6030" />
+<link rel="stylesheet" href="/static/style.css?v=7729a81a14" />
 </head>
 <body>
 <div class="grid-bg" aria-hidden="true"></div>
@@ -109,8 +109,12 @@
         </div>
         <div class="hm-bindrow">
           <input id="hm-input" type="text" placeholder="名称#编号，如 示例玩家#12345" autocomplete="off" />
+        </div>
+        <div class="hm-bindrow hm-actrow">
+          <input id="hm-code" type="text" placeholder="特约订阅授权码（买了就填这里，没买留空）" autocomplete="off" />
           <button type="button" class="hm-btn" id="hm-save">绑定</button>
         </div>
+        <p class="hm-dim hm-hint" id="hm-hint">填授权码 + 想盯的人，点一下就把码用掉并直接绑定这个人。</p>
       </div>
     </section>
     <div class="home-cards">
@@ -390,7 +394,7 @@
 </footer>
 
 <script src="/config.js?v=4822873cf0"></script>
-<script src="/static/app.js?v=5c0cbe7c68"></script>
+<script src="/static/app.js?v=7ce0ad20d7"></script>
 <script>
 (function () {
   document.querySelectorAll("#home-try .try").forEach(function (el) {

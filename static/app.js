@@ -2895,7 +2895,7 @@ function homeRowHtml(row) {
       <span class="agent">${row.agent_icon ? `<img src="${img(row.agent_icon)}" alt="">` : `<span class="blank"></span>`}</span>
       <div class="map">
         <b><span class="map-name">${escapeHtml(row.map || "未知地图")}</span></b>
-        <span>${escapeHtml(homeQueue(row))} · ${timeRange(row)}</span>
+        <span><i class="hm-mode-text">${escapeHtml(String(row.mode_name || "").replace("模式", ""))}${String(row.mode_name || "").trim() ? " · " : ""}</i>${escapeHtml(homeQueue(row))}<em class="hm-time-text"> · ${escapeHtml(relTime(Math.floor((Number(row.start_ms || row.ts || 0)) / 1000)) || timeRange(row))}</em></span>
       </div>
       <div class="mode"><span class="mode-chip">${escapeHtml(String(row.mode_name || "未知").replace("模式", ""))}</span></div>
       <div class="mid"><span class="kda">${kda}</span><span class="acs"><span class="rounds">${rounds}</span> · ${row.acs || 0} ACS</span></div>
@@ -3236,18 +3236,41 @@ async function homeReload() {
     $("#hm-lock").hidden = false;
     $("#hm-lock").innerHTML = '在下面挑一个人钉到首页——游戏 ID、掌瓦 ID、固定 ID 都行，打开网站就直接看到他的段位、最近 5 场、组队和资产。';
   }
-  $("#hm-bind").hidden = homes.length >= cap;
+  $("#hm-bind").hidden = false;
   homePaint({});
   await Promise.all(homes.map((home, i) => homeLoadOne(home, i, false)));
 }
 
+async function homeRedeem(code) {
+  const res = await fetch("/api/sub/redeem-public", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code, qq: (typeof PLAN !== "undefined" && PLAN.qq) || "" }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const d = data.detail || {};
+    throw new Error(d.message || (typeof d === "string" ? d : "") || "这个授权码用不了，检查一下有没有输错。");
+  }
+  return data;
+}
+
 async function homeBind() {
   const input = $("#hm-input");
+  const codeInput = $("#hm-code");
   const kw = String((input && input.value) || "").trim();
-  if (!kw) return;
+  const code = String((codeInput && codeInput.value) || "").trim().toUpperCase();
+  if (!kw && !code) return;
   const btn = $("#hm-save");
-  if (btn) { btn.disabled = true; btn.textContent = "绑定中…"; }
+  if (btn) { btn.disabled = true; btn.textContent = code ? "激活中…" : "绑定中…"; }
+  const hint = $("#hm-hint");
   try {
+    if (code) {
+      if (!kw) throw new Error("还要填上你想盯的那个人（游戏 ID / 掌瓦 ID / 固定 ID 都行）。");
+      await homeRedeem(code);
+      if (hint) hint.textContent = "授权码已激活，正在绑定…";
+    }
     const res = await fetch("/api/home/bind", {
       method: "POST",
       credentials: "same-origin",
@@ -3257,6 +3280,8 @@ async function homeBind() {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error((data.detail && data.detail.message) || "绑定失败，稍后再试");
     if (input) input.value = "";
+    if (codeInput) codeInput.value = "";
+    if (hint) hint.textContent = "填授权码 + 想盯的人，点一下就把码用掉并直接绑定这个人。";
     await homeReload();
   } catch (err) {
     const lock = $("#hm-lock");
@@ -3309,6 +3334,13 @@ function initHomeMe() {
     });
   }
   $("#hm-save").addEventListener("click", () => homeBind());
+  const codeBox = $("#hm-code");
+  if (codeBox) {
+    codeBox.addEventListener("input", () => {
+      const btn = $("#hm-save");
+      if (btn) btn.textContent = codeBox.value.trim() ? "激活并绑定" : "绑定";
+    });
+  }
   $("#hm-input").addEventListener("keydown", (ev) => {
     if (ev.key === "Enter") { ev.preventDefault(); homeBind(); }
   });

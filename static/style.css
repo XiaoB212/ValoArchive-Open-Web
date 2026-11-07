@@ -5201,3 +5201,91 @@ body.me-view .home-faq { display: none; }
 .hm-card .hm-rows .row.compact .mid .kda { font-size: 15px; }
 .hm-card .hm-rows .row.compact .mid .acs { font-size: 11px; }
 .hm-card .hm-rows .row.compact .res { font-size: 11px; }
+
+/* 再紧凑一点：行高压到 ~62px，胜负分隔符给点透明度但不至于看不见 */
+.hm-card .hm-rows .row.compact { padding: 6px 10px 6px 0; }
+.hm-card .hm-rows .row.compact .agent,
+.hm-card .hm-rows .row.compact .agent img { width: 30px; height: 30px; border-radius: 7px; }
+.hm-card .hm-rows .row.compact .map b { font-size: 13px; }
+.hm-card .hm-rows .row.compact .mid .kda { font-size: 16px; }
+.hm-card .hm-rows .row.compact .mid .kda small { opacity: .5; margin: 0 2px; }
+
+
+
+/* 缩略行：手机端把「模式」并进副标题，桌面端仍用右侧小标签 */
+.hm-card .hm-rows .hm-mode-text { display: none; font-style: normal; }
+@media (max-width: 720px) {
+  .hm-card .hm-rows .row.compact {
+    grid-template-columns: 4px 30px minmax(0, 1fr) auto auto;
+    grid-template-areas: none;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px 8px 0;
+  }
+  .hm-card .hm-rows .row.compact > * { grid-area: auto; }
+  .hm-card .hm-rows .row.compact .mode { display: none; }
+  .hm-card .hm-rows .hm-mode-text { display: inline; }
+  .hm-card .hm-rows .row.compact .mid {
+    flex-direction: column;
+    align-items: flex-end;
+    flex-wrap: nowrap;
+    gap: 1px;
+  }
+  .hm-card .hm-rows .row.compact .mid .kda { font-size: 14px; }
+  .hm-card .hm-rows .row.compact .mid .acs { font-size: 10px; white-space: nowrap; }
+  .hm-card .hm-rows .row.compact .map span { font-size: 10.5px; }
+}
+
+/* 手机端缩略战绩行：五列单行（胜负条 / 头像 / 地图+副标题 / KDA / 结果），模式并入副标题 */
+@media (max-width: 720px) {
+  .hm-card .hm-rows .row.compact {
+    display: grid;
+    grid-template-columns: 4px 30px minmax(0, 1fr) auto auto;
+    grid-template-areas: none;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px 8px 0;
+  }
+  .hm-card .hm-rows .row.compact .spine,
+  .hm-card .hm-rows .row.compact .agent,
+  .hm-card .hm-rows .row.compact .map,
+  .hm-card .hm-rows .row.compact .tail,
+  .hm-card .hm-rows .row.compact .mid { grid-area: auto; }
+  .hm-card .hm-rows .row.compact .mode { display: none; }
+  .hm-card .hm-rows .hm-mode-text { display: inline; }
+  .hm-card .hm-rows .row.compact .mid {
+    flex-direction: column;
+    align-items: flex-end;
+    flex-wrap: nowrap;
+    gap: 1px;
+  }
+  .hm-card .hm-rows .row.compact .mid .kda { font-size: 14px; }
+  .hm-card .hm-rows .row.compact .mid .acs { font-size: 10px; white-space: nowrap; }
+  .hm-card .hm-rows .row.compact .map span { font-size: 10.5px; }
+}
+
+@media (max-width: 720px) {
+  .hm-card .hm-rows .row.compact .map span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .hm-card .hm-rows .row.compact .tail .res { font-size: 10.5px; padding: 2px 7px; }
+  .hm-card .hm-rows .row.compact .mid .kda { font-size: 13.5px; }
+}
+
+/* 手机端副标题只留「模式 · 几排」，时间在详情里看 */
+.hm-card .hm-rows .hm-time-text { font-style: normal; }
+@media (max-width: 720px) {
+  .hm-card .hm-rows .hm-time-text { display: none; }
+}
+
+/* 我的订阅：绑定/激活区 */
+.hm-actrow { margin-top: 6px; }
+.hm-hint { margin: 4px 0 0; font-size: 11.5px; }
+
+/* 我的订阅：绑定/激活区 */
+.hm-actrow { margin-top: 6px; }
+.hm-hint { margin: 4px 0 0; font-size: 11.5px; }
+.hm-bind .hm-bindrow { display: flex; gap: 8px; align-items: center; }
+.hm-bind .hm-bindrow input { flex: 1 1 auto; min-width: 0; }
