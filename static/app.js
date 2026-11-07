@@ -218,7 +218,13 @@ async function loadPlan() {
   try {
     const res = await fetch("/api/auth/me", { credentials: "same-origin" });
     const data = await res.json();
-    PLAN = { vip: !!(data && data.member && data.member.active), qq: (data && data.qq) || "" };
+    PLAN = {
+      vip: !!(data && data.member && data.member.active),
+      qq: (data && data.qq) || "",
+      // 特约订阅：这个会员只能查 scope 里的那一个人（后端强校验，这里只是把话说清楚）。
+      scope: (data && data.member && data.member.scope) || "",
+      nick: (data && data.nick) || "",
+    };
     const btn = $("#share-btn");
     if (btn && !PLAN.vip) btn.title = "分享链接是会员功能";
   } catch (_) {
@@ -2864,8 +2870,10 @@ function homeRankHtml(data) {
   const bits = [`<b>${escapeHtml(String(tier))}</b>`];
   if (p.level) bits.push(`<span class="hm-dim">Lv.${escapeHtml(String(p.level))}</span>`);
   if (rows.length) {
-    const sign = rr > 0 ? "+" : "";
-    bits.push(`<span class="${rr > 0 ? "hm-up" : rr < 0 ? "hm-down" : "hm-dim"}">近 ${rows.length} 场 RR ${sign}${rr}</span>`);
+    const wins = rows.filter((row) => row.win).length;
+    // 掌瓦那边很多对局不返回 RR / 击杀明细，别硬凑一个「RR 0」或「0/0/0」误导人。
+    const tag = rr ? `近 ${rows.length} 场 RR ${rr > 0 ? "+" : ""}${rr}` : `近 ${rows.length} 场 ${wins} 胜 ${rows.length - wins} 负`;
+    bits.push(`<span class="${rr > 0 ? "hm-up" : rr < 0 ? "hm-down" : "hm-dim"}">${tag}</span>`);
   }
   return bits.join("");
 }
@@ -2873,13 +2881,17 @@ function homeRankHtml(data) {
 function homeRecentHtml(data) {
   const rows = (data.recent && data.recent.rows) || [];
   if (!rows.length) return '<span class="hm-dim">还没有对局记录</span>';
-  return rows.map((row) => `
-    <span class="hm-row" title="${escapeHtml(`${row.time} · ${row.map} · ${row.k}/${row.d}/${row.a} · ${row.acs} ACS`)}">
+  return rows.map((row) => {
+    const kda = row.d ? `${row.k}/${row.d}/${row.a}` : "";
+    const tip = [row.time, row.map, kda, `${row.acs} ACS`, `${row.party} 人组队`].filter(Boolean).join(" · ");
+    return `
+    <span class="hm-row" title="${escapeHtml(tip)}">
       <i class="hm-dot ${row.win ? "w" : "l"}"></i>
       <span class="hm-map">${escapeHtml(row.map || "?")}</span>
-      <span class="hm-kda">${row.k}/${row.d}/${row.a}</span>
-      <span class="hm-dim">${escapeHtml(row.agent || "")}</span>
-    </span>`).join("");
+      ${kda ? `<span class="hm-kda">${kda}</span>` : ""}
+      <span class="hm-dim">${row.acs ? `${row.acs} ACS` : ""}</span>
+    </span>`;
+  }).join("");
 }
 
 function homePartyHtml(data) {
@@ -2932,7 +2944,8 @@ function homeRender(one, data, note) {
   $("#hm-lock").hidden = true;
   $("#hm-bind").hidden = true;
   $("#hm-open").hidden = false;
-  $("#hm-change").hidden = false;
+  // 特约订阅只能看绑定的那一位，「换人」没有意义。
+  $("#hm-change").hidden = !!(PLAN && PLAN.scope);
   $("#hm-rank").innerHTML = homeRankHtml(data);
   $("#hm-recent").innerHTML = homeRecentHtml(data);
   $("#hm-party").innerHTML = homePartyHtml(data);
@@ -2997,6 +3010,12 @@ async function homeBind(keyword) {
   const input = $("#hm-input");
   const kw = String(keyword || (input && input.value) || "").trim();
   if (!kw) return;
+  if (PLAN && PLAN.scope && kw !== PLAN.scope) {
+    // 后端也会挡；这里先把话说人话，省得用户以为坏了。
+    const foot = $("#hm-foot");
+    if (foot) { foot.hidden = false; foot.textContent = `这是「只看 ${PLAN.scope}」的特约订阅，钉不了别人`; }
+    return;
+  }
   const btn = $("#hm-save");
   if (btn) { btn.disabled = true; btn.textContent = "读取中…"; }
   try {
@@ -3019,6 +3038,20 @@ function initHomeMe() {
   if (!PLAN || !PLAN.vip) {
     // 没登录就看个说明；登录了但没开会员，也说清楚是会员功能
     homeLock(PLAN && PLAN.qq ? "locked" : "guest");
+    return;
+  }
+  if (PLAN.scope && (!one || one.keyword !== PLAN.scope)) {
+    // 特约订阅：不用搜、不用绑，打开就显示那一个人。
+    box.hidden = false;
+    box.classList.remove("hidden");
+    $("#hm-lock").hidden = true;
+    $("#hm-body").hidden = true;
+    $("#hm-bind").hidden = true;
+    $("#hm-name").textContent = "我的主页";
+    $("#hm-meta").textContent = `特约订阅 · 只看 ${homeNick(PLAN.scope)}`;
+    const foot = $("#hm-foot");
+    if (foot) { foot.hidden = false; foot.textContent = `正在读取 ${PLAN.scope} …`; }
+    homeBind(PLAN.scope);
     return;
   }
   if (!one) {

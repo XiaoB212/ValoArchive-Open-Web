@@ -120,10 +120,10 @@
       .ac-row label{font-size:12.5px}
       .ac-row input{height:48px;font-size:15px}
       .ac-btn{flex:1 1 auto;height:46px;font-size:14px}
-      .ac-table{font-size:13px}
-      .ac-table th{font-size:11px;padding:0 6px 8px}
-      .ac-table td{padding:10px 6px}
-      .ac-table td:first-child{width:42%}
+      .ac-table{font-size:12px}
+      .ac-table th{font-size:10.5px;padding:0 5px 8px}
+      .ac-table td{padding:10px 5px}
+      .ac-table td:first-child{width:31%}
       .ac-kv{grid-template-columns:76px 1fr;font-size:13px}
       .ac-invite{padding:16px}
       .ac-invite .code{font-size:18px}
@@ -319,28 +319,30 @@
 
       <aside class="ac-col-side">
         <section class="ac-panel">
-          <h2>普通用户 / 会员</h2>
-          <p class="hint">登录就有的免费额度，按自然日重置。</p>
+          <h2>普通用户 / 会员 / 特约订阅</h2>
+          <p class="hint">登录就有的免费额度，按自然日重置。特约订阅是「只看一个人」的便宜版。</p>
           <table class="ac-table">
             <thead>
-              <tr><th>功能</th><th>普通用户</th><th>会员</th></tr>
+              <tr><th>功能</th><th>普通用户</th><th>会员</th><th>特约订阅</th></tr>
             </thead>
             <tbody>
-              <tr><td>每天查询</td><td><span id="lim-query">5</span> 次</td><td>不限</td></tr>
-              <tr><td>对局历史</td><td>最近 <span id="lim-history">10</span> 场</td><td>全部，可筛选翻页</td></tr>
-              <tr><td>单局详情</td><td>每天 <span id="lim-detail">3</span> 场</td><td>不限次数</td></tr>
-              <tr><td>导出 / 分享</td><td class="ac-no">—</td><td class="ac-yes">✓</td></tr>
-              <tr><td>准星库 / 点位库</td><td class="ac-yes">✓</td><td class="ac-yes">✓</td></tr>
+              <tr><td>每天查询</td><td><span id="lim-query">5</span> 次</td><td>不限</td><td>不限，但只查绑定的人</td></tr>
+              <tr><td>能查谁</td><td>任何人</td><td>任何人</td><td>只有绑定的那一位</td></tr>
+              <tr><td>对局历史</td><td>最近 <span id="lim-history">10</span> 场</td><td>全部，可筛选翻页</td><td>全部</td></tr>
+              <tr><td>单局详情</td><td>每天 <span id="lim-detail">3</span> 场</td><td>不限次数</td><td>不限次数</td></tr>
+              <tr><td>我的主页（钉一个人到首页）</td><td class="ac-no">—</td><td class="ac-yes">✓</td><td class="ac-yes">✓</td></tr>
+              <tr><td>导出 / 分享</td><td class="ac-no">—</td><td class="ac-yes">✓</td><td class="ac-yes">✓</td></tr>
+              <tr><td>准星库 / 点位库</td><td class="ac-yes">✓</td><td class="ac-yes">✓</td><td class="ac-yes">✓</td></tr>
             </tbody>
           </table>
-          <p class="ac-tip" id="lim-note">免费额度按自然日重置；会员到期后自动回到普通用户，续期立刻恢复。</p>
+          <p class="ac-tip" id="lim-note">免费额度按自然日重置；会员到期后自动回到普通用户，续期立刻恢复。特约订阅在兑换时填上要查的那个人，之后只能查他。</p>
         </section>
         <p class="legal">本工具为非官方第三方项目，与 Riot Games、腾讯公司及《无畏契约》《掌上无畏契约》运营方无任何关联；相关名称与商标归各自权利人所有。</p>
       </aside>
     </div>
   </main>
 
-  <script src="/static/account.js?v=07e05a4fcd"></script>
+  <script src="/static/account.js?v=a46505a28a"></script>
 <script src="/static/statusdot.js?v=e4f8a35baa" defer></script>
 </body>
 </html>

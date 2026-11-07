@@ -106,7 +106,7 @@
     q("i-name").textContent = dispName;
     q("i-av").textContent = dispName.slice(0, 1).toUpperCase();
     q("i-sub").textContent = m.active
-      ? "会员 · 剩余 " + m.days_left + " 天"
+      ? (m.scope ? "特约订阅 · 只看 " + m.scope : "会员") + " · 剩余 " + m.days_left + " 天"
       : (m.known ? "会员已过期，续期后立刻恢复" : "普通用户 · 免费额度每天重置");
     q("d-qq").value = me.qq || "";
     q("i-enter").onclick = null;
@@ -114,7 +114,9 @@
     if (m.active) {
       q("i-status").innerHTML = '<span class="ac-badge on">有效</span>';
       q("i-expires").textContent = fmt(m.expires_at) + "（还剩 " + m.days_left + " 天）";
-      q("i-tip").textContent = "到期后查询会暂停，续期立刻恢复。";
+      q("i-tip").textContent = m.scope
+        ? "这是「只看 " + m.scope + "」的特约订阅：查别人会被挡下，需要升级成普通会员。"
+        : "到期后查询会暂停，续期立刻恢复。";
       q("i-enter").textContent = "进入站点";
       q("i-enter").href = "/";
       loadInvites(true);
