@@ -223,6 +223,9 @@ async function loadPlan() {
       qq: (data && data.qq) || "",
       // 特约订阅：这个会员只能查 scope 里的那一个人（后端强校验，这里只是把话说清楚）。
       scope: (data && data.member && data.member.scope) || "",
+      // 特约账号（正绑着人，或解绑过）：这类账号只能查绑定的那一个人。
+      scoped: !!(data && data.member && data.member.scoped),
+      canUnbind: !!(data && data.member && data.member.can_unbind),
       nick: (data && data.nick) || "",
     };
     const btn = $("#share-btn");
@@ -3056,7 +3059,38 @@ function initHomeMe() {
     $("#hm-meta").textContent = `特约订阅 · 只看 ${homeNick(PLAN.scope)}`;
     const foot = $("#hm-foot");
     if (foot) { foot.hidden = false; foot.textContent = `正在读取 ${PLAN.scope} …`; }
+    const unb = $("#hm-unbind");
+    if (unb) {
+      unb.hidden = !PLAN.canUnbind;
+      unb.addEventListener("click", () => {
+        if (!confirm(`确定解绑「${PLAN.scope}」？\n\n解绑机会只有这一次，解绑后要核销新的特约授权码才能再查人。`)) return;
+        unb.disabled = true;
+        fetch("/api/sub/unbind", { method: "POST", credentials: "same-origin" })
+          .then((r) => r.json().then((d) => ({ ok: r.ok, d })))
+          .then((res) => {
+            if (!res.ok) throw new Error((res.d && res.d.detail && res.d.detail.message) || "解绑失败");
+            alert("已解绑。要换人，核销一个新的特约授权码就行。");
+            location.reload();
+          })
+          .catch((err) => { unb.disabled = false; alert(err && err.message ? err.message : "解绑失败"); });
+      });
+    }
     homeBind(PLAN.scope);
+    return;
+  }
+  if (PLAN.scoped && !PLAN.scope) {
+    // 特约订阅解绑过、还没绑新人：不许在这儿随便绑一个，得先核销新的特约授权码。
+    box.hidden = false;
+    box.classList.remove("hidden");
+    $("#hm-body").hidden = true;
+    $("#hm-bind").hidden = true;
+    $("#hm-lock").hidden = false;
+    $("#hm-lock").innerHTML =
+      '你解绑了订阅人，现在查不了任何人。<br>要换人请先核销一个新的<b>特约授权码</b>（管理端生成时填上昵称#编号），核销后这里会自动绑上新的人。';
+    $("#hm-name").textContent = "我的主页";
+    $("#hm-meta").textContent = "特约订阅 · 还没绑定人";
+    const foot2 = $("#hm-foot");
+    if (foot2) { foot2.hidden = true; }
     return;
   }
   if (!one) {

@@ -106,7 +106,7 @@
     q("i-name").textContent = dispName;
     q("i-av").textContent = dispName.slice(0, 1).toUpperCase();
     q("i-sub").textContent = m.active
-      ? (m.scope ? "特约订阅 · 只看 " + m.scope : "会员") + " · 剩余 " + m.days_left + " 天"
+      ? (m.scope ? "特约订阅 · 只看 " + m.scope : (m.scoped ? "特约订阅 · 还没绑定人" : "会员")) + " · 剩余 " + m.days_left + " 天"
       : (m.known ? "会员已过期，续期后立刻恢复" : "普通用户 · 免费额度每天重置");
     q("d-qq").value = me.qq || "";
     q("i-enter").onclick = null;
@@ -115,8 +115,29 @@
       q("i-status").innerHTML = '<span class="ac-badge on">有效</span>';
       q("i-expires").textContent = fmt(m.expires_at) + "（还剩 " + m.days_left + " 天）";
       q("i-tip").textContent = m.scope
-        ? "这是「只看 " + m.scope + "」的特约订阅：查别人会被挡下，需要升级成普通会员。"
-        : "到期后查询会暂停，续期立刻恢复。";
+        ? "这是「只看 " + m.scope + "」的特约订阅：查别人会被挡下，需要升级成普通会员。绑错人可以解绑一次，解绑后要核销新的特约授权码才能再绑一个。"
+        : (m.scoped
+          ? "你解绑了订阅人：现在查不了任何人，核销一个新的特约授权码就能重新绑一个（还会再获得一次解绑机会）。"
+          : "到期后查询会暂停，续期立刻恢复。");
+      var unb = q("b-unbind");
+      if (unb) {
+        unb.hidden = !m.can_unbind;
+        unb.onclick = function () {
+          if (!confirm("确定解绑「" + m.scope + "」？\n\n解绑机会只有一次，解绑后要重新核销一个特约授权码才能查人。")) return;
+          unb.disabled = true;
+          fetch("/api/sub/unbind", { method: "POST", credentials: "same-origin" })
+            .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+            .then(function (res) {
+              if (!res.ok) throw new Error((res.d && res.d.detail && res.d.detail.message) || "解绑失败");
+              alert("已解绑。要换人，核销一个新的特约授权码就行。");
+              location.reload();
+            })
+            .catch(function (err) {
+              unb.disabled = false;
+              alert(err && err.message ? err.message : "解绑失败");
+            });
+        };
+      }
       q("i-enter").textContent = "进入站点";
       q("i-enter").href = "/";
       loadInvites(true);
