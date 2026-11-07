@@ -3231,7 +3231,10 @@ async function homeReload() {
     homeLockHtml();
     return;
   }
-  $("#hm-meta").textContent = `${HOME.state.slots > 0 ? "特约订阅" : "会员"} · ${homes.length}/${cap} 个主页位`;
+  const who = HOME.state.unlimited
+    ? (HOME.state.slots > 0 ? "会员 + 特约订阅" : "会员")
+    : (HOME.state.slots > 0 ? "特约订阅" : "会员");
+  $("#hm-meta").textContent = `${who} · ${homes.length}/${cap} 个主页位`;
   if (!homes.length) {
     $("#hm-lock").hidden = false;
     $("#hm-lock").innerHTML = '在下面挑一个人钉到首页——游戏 ID、掌瓦 ID、固定 ID 都行，打开网站就直接看到他的段位、最近 5 场、组队和资产。';
