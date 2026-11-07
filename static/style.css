@@ -4860,5 +4860,9 @@ footer.shell .legal{text-wrap:pretty;word-break:normal;overflow-wrap:break-word;
     text-align: left;
   }
   #export-date-row select { min-width: 92px; }
+  /* 日期区间：从/到各占一行，两个下拉都撑满剩余宽度，左边缘对齐 */
+  #export-date-row { align-items: center; }
+  #export-date-row select { flex: 1 1 120px; min-width: 0; }
+  #export-date-row > span.dim { flex: 1 0 100%; font-size: 11.5px; }
   .em-parts label > span { white-space: nowrap; }
 }

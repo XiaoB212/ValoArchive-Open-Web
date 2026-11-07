@@ -3280,8 +3280,9 @@ async function boot() {
     }, 1500);
     try {
       let res = await fetch(url);
+      let direct = null;
       if (res.status === 202) {
-        // 异步任务：POST/GET 领到 job 后轮询，最后再取成品文件（从磁盘直发，秒开）。
+        // 异步任务：领到 job 后轮询，完成后让浏览器直接下载成品文件。
         const seed = await res.json();
         const jobId = seed && seed.job;
         if (!jobId) throw new Error("后端没有返回任务号");
@@ -3295,9 +3296,26 @@ async function boot() {
           }
           const sd = await st.json();
           if (sd.status === "error") throw new Error(sd.message || "导出失败");
-          if (sd.status === "done" && sd.url) { res = await fetch(sd.url, { cache: "no-store" }); break; }
+          if (sd.status === "done" && sd.url) { direct = sd; break; }
         }
-        if (res.status === 202) throw new Error("导出超时了，稍后再试（任务还在后台跑）");
+        if (!direct) throw new Error("导出超时了，稍后再试（任务还在后台跑）");
+      }
+      if (direct) {
+        // 成品后端从磁盘直发（带 content-disposition）：交给浏览器原生下载。
+        // 不要 fetch 成 blob —— 几十 MB 的 PDF 在手机上很容易中途断掉。
+        const link = document.createElement("a");
+        link.href = direct.url;
+        link.download = direct.filename || "export.pdf";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        closeExportDialog();
+        const cost = direct.seconds
+          ? String(Math.round(Number(direct.seconds)))
+          : ((Date.now() - started) / 1000).toFixed(1);
+        btn.textContent = `已下载 · 用时 ${cost} 秒`;
+        setTimeout(() => { btn.textContent = original; btn.title = ""; }, 4000);
+        return;
       }
       if (!res.ok) {
         let detail = `HTTP ${res.status}`;
