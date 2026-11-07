@@ -3281,7 +3281,7 @@ async function homeBind() {
     if (!res.ok) throw new Error((data.detail && data.detail.message) || "绑定失败，稍后再试");
     if (input) input.value = "";
     if (codeInput) codeInput.value = "";
-    if (hint) hint.textContent = "填授权码 + 想盯的人，点一下就把码用掉并直接绑定这个人。";
+    if (hint) hint.textContent = "填授权码 + 想盯的人，一键激活并绑定。";
     await homeReload();
   } catch (err) {
     const lock = $("#hm-lock");

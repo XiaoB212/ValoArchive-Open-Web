@@ -5297,3 +5297,9 @@ body.me-view .home-faq { display: none; }
 .hm-bind .hm-bindrow.hm-actrow { margin-top: 0; }
 .hm-bind .hm-hint { margin: 0; }
 .hm-bind #hm-save { flex: 0 0 auto; min-width: 88px; height: 36px; }
+
+/* v28：绑定区不再横向拉满整张卡，桌面端收成一块紧凑的表单 */
+@media (min-width: 721px) {
+  .hm-bind { max-width: 340px; }
+  .hm-bind .hm-hint { max-width: 340px; }
+}
