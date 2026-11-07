@@ -177,7 +177,7 @@ window.VALO_CONFIG = {
   // 缓存活了多久：比赛详情是历史数据，可以放很久；玩家资料会变，短一点。
   function ttlFor(url) {
     var p = String(url).replace(/^https?:\/\/[^/]+/, "");
-    if (/^\/api\/(health|gate)/.test(p)) return 0;
+    if (/^\/api\/(health|gate|auth)/.test(p)) return 0;
     // 导出与卡片返回的是二进制（PNG/PDF/ZIP），缓存层只会把 blob 当文本存坏，
     // 第二次请求就拿到一个 content-type 是 json 的假文件。一律不缓存。
     if (/^\/api\/(export|card)/.test(p)) return 0;
