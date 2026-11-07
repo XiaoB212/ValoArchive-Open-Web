@@ -3462,8 +3462,16 @@ async function boot() {
         for (let i = 0; i < 200; i += 1) {
           await new Promise((r) => setTimeout(r, 1500));
           btn.textContent = `生成中… ${((Date.now() - began) / 1000).toFixed(0)}s`;
-          const st = await api.get(`/api/share/job/${seed.job}`);
-          if (st && st.status === "error") throw new Error(st.message || "生成失败");
+          // API 重启那几秒代理会回 502「后端不可达」，等下一轮再问，别直接判失败。
+          let st = null;
+          try {
+            st = await api.get(`/api/share/job/${seed.job}`);
+          } catch (err) {
+            const code = err && (err.status || err.code);
+            if (code !== 502 && code !== 503 && code !== 504 && String(err && err.message).indexOf("不可达") < 0) throw err;
+          }
+          if (!st) continue;
+          if (st.status === "error") throw new Error(st.message || "生成失败");
           if (st && st.status === "done" && st.url) { info = st; break; }
         }
         if (!info.url) throw new Error("生成超时了，过一会儿再点一次");
@@ -3542,6 +3550,23 @@ async function boot() {
       // 先领任务号：渲染一次动辄 40~70 秒，EdgeOne 30 秒就回 524，同步下载必挂。
       + "&defer=1";
 
+    /* 站点代理在 API 重启的那几秒会回 502「后端不可达」。导出/分享是长任务，
+       这种瞬断不该让用户看到「失败」，等几秒继续问同一个任务号即可。 */
+    const exportFetch = async (target, tries = 6) => {
+      let last = null;
+      for (let i = 0; i < tries; i += 1) {
+        try {
+          const r = await fetch(target, { cache: "no-store" });
+          if (r.status !== 502 && r.status !== 503 && r.status !== 504) return r;
+          last = r;
+        } catch (err) {
+          last = err;
+        }
+        await new Promise((ok) => setTimeout(ok, 1500));
+      }
+      return last instanceof Error ? null : last;
+    };
+
     // 一律走 blob 下载：浏览器静默落到下载目录，页面不转圈、不弹新标签。
     // （开新标签看 PDF 时要等几十秒渲染，标签一直转圈，用户以为整页卡死了。）
 
@@ -3578,7 +3603,11 @@ async function boot() {
         if (!jobId) throw new Error("后端没有返回任务号");
         for (let i = 0; i < 400; i += 1) {
           await new Promise((r) => setTimeout(r, 1500));
-          const st = await fetch(`/api/export/job/${jobId}`, { cache: "no-store" });
+          // 后端重启的那几秒，站点代理会回 502「后端不可达」：这不是导出失败，
+          // 等它几秒继续问同一个任务号就行（任务在 API 进程里，重启会丢，所以
+          // 连续失败太多次才放弃）。
+          const st = await exportFetch(`/api/export/job/${jobId}`, 8);
+          if (!st) throw new Error("后端刚重启，任务丢了，再点一次导出就好");
           if (!st.ok) {
             let detail = `HTTP ${st.status}`;
             try { detail = (await st.json()).detail || detail; } catch (_) { /* ignore */ }
