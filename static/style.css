@@ -5143,3 +5143,37 @@ body.me-view .home-faq { display: none; }
 @media (max-width: 720px) {
   .hm-card .hm-sec.assets { padding: 10px 14px 12px; }
 }
+
+/* 段位条：压在卡头下面的一行（段位 · 等级 · 近 5 场胜负/RR） */
+.hm-card .hm-sec.rankstrip { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+  padding: 10px 18px 11px; border-top: 1px solid rgba(20, 101, 79, .07); background: #fbfdfc; }
+.hm-card .hm-sec.rankstrip .hm-k { flex: 0 0 auto; }
+.hm-card .hm-sec.rankstrip .hm-v { margin: 0; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; font-size: 13px; }
+.hm-card .hm-sec.assets .hm-v .hm-up { font-style: normal; color: #0e7c6b; font-weight: 700; }
+@media (max-width: 720px) {
+  .hm-card .hm-sec.rankstrip { padding: 9px 14px 10px; }
+}
+
+/* 段位条要横着排（覆盖上面统一的竖排） */
+.hm-card .hm-sec.rankstrip .hm-v { flex-direction: row; flex-wrap: wrap; }
+
+/* 最近 10 场战绩：两列排，紧凑；顶部「比上次有变化」横幅 */
+.hm-card .hm-sec.matches { padding: 11px 18px 12px; border-top: 1px solid rgba(20, 101, 79, .07); }
+.hm-card .hm-sec.matches .hm-row { display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; align-items: center;
+  gap: 8px; padding: 4px 0; font-size: 12.5px; border-top: 1px dashed rgba(20, 101, 79, .06); }
+.hm-card .hm-sec.matches .hm-row:first-of-type { border-top: 0; }
+.hm-card .hm-sec.matches .hm-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; }
+.hm-card .hm-sec.matches .hm-dot.w { background: #16a34a; }
+.hm-card .hm-sec.matches .hm-dot.l { background: #dc2626; }
+.hm-card .hm-sec.matches .hm-map { font-weight: 600; color: #22332d; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hm-card .hm-sec.matches .hm-kda { color: #2f4a42; font-variant-numeric: tabular-nums; }
+.hm-card .hm-sec.matches .hm-dim { font-variant-numeric: tabular-nums; }
+.hm-card > .hm-upd { margin: 0; padding: 8px 18px; font-size: 12px; color: #7a4a08;
+  background: linear-gradient(180deg, #fdf6ea, #fdf9f2); border-top: 1px solid #f2e2c6; }
+.hm-card > .hm-upd b { color: #8a5209; }
+
+/* 最近 10 场：四列（胜负点 / 地图 / KDA / ACS），别让 ACS 掉下去 */
+.hm-card .hm-sec.matches .hm-row { grid-template-columns: 12px minmax(0, 1fr) auto auto; gap: 10px; padding: 5px 0; }
+.hm-card .hm-sec.matches .hm-dot { margin-right: 0; width: 6px; height: 6px; }
+.hm-card .hm-sec.matches .hm-kda { text-align: right; }
+.hm-card .hm-sec.matches .hm-dim { min-width: 62px; text-align: right; }

@@ -2804,7 +2804,7 @@ function initSearchHistory() {
 
 const HOME_CACHE = "va.home.v2";
 const HOME_LABELS = { skins: "皮肤", cards: "卡面", sprays: "喷漆", charms: "挂饰" };
-const HOME = { state: null, mode: "game" };
+const HOME = { state: null, mode: "game", notes: {} };
 
 function homeCacheAll() {
   try { return JSON.parse(localStorage.getItem(HOME_CACHE) || "{}") || {}; } catch (_) { return {}; }
@@ -3005,16 +3005,29 @@ function homePartyRows(extra, freshMateSet) {
     </div>`).join("");
 }
 
+function homeRankDetailHtml(data) {
+  const rows = (data.recent && data.recent.rows) || [];
+  const p = data.player || {};
+  const wins = rows.filter((r) => r.win).length;
+  const rr = rows.reduce((sum, r) => sum + (Number(r.rr) || 0), 0);
+  const bits = [];
+  if (p.level) bits.push(`<span class="hm-dim">等级 <b>${p.level}</b></span>`);
+  if (rows.length) bits.push(`<span class="hm-dim">近 ${rows.length} 场 <b>${wins}</b> 胜 <b>${rows.length - wins}</b> 负</span>`);
+  if (rr) bits.push(`<span class="${rr > 0 ? "hm-up" : "hm-down"}">RR ${rr > 0 ? "+" : ""}${rr}</span>`);
+  if (p.puuid) bits.push(`<span class="hm-dim">固定 ID ${escapeHtml(p.puuid.slice(0, 8))}…</span>`);
+  return bits.length ? bits.join("<br>") : '<span class="hm-dim">没有段位数据</span>';
+}
+
 function homePartyStatsHtml(data, party) {
   const rows = [];
-  if (party.party_rate) rows.push(`<span class="hm-dim">${party.party_matches || 0} 场里 ${party.party_rate}% 有人一起</span>`);
+  if (party.party_rate) rows.push(`<span class="hm-dim">${party.party_matches || 0} 场里 ${party.party_rate}% 有人一起 · 组队人数分布：</span>`);
   const dist = party.distribution || {};
   const bits = Object.keys(dist).sort((a, b) => Number(b) - Number(a)).slice(0, 3)
-    .map((k) => `<span class="hm-dim">${k} 人组队 <b>${dist[k]}</b></span>`);
-  if (bits.length) rows.push(bits.join(" "));
+    .map((k) => `<span class="hm-dim">${k} 人 <b>${dist[k]}</b> 场</span>`);
+  if (bits.length) rows.push(`<span class="hm-dim">${bits.join(" · ")}</span>`);
   const mates = (party.mates || party.teammates || []).slice(0, 3);
   if (mates.length) {
-    rows.push(mates.map((m) => `<span class="hm-row"><span class="hm-map">${escapeHtml(homeNick(m.name))}</span><span class="hm-dim">${m.count ? `×${m.count}` : ""}</span></span>`).join(""));
+    rows.push(mates.map((m) => `<span class="hm-row"><span class="hm-map">${escapeHtml(homeNick(m.name))}</span>${m.count ? `<span class="hm-dim">×${m.count}</span>` : ""}</span>`).join(""));
   }
   return rows.length ? rows.join("") : '<span class="hm-dim">最近没有组队记录</span>';
 }
@@ -3055,10 +3068,26 @@ function homeSlotHtml(home, i, note) {
   mateSeen[kw] = mateNamesNow;
   seenSave(MATE_SEEN, mateSeen);
   const mateFresh = new Set(prevMates.length ? mateNamesNow.filter((n) => !prevMates.includes(n)) : []);
-  const assetBlock = assetDelta
-    ? `<section class="hm-sec assets"><span class="hm-k">资产变化</span><div class="hm-v">${assetDelta.gains.map((g) => `<span class="hm-up">${escapeHtml(g)}</span>`).join(" ")}${assetDelta.newest ? `<span class="hm-dim">最近获得 ${escapeHtml(assetDelta.newest)}</span>` : ""}</div></section>`
+  const gained = new Set((assetDelta && assetDelta.gains || []).map((g) => g.split(" ")[0]));
+  const counts = (data.assets && data.assets.counts) || {};
+  const assetBits = ["skins", "cards", "sprays", "charms"].filter((k) => counts[k] !== undefined).map((k) => {
+    const plus = assetDelta && assetDelta.gains.find((g) => g.startsWith(HOME_LABELS[k])) ? assetDelta.gains.find((g) => g.startsWith(HOME_LABELS[k])).split(" ")[1] : "";
+    return `<span class="hm-dim">${HOME_LABELS[k]} <b>${counts[k]}</b>${plus ? ` <i class="hm-up">${plus}</i>` : ""}</span>`;
+  }).join("");
+  const assetBlock = assetBits
+    ? `<section class="hm-sec assets"><span class="hm-k">资产${assetDelta ? " · 有变化" : ""}</span><div class="hm-v">${assetBits}${assetDelta && assetDelta.newest ? `<span class="hm-dim">最近获得 ${escapeHtml(assetDelta.newest)}</span>` : ""}</div></section>`
+    : "";
+  const rankStrip = `<section class="hm-sec rankstrip"><span class="hm-k">段位情况</span><div class="hm-v">${homeRankHtml(data)}</div></section>`;
+  const upd = note && note.length
+    ? `<p class="hm-upd"><b>比上次有变化</b> ${escapeHtml(note.join(" · "))}</p>`
     : "";
   return `<article class="hm-card" data-i="${i}" data-kw="${escapeHtml(kw)}">${head}
+    ${upd}
+    <section class="hm-sec matches">
+      <header class="hm-colh"><span>最近 10 场战绩</span><em>${(data.recent && data.recent.rows || []).length ? `共 ${data.recent.total || data.recent.rows.length} 场记录` : ""}</em></header>
+      ${homeRecentHtml(data)}
+    </section>
+    ${rankStrip}
     <div class="hm-cols">
       <section class="hm-col">
         <header class="hm-colh"><span>好友列表</span><em>${friendN ? `${friendN} 人 · 近一月同排` : ""}</em></header>
@@ -3071,12 +3100,12 @@ function homeSlotHtml(home, i, note) {
     </div>
     <div class="hm-cols">
       <section class="hm-col">
-        <header class="hm-colh"><span>战绩历史</span><em>${(data.recent && data.recent.rows || []).length ? `最近 ${data.recent.rows.length} 场` : ""}</em></header>
-        ${homeRecentHtml(data)}
-      </section>
-      <section class="hm-col">
         <header class="hm-colh"><span>组队表现</span><em>${party.party_matches ? `${party.party_matches} 场有人一起` : ""}</em></header>
         ${homePartyStatsHtml(data, party)}
+      </section>
+      <section class="hm-col">
+        <header class="hm-colh"><span>段位细节</span></header>
+        ${homeRankDetailHtml(data)}
       </section>
     </div>
     ${assetBlock}
@@ -3090,7 +3119,7 @@ function homePaint(notes) {
   const box = $("#hm-slots");
   if (!box || !HOME.state) return;
   const list = HOME.state.homes || [];
-  const map = notes || {};
+  const map = notes || HOME.notes || {};
   box.innerHTML = list.map((home, i) => homeSlotHtml(home, i, map[i] || [])).join("");
 }
 
@@ -3104,9 +3133,10 @@ async function homeLoadOne(home, i, force) {
       api.get("/api/player/social", { keyword: kw, mode, limit: 40 }).catch(() => null),
       api.get("/api/party", { keyword: kw, mode, limit: 20 }).catch(() => null),
     ]);
-    const note = force && cached ? homeDiff(cached.data, data) : [];
+    const note = cached ? homeDiff(cached.data, data) : [];
+    if (note && note.length) HOME.notes[i] = note;
     homeCacheSet(kw, data, { social, party });
-    homePaint({ [i]: note });
+    homePaint();
   } catch (err) {
     if (cached) return;
     const wait = document.querySelector(`.hm-card[data-i="${i}"] .hm-wait`);
@@ -3184,6 +3214,7 @@ async function homeBind() {
 }
 
 async function homeSwap(index) {
+  delete HOME.notes[index];
   const homes = (HOME.state && HOME.state.homes) || [];
   const home = homes[index];
   if (!home) return;
