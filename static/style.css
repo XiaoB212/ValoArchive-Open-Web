@@ -5289,3 +5289,11 @@ body.me-view .home-faq { display: none; }
 .hm-hint { margin: 4px 0 0; font-size: 11.5px; }
 .hm-bind .hm-bindrow { display: flex; gap: 8px; align-items: center; }
 .hm-bind .hm-bindrow input { flex: 1 1 auto; min-width: 0; }
+
+/* v27：我的订阅 · 绑定区改成竖排同宽，所有行左对齐，不再一层层往下斜 */
+.hm-bind { flex-direction: column; align-items: stretch; gap: 8px; }
+.hm-bind .hm-modes { margin: 0; }
+.hm-bind .hm-bindrow { width: 100%; }
+.hm-bind .hm-bindrow.hm-actrow { margin-top: 0; }
+.hm-bind .hm-hint { margin: 0; }
+.hm-bind #hm-save { flex: 0 0 auto; min-width: 88px; height: 36px; }
