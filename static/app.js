@@ -2874,15 +2874,49 @@ function homeRankHtml(data) {
   return bits.join(" ");
 }
 
+function homeQueue(row) {
+  const qn = Number(row.party) || 1;
+  return qn >= 5 ? "五排" : qn === 4 ? "四人排" : qn === 3 ? "三排" : qn === 2 ? "双排" : "单排";
+}
+
+/* 我的订阅里的战绩行：和「对局历史」同一套 .row，只是缩一档（去段位、缩字号） */
+function homeRowHtml(row) {
+  const win = Number(row.win) === 1;
+  const draw = row.draw === true;
+  const cls = draw ? "draw" : win ? "win" : "loss";
+  const res = draw ? "平局" : win ? "胜利" : "失败";
+  const kda = `${row.kills}<small>/</small>${row.deaths}<small>/</small>${row.assists}`;
+  const rounds = row.rounds_for || row.rounds_against
+    ? `${row.rounds_for}<small>:</small>${row.rounds_against}`
+    : "—";
+  return `
+    <a class="row compact ${cls}" data-match="${escapeHtml(row.match_id || "")}" href="#"${row.map_cover ? ` style="--cover:url('${img(row.map_cover)}')"` : ""}>
+      <span class="spine"></span>
+      <span class="agent">${row.agent_icon ? `<img src="${img(row.agent_icon)}" alt="">` : `<span class="blank"></span>`}</span>
+      <div class="map">
+        <b><span class="map-name">${escapeHtml(row.map || "未知地图")}</span></b>
+        <span>${escapeHtml(homeQueue(row))} · ${timeRange(row)}</span>
+      </div>
+      <div class="mode"><span class="mode-chip">${escapeHtml(String(row.mode_name || "未知").replace("模式", ""))}</span></div>
+      <div class="mid"><span class="kda">${kda}</span><span class="acs"><span class="rounds">${rounds}</span> · ${row.acs || 0} ACS</span></div>
+      <div class="tail"><span class="res">${res}</span></div>
+    </a>`;
+}
+
 function homeRecentHtml(data) {
   const rows = (data.recent && data.recent.rows) || [];
   if (!rows.length) return '<span class="hm-dim">还没有对局记录</span>';
   return rows.map((row) => {
     const kda = row.d ? `${row.k}/${row.d}/${row.a}` : "";
     const tip = [row.time, row.map, kda, `${row.acs} ACS`, `${row.party} 人组队`].filter(Boolean).join(" · ");
+    const qn = Number(row.party) || 1;
+    const queue = qn >= 5 ? "五排" : qn === 4 ? "四人排" : qn === 3 ? "三排" : qn === 2 ? "双排" : "单排";
+    const modeName = String(row.mode || "").replace("模式", "");
+    const qtag = [modeName, queue].filter(Boolean).join(" · ");
     return `<span class="hm-row" title="${escapeHtml(tip)}">
       <i class="hm-dot ${row.win ? "w" : "l"}"></i>
       <span class="hm-map">${escapeHtml(row.map || "?")}</span>
+      <span class="hm-q">${escapeHtml(qtag)}</span>
       ${kda ? `<span class="hm-kda">${kda}</span>` : ""}
       <span class="hm-dim">${row.acs ? `${row.acs} ACS` : ""}</span>
     </span>`;
@@ -3077,6 +3111,11 @@ function homeSlotHtml(home, i, note) {
   const assetBlock = assetBits
     ? `<section class="hm-sec assets"><span class="hm-k">资产${assetDelta ? " · 有变化" : ""}</span><div class="hm-v">${assetBits}${assetDelta && assetDelta.newest ? `<span class="hm-dim">最近获得 ${escapeHtml(assetDelta.newest)}</span>` : ""}</div></section>`
     : "";
+  const hrows = (extra.hist && extra.hist.rows) || [];
+  const histTotal = (extra.hist && extra.hist.total) || (data.recent && data.recent.total) || 0;
+  const histRows = hrows.length
+    ? hrows.map(homeRowHtml).join("")
+    : '<p class="dim hm-wait">这一页没有记录。</p>';
   const rankStrip = `<section class="hm-sec rankstrip"><span class="hm-k">段位情况</span><div class="hm-v">${homeRankHtml(data)}</div></section>`;
   const upd = note && note.length
     ? `<p class="hm-upd"><b>比上次有变化</b> ${escapeHtml(note.join(" · "))}</p>`
@@ -3084,8 +3123,8 @@ function homeSlotHtml(home, i, note) {
   return `<article class="hm-card" data-i="${i}" data-kw="${escapeHtml(kw)}">${head}
     ${upd}
     <section class="hm-sec matches">
-      <header class="hm-colh"><span>最近 10 场战绩</span><em>${(data.recent && data.recent.rows || []).length ? `共 ${data.recent.total || data.recent.rows.length} 场记录` : ""}</em></header>
-      ${homeRecentHtml(data)}
+      <header class="hm-colh"><span>最近战绩</span><em>${histTotal ? `共 ${histTotal} 场记录` : ""}</em></header>
+      <div class="rows hm-rows" data-kw="${escapeHtml(kw)}">${histRows}</div>
     </section>
     ${rankStrip}
     <div class="hm-cols">
@@ -3115,12 +3154,25 @@ function homeSlotHtml(home, i, note) {
   </article>`;
 }
 
+function homeRowsBind(box) {
+  if (!box) return;
+  box.querySelectorAll(".hm-card .hm-rows .row").forEach((el) => {
+    if (el.dataset.bound) return;
+    el.dataset.bound = "1";
+    el.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      if (el.dataset.match) loadMatch(el.dataset.match, el);
+    });
+  });
+}
+
 function homePaint(notes) {
   const box = $("#hm-slots");
   if (!box || !HOME.state) return;
   const list = HOME.state.homes || [];
   const map = notes || HOME.notes || {};
   box.innerHTML = list.map((home, i) => homeSlotHtml(home, i, map[i] || [])).join("");
+  homeRowsBind(box);
 }
 
 async function homeLoadOne(home, i, force) {
@@ -3128,14 +3180,15 @@ async function homeLoadOne(home, i, force) {
   const cached = homeCacheGet(kw);
   try {
     const mode = home.mode || "game";
-    const [data, social, party] = await Promise.all([
+    const [data, social, party, hist] = await Promise.all([
       api.get("/api/home/overview", { keyword: kw, mode }),
       api.get("/api/player/social", { keyword: kw, mode, limit: 40 }).catch(() => null),
       api.get("/api/party", { keyword: kw, mode, limit: 20 }).catch(() => null),
+      api.get("/api/player/history", { keyword: kw, mode, page: 1, size: 10, filter: "all", gm: "all", sort: "unlock", order: "desc" }).catch(() => null),
     ]);
     const note = cached ? homeDiff(cached.data, data) : [];
     if (note && note.length) HOME.notes[i] = note;
-    homeCacheSet(kw, data, { social, party });
+    homeCacheSet(kw, data, { social, party, hist });
     homePaint();
   } catch (err) {
     if (cached) return;

@@ -5177,3 +5177,27 @@ body.me-view .home-faq { display: none; }
 .hm-card .hm-sec.matches .hm-dot { margin-right: 0; width: 6px; height: 6px; }
 .hm-card .hm-sec.matches .hm-kda { text-align: right; }
 .hm-card .hm-sec.matches .hm-dim { min-width: 62px; text-align: right; }
+
+/* 最近场次上的「模式 · 几排」标签 */
+.hm-card .hm-sec.matches .hm-row { grid-template-columns: 12px minmax(0, 1fr) auto auto auto; }
+.hm-card .hm-q { font-size: 11px; color: #6f837c; background: #f1f6f4; border-radius: 6px;
+  padding: 1px 6px; white-space: nowrap; }
+
+/* 我的订阅里的战绩列表：直接用对局历史那套 .rows .row，只收一下外边距 */
+.hm-card .hm-rows { display: flex; flex-direction: column; gap: 6px; margin-top: 2px; }
+.hm-card .hm-rows .row { padding: 8px 10px; border-radius: 12px; }
+
+/* 我的订阅：战绩行缩略版（6 列，去掉段位列） */
+.hm-card .hm-rows .row.compact {
+  grid-template-columns: 4px 34px minmax(0, 1fr) auto auto 56px;
+  gap: 10px;
+  padding: 7px 10px 7px 0;
+}
+.hm-card .hm-rows .row.compact .agent { width: 34px; height: 34px; }
+.hm-card .hm-rows .row.compact .agent img { width: 34px; height: 34px; border-radius: 8px; }
+.hm-card .hm-rows .row.compact .map b { font-size: 13.5px; }
+.hm-card .hm-rows .row.compact .map span { font-size: 11px; }
+.hm-card .hm-rows .row.compact .mode-chip { font-size: 10.5px; padding: 1px 6px; }
+.hm-card .hm-rows .row.compact .mid .kda { font-size: 15px; }
+.hm-card .hm-rows .row.compact .mid .acs { font-size: 11px; }
+.hm-card .hm-rows .row.compact .res { font-size: 11px; }
