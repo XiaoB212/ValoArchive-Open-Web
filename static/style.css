@@ -3404,6 +3404,8 @@ body.modal-open { overflow: hidden; }
 }
 .gm-menu button:hover { background: var(--accent-soft); }
 .gm-menu em { color: var(--muted); font-style: normal; font-size: 12px; font-variant-numeric: tabular-nums; }
+.gm-menu button.is-zero { opacity: .55; }
+.gm-menu button.is-zero:hover { opacity: 1; }
 .gm-menu-tip { margin: 10px; font-size: 12.5px; color: var(--muted); }
 
 /* 八队头像按掌瓦的样子着色：队伍色描边 + 淡色底（描边用 inset 阴影，不改尺寸） */

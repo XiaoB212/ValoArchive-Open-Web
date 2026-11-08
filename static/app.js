@@ -1293,8 +1293,8 @@ async function openGmMenu(anchor) {
     menu.innerHTML = groups.map((group) => (
       `<section><h4>${escapeHtml(group.label)}</h4>` +
       group.items.map((item) => (
-        `<button type="button" data-gm="${escapeHtml(item.id)}" data-label="${escapeHtml(item.label)}">` +
-        `<span>${escapeHtml(item.label)}</span><em>${Number(item.count) || 0}</em></button>`
+        `<button type="button"${Number(item.count) ? "" : ' class="is-zero"'} data-gm="${escapeHtml(item.id)}" data-label="${escapeHtml(item.label)}">` +
+        `<span>${escapeHtml(item.label)}</span><em>${Number(item.count) || "—"}</em></button>`
       )).join("") + "</section>"
     )).join("") + '<button type="button" data-gm="other" data-label="其他 / 自定义">只看「其他 / 自定义」</button>';
     placeGmMenu(menu, anchor);
