@@ -6,7 +6,7 @@
 <title>准星库 · VALO ARCHIVE</title>
 <link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=4" sizes="any" />
 <link rel="stylesheet" href="/static/style.css?v=865b38bab4" />
-<link rel="stylesheet" href="/static/tools.css?v=dcbc4fe126" />
+<link rel="stylesheet" href="/static/tools.css?v=86d3790d44" />
 </head>
 <body>
 <div class="grid-bg" aria-hidden="true"></div>
@@ -49,6 +49,7 @@
   </div>
 
   <div class="cards" id="cards"></div>
+  <div class="more-row"><button class="btn small" id="more" hidden>加载更多</button></div>
   <div class="empty" id="empty" style="display: none">这个筛选下还没有内容。</div>
 
   <div class="card-panel" id="form" style="display: none; margin-top: 20px">
@@ -140,24 +141,42 @@
     return box;
   }
 
+  const PAGE = 96;
+  let allRows = [];
+  let shown = 0;
+
+  function paintMore(step) {
+    const grid = $("#cards");
+    const next = Math.min(allRows.length, shown + step);
+    for (let i = shown; i < next; i += 1) grid.appendChild(card(allRows[i]));
+    shown = next;
+    const more = $("#more");
+    const left = allRows.length - shown;
+    more.hidden = left <= 0;
+    if (left > 0) more.textContent = "再看 " + Math.min(PAGE, left) + " 款（还剩 " + left + "）";
+  }
+
   async function load() {
-    const url = "/api/library/crosshairs?limit=400"
+    const url = "/api/library/crosshairs?limit=800"
       + "&tag=" + encodeURIComponent(tag)
       + "&q=" + encodeURIComponent(keyword);
     const grid = $("#cards");
     grid.innerHTML = "";
-    let rows = [];
+    allRows = [];
+    shown = 0;
     try {
       const data = await (await fetch(url)).json();
-      rows = data.rows || [];
+      allRows = data.rows || [];
     } catch (err) {
       toast("库暂时读不到，稍后再试");
     }
-    $("#empty").style.display = rows.length ? "none" : "block";
+    $("#empty").style.display = allRows.length ? "none" : "block";
     const countEl = $("#count");
-    if (countEl) countEl.textContent = rows.length ? "共 " + rows.length + " 款" : "";
-    rows.forEach((row) => grid.appendChild(card(row)));
+    if (countEl) countEl.textContent = allRows.length ? "共 " + allRows.length + " 款" : "";
+    paintMore(PAGE);
   }
+
+  $("#more").addEventListener("click", () => paintMore(PAGE));
 
   $("#tag-chips").addEventListener("click", (ev) => {
     const chip = ev.target.closest(".tool-chip[data-tag]");
