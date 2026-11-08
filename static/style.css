@@ -3217,6 +3217,17 @@ table.iq-table .num { text-align: right; font-variant-numeric: tabular-nums; }
 }
 .board-sep.team-multi td { border-top-color: var(--team-color, var(--line)); }
 .board-sep.team-multi b { color: var(--fg); }
+/* 异变轮战队头：左名字、右统计，右边对齐才不会一队长一队短 */
+.team-hd { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; width: 100%; }
+.team-id { display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+.team-tag { font-style: normal; font-size: 11px; padding: 1px 6px; border-radius: 999px; white-space: nowrap; }
+.team-tag.first { background: var(--gold-soft, rgba(168,122,34,.16)); color: var(--gold); }
+.team-tag.you { background: var(--accent-soft); color: var(--accent-ink, var(--accent)); }
+.team-meta { margin-left: auto; color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* 手机上队名和统计挤不进一行：统计固定另起一行、右对齐，这样每队都是两行、右边一样齐 */
+@media (max-width: 720px) {
+  .team-meta { width: 100%; margin-left: 0; text-align: right; }
+}
 .side-color.multi {
   background: var(--side, var(--line)); color: #fff; font-weight: 600;
 }
@@ -3375,6 +3386,25 @@ body.modal-open { overflow: hidden; }
 /* ── 查看模式：小按钮组（和对局记录里的「全部 / 只看组队」同一套 chip）─── */
 .view-mode { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 5px; }
 .view-mode .chip { height: 26px; }
+
+/* 「其他 / 自定义」点开的模式清单：位置由 JS 按 chip 算，fixed 所以不会跟着工具栏横向滚 */
+.gm-menu {
+  position: fixed; z-index: 80; padding: 6px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, .22);
+  max-height: min(70vh, 420px); overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.gm-menu section + section { border-top: 1px solid var(--line); margin-top: 4px; padding-top: 2px; }
+.gm-menu h4 { margin: 6px 8px 2px; font-size: 11px; letter-spacing: .06em; color: var(--muted); font-weight: 500; }
+.gm-menu button {
+  display: flex; justify-content: space-between; gap: 10px; width: 100%;
+  padding: 7px 9px; border: 0; border-radius: 9px; background: none;
+  color: var(--ink); font: inherit; font-size: 13px; text-align: left; cursor: pointer;
+}
+.gm-menu button:hover { background: var(--accent-soft); }
+.gm-menu em { color: var(--muted); font-style: normal; font-size: 12px; font-variant-numeric: tabular-nums; }
+.gm-menu-tip { margin: 10px; font-size: 12.5px; color: var(--muted); }
 
 /* 八队头像按掌瓦的样子着色：队伍色描边 + 淡色底（描边用 inset 阴影，不改尺寸） */
 .face.team-tint,

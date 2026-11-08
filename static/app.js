@@ -39,6 +39,10 @@ const state = {
   gm: (() => {
     try { return localStorage.getItem("valo.gm") || "all"; } catch (_) { return "all"; }
   })(),
+  // 选了清单里的具体模式时，记下它的中文名给 chip 用（刷新页面也能显示「其他 · 个人乱斗」）
+  gmLabel: (() => {
+    try { return localStorage.getItem("valo.gmLabel") || ""; } catch (_) { return ""; }
+  })(),
   total: 0,
   rows: [],
   matchId: null,
@@ -1187,7 +1191,7 @@ function syncModeOptions(payload) {
   if (!box || !Array.isArray(groups) || !groups.length) return;
   // 老版本存下来的模式筛选（deathmatch / hurm / ggteam 这些单队列 key）已经没用了，
   // 新后端只认大类；不认的值回到「全部」，否则会显示成一颗都没选中。
-  if (state.gm !== "all" && !groups.some((g) => g.id === state.gm)) {
+  if (state.gm !== "all" && !/^[mn]:/.test(state.gm) && !groups.some((g) => g.id === state.gm)) {
     state.gm = "all";
     try { localStorage.setItem("valo.gm", "all"); } catch (_) { /* 隐私模式忽略 */ }
   }
@@ -1197,7 +1201,7 @@ function syncModeOptions(payload) {
     return;
   }
   box.innerHTML = groups
-    .map((g) => `<button type="button" class="chip" data-gm="${escapeHtml(g.id)}">${escapeHtml(g.label)}</button>`)
+    .map((g) => `<button type="button" class="chip" data-gm="${escapeHtml(g.id)}" data-label="${escapeHtml(g.label)}">${escapeHtml(g.label)}</button>`)
     .join("");
   if (box.dataset) box.dataset.modeSig = sig;
   const sel = $("#gm-select");
@@ -1211,17 +1215,101 @@ function syncModeOptions(payload) {
 
 // 「查看模式」做成和对局记录里「全部 / 只看组队」一样的小按钮
 function syncModeChips() {
-  $$("#view-mode button").forEach((btn) =>
-    btn.classList.toggle("active", (btn.dataset.gm || "all") === state.gm));
+  const custom = /^[mn]:/.test(state.gm || "");
+  $$("#view-mode button").forEach((btn) => {
+    const id = btn.dataset.gm || "all";
+    const on = custom ? id === "other" : id === state.gm;
+    btn.classList.toggle("active", on);
+    if (id === "other") {
+      // 选了清单里的某个具体模式时，这颗 chip 直接显示选的是哪个，不用再猜
+      btn.textContent = custom ? `其他 · ${state.gmLabel || "自选"}` : (btn.dataset.label || "其他 / 自定义");
+    }
+  });
   const sel = $("#gm-select");
-  if (sel && sel.value !== state.gm) sel.value = state.gm;
+  if (sel) {
+    const want = custom ? "other" : state.gm;
+    if (sel.value !== want) sel.value = want;
+  }
 }
 
-function setGm(value) {
+function setGm(value, label) {
   state.gm = value || "all";
+  state.gmLabel = /^[mn]:/.test(state.gm) ? (label || state.gmLabel || "") : "";
+  try {
+    localStorage.setItem("valo.gm", state.gm);
+    if (state.gmLabel) localStorage.setItem("valo.gmLabel", state.gmLabel);
+    else localStorage.removeItem("valo.gmLabel");
+  } catch (_) { /* 隐私模式忽略 */ }
+  closeGmMenu();
   syncModeChips();
-  try { localStorage.setItem("valo.gm", state.gm); } catch (_) { /* 隐私模式忽略 */ }
   loadPage(1);
+}
+
+// ---- 「其他 / 自定义」下拉：chips 放不下那么多模式，就收进这张清单 ----
+let GM_MENU = null;
+
+function closeGmMenu() {
+  if (GM_MENU) {
+    GM_MENU.remove();
+    GM_MENU = null;
+  }
+}
+
+function placeGmMenu(menu, anchor) {
+  const rect = anchor.getBoundingClientRect();
+  const width = Math.min(320, Math.max(220, window.innerWidth - 24));
+  menu.style.width = width + "px";
+  const left = Math.min(Math.max(12, rect.left), window.innerWidth - width - 12);
+  const height = menu.offsetHeight || 260;
+  let top = rect.bottom + 6;
+  if (top + height > window.innerHeight - 12) top = Math.max(12, rect.top - height - 6);
+  menu.style.left = left + "px";
+  menu.style.top = top + "px";
+}
+
+async function openGmMenu(anchor) {
+  closeGmMenu();
+  const menu = document.createElement("div");
+  menu.className = "gm-menu";
+  menu.innerHTML = '<p class="gm-menu-tip">正在读模式列表…</p>';
+  document.body.appendChild(menu);
+  GM_MENU = menu;
+  placeGmMenu(menu, anchor);
+  try {
+    const data = await api.get("/api/player/modes", { keyword: state.keyword, mode: state.source });
+    const modes = (data && data.modes) || [];
+    if (!modes.length) {
+      menu.innerHTML = '<p class="gm-menu-tip">这个号还没有可以分开统计的模式</p>';
+      placeGmMenu(menu, anchor);
+      return;
+    }
+    const groups = [];
+    modes.forEach((item) => {
+      const name = item.group || "其他 / 自定义";
+      let group = groups.find((g) => g.label === name);
+      if (!group) { group = { label: name, items: [] }; groups.push(group); }
+      group.items.push(item);
+    });
+    menu.innerHTML = groups.map((group) => (
+      `<section><h4>${escapeHtml(group.label)}</h4>` +
+      group.items.map((item) => (
+        `<button type="button" data-gm="${escapeHtml(item.id)}" data-label="${escapeHtml(item.label)}">` +
+        `<span>${escapeHtml(item.label)}</span><em>${Number(item.count) || 0}</em></button>`
+      )).join("") + "</section>"
+    )).join("") + '<button type="button" data-gm="other" data-label="其他 / 自定义">只看「其他 / 自定义」</button>';
+    placeGmMenu(menu, anchor);
+  } catch (err) {
+    menu.innerHTML = `<p class="gm-menu-tip">模式列表读取失败：${escapeHtml(err.message)}</p>`;
+    placeGmMenu(menu, anchor);
+  }
+}
+
+function toggleGmMenu(anchor) {
+  if (GM_MENU) {
+    closeGmMenu();
+    return;
+  }
+  openGmMenu(anchor);
 }
 
 async function loadPage(page, refresh = false, prefetched = null) {
@@ -1560,7 +1648,7 @@ function renderMatch(payload, matchId, host) {
     const plainTeam = !multiTeam && distinctTeams(score).length > 2;
     const side = multiTeam ? `${pal.number || "?"}` : plainTeam ? "" : (String(seat.team || "").toLowerCase() === "red" ? "红" : "蓝");
     const sideStyle = multiTeam
-      ? ` style="--side:${pal.color}" title="第 ${pal.placement || pal.number} 名 · ${pal.colorName}${pal.name}"`
+      ? ` style="--side:${pal.color}" title="第 ${pal.placement || pal.number} 名 · ${pal.label || pal.colorName + pal.name}"`
       : "";
     const teamCls = multiTeam ? "side-color multi" : (plainTeam ? "side-color none" : `side-color ${teamClass}`);
     const badge = seat.party_letter && !multiTeam
@@ -1600,17 +1688,21 @@ function renderMatch(payload, matchId, host) {
     const pal = teamPalette(teamId, teamList);
     const info = teamList.find((t) => String(t.team_id || "") === teamId) || {};
     const ally = seats.some((seat) => seat.is_ally);
-    const bits = [
-      pal.name ? "" : pal.colorName ? `${pal.colorName}队` : "",
+    // 「本场第一」「你在这队」原来是拼进那串统计里的，名次队就比别人多一截，
+    // 一行行看下来右边参差不齐。改成：左边固定是名字 + 徽标，右边固定是统计，
+    // 统计右对齐（等宽数字），这样每队的表头宽度一致。
+    const meta = [
       pal.placement ? `第 ${pal.placement} 名` : "",
       `${seats.length} 人`,
       Number(info.kills) ? `击杀 ${info.kills}` : "",
       Number(info.deaths) ? `阵亡 ${info.deaths}` : "",
-      info.won ? "本场第一" : "",
-      ally ? "你在这队" : "",
     ].filter(Boolean).join(" · ");
+    const tags = [
+      info.won ? '<em class="team-tag first">本场第一</em>' : "",
+      ally ? '<em class="team-tag you">你在这队</em>' : "",
+    ].join("");
     const head = `<tr class="board-sep team-multi${ally ? " team-ally" : ""}" style="--team-color:${pal.color}">
-      <td colspan="10"><i class="team-dot"></i><b>${escapeHtml(pal.label || pal.name || `队伍 ${pal.number || "?"}`)}</b><span>${escapeHtml(bits)}</span></td></tr>`;
+      <td colspan="10"><div class="team-hd"><span class="team-id"><i class="team-dot"></i><b>${escapeHtml(pal.label || pal.name || `队伍 ${pal.number || "?"}`)}</b>${tags}</span><span class="team-meta">${escapeHtml(meta)}</span></div></td></tr>`;
     return head + seats.map(seatRow).join("");
   };
   const rows = multiTeam
@@ -3747,11 +3839,31 @@ async function boot() {
     gmSel.value = state.gm;
     gmSel.addEventListener("change", () => setGm(gmSel.value));
   }
+  // 模式清单：点条目选中、点别处/Esc/改窗口大小就收起
+  document.addEventListener("click", (ev) => {
+    const item = ev.target.closest(".gm-menu button[data-gm]");
+    if (item) {
+      setGm(item.dataset.gm, item.dataset.label || "");
+      return;
+    }
+    if (GM_MENU && !ev.target.closest(".gm-menu") && !ev.target.closest('#view-mode button[data-gm="other"]')) {
+      closeGmMenu();
+    }
+  });
+  document.addEventListener("keydown", (ev) => {
+    if (ev.key === "Escape") closeGmMenu();
+  });
+  window.addEventListener("resize", closeGmMenu);
+
   const gmBox = $("#view-mode");
   if (gmBox) {
     gmBox.addEventListener("click", (ev) => {
       const btn = ev.target.closest("button[data-gm]");
       if (!btn) return;
+      if (btn.dataset.gm === "other") {
+        toggleGmMenu(btn);
+        return;
+      }
       setGm(btn.dataset.gm);
     });
   }
