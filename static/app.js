@@ -1231,13 +1231,15 @@ function syncModeOptions(payload) {
 // 「查看模式」做成和对局记录里「全部 / 只看组队」一样的小按钮
 function syncModeChips() {
   const custom = /^[mn]:/.test(state.gm || "");
+  // 「自定义」现在是独立一颗 chip：正好选到 m:custom 时高亮它，不去改「其他」那颗的字
+  const onCustomChip = (state.gm || "") === "m:custom";
   $$("#view-mode button").forEach((btn) => {
     const id = btn.dataset.gm || "all";
-    const on = custom ? id === "other" : id === state.gm;
+    const on = custom ? (onCustomChip ? id === "custom" : id === "other") : id === state.gm;
     btn.classList.toggle("active", on);
     if (id === "other") {
       // 选了清单里的某个具体模式时，这颗 chip 直接显示选的是哪个，不用再猜
-      btn.textContent = custom ? `其他 · ${state.gmLabel || "自选"}` : (btn.dataset.label || "其他 / 自定义");
+      btn.textContent = custom && !onCustomChip ? `其他 · ${state.gmLabel || "自选"}` : (btn.dataset.label || "其他");
     }
   });
   const sel = $("#gm-select");
@@ -1260,7 +1262,7 @@ function setGm(value, label) {
   loadPage(1);
 }
 
-// ---- 「其他 / 自定义」下拉：chips 放不下那么多模式，就收进这张清单 ----
+// ---- 「其他」下拉：chips 放不下那么多模式，就收进这张清单（自定义已单独一颗） ----
 let GM_MENU = null;
 
 function closeGmMenu() {
@@ -1300,7 +1302,7 @@ async function openGmMenu(anchor) {
     }
     const groups = [];
     modes.forEach((item) => {
-      const name = item.group || "其他 / 自定义";
+      const name = item.group || "其他";
       let group = groups.find((g) => g.label === name);
       if (!group) { group = { label: name, items: [] }; groups.push(group); }
       group.items.push(item);
@@ -1311,7 +1313,7 @@ async function openGmMenu(anchor) {
         `<button type="button"${Number(item.count) ? "" : ' class="is-zero"'} data-gm="${escapeHtml(item.id)}" data-label="${escapeHtml(item.label)}">` +
         `<span>${escapeHtml(item.label)}</span><em>${Number(item.count) || "—"}</em></button>`
       )).join("") + "</section>"
-    )).join("") + '<button type="button" data-gm="other" data-label="其他 / 自定义">只看「其他 / 自定义」</button>';
+    )).join("") + '<button type="button" data-gm="other" data-label="其他">只看「其他」</button>';
     placeGmMenu(menu, anchor);
   } catch (err) {
     menu.innerHTML = `<p class="gm-menu-tip">模式列表读取失败：${escapeHtml(err.message)}</p>`;
