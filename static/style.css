@@ -4739,7 +4739,7 @@ footer.shell .legal{text-wrap:pretty;word-break:normal;overflow-wrap:break-word;
 /* ---- v21：手机顶栏分站处理 ----
    个人站有六个入口（多一个「后端管理」）：3×2 铺成两行，图标和文字都保留原尺寸，
    不再横向挤压、也不会被裁到屏幕外；
-   公开站只有五个入口：保持一排五格，不换行。 */
+   公开站只有五个入口：放得下就一排五格；屏宽不足 379 时铺成 3×2（同个人站），不会把最后一格顶出屏幕。 */
 @media (max-width: 720px) {
   .top-tools { overflow: visible; padding-bottom: 0; }
   .top-tools:has(.tool-link[href="/valoadmin"]) {
@@ -4755,8 +4755,22 @@ footer.shell .legal{text-wrap:pretty;word-break:normal;overflow-wrap:break-word;
   .top-tools:has(.tool-link[href="/valoadmin"]) .tool-link span { display: inline; }
   .top-tools:not(:has(.tool-link[href="/valoadmin"])) { flex-wrap: nowrap; }
 }
+/* 公开站五个入口每个 69px、间距 5px，一排要约 365px，顶栏盒子 390 以下就装不下
+   （320 下整页溢出 59px，375–389 会把最后一格顶出圆角边框）。挤不下就按个人站同样的
+   3×2 铺，图标和文字都保留；390 起仍是一排五格。 */
+@media (max-width: 389px) {
+  .top-tools:not(:has(.tool-link[href="/valoadmin"])) {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 5px; padding: 4px;
+  }
+  .top-tools:not(:has(.tool-link[href="/valoadmin"])) .tool-link {
+    justify-content: center; height: 34px; padding: 0 6px; gap: 5px; font-size: 12px;
+  }
+  .top-tools:not(:has(.tool-link[href="/valoadmin"])) .tool-link svg { width: 14px; height: 14px; }
+}
 @media (max-width: 360px) {
   .top-tools:has(.tool-link[href="/valoadmin"]) .tool-link { font-size: 11.5px; gap: 4px; }
+  .top-tools:not(:has(.tool-link[href="/valoadmin"])) .tool-link { font-size: 11.5px; gap: 4px; }
 }
 
 /* ---- v22：手机顶栏按「两排」重排 ----
