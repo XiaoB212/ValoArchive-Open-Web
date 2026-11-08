@@ -6,7 +6,7 @@
   <title>我的账号 · VALO ARCHIVE</title>
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=5" sizes="any" />
   <meta name="theme-color" content="#0e7c6b" />
-  <link rel="stylesheet" href="/static/style.css?v=8ffd00b152" />
+  <link rel="stylesheet" href="/static/style.css?v=59c55685b4" />
   <style>
     .ac-bg{position:fixed;inset:0;pointer-events:none;z-index:0;
       background:radial-gradient(900px 460px at 8% -10%,rgba(14,124,107,.10),transparent 62%),
@@ -87,6 +87,22 @@
     .ac-badge.on{background:rgba(14,124,107,.12);color:var(--accent-ink)}
     .ac-badge.off{background:rgba(180,69,59,.10);color:#a4392f}
 
+    .price-sec{margin:0 0 14px}
+    .price-t{display:flex;align-items:baseline;gap:8px;margin:16px 0 8px;font-size:13.5px;font-weight:700;color:var(--ink)}
+    .price-t em{font-style:normal;font-size:11.5px;font-weight:500;color:var(--muted)}
+    .price-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+    @media (min-width:560px){#price-panel .price-grid.m5{grid-template-columns:repeat(5,minmax(0,1fr))}}
+    .price-card{position:relative;border:1px solid var(--line);border-radius:11px;background:var(--paper);padding:10px 4px 8px;text-align:center;min-width:0}
+    .price-card b{display:block;font-family:var(--mono);font-size:16px;letter-spacing:-.03em;color:var(--ink);line-height:1.15;white-space:nowrap}
+    .price-card b span{font-size:11px;font-weight:500;color:var(--muted);margin-right:1px}
+    .price-card i{display:block;margin-top:3px;font-style:normal;font-size:12px;color:var(--ink);opacity:.82}
+    .price-card u{display:block;margin-top:2px;text-decoration:none;font-size:10.5px;color:var(--muted);font-family:var(--mono)}
+    .price-card.on{border-color:rgba(14,124,107,.42);background:rgba(14,124,107,.07)}
+    .price-card.on b{color:var(--accent)}
+    .price-rec{position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:700;color:#fff;background:var(--accent);border-radius:999px;padding:1px 7px;white-space:nowrap}
+    .price-buy{margin:14px 0 0;font-size:12.5px;color:var(--muted);line-height:1.8}
+    .price-buy b{color:var(--ink)}
+    @media (max-width:520px){.price-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.price-card{padding:10px 4px 8px}.price-card b{font-size:16px}.price-card u{display:none}}
     .ac-table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;margin:4px 0 14px}
     .ac-table th{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:left;padding:0 10px 10px;font-weight:600}
     .ac-table td{padding:11px 10px;border-top:1px solid var(--line);vertical-align:top}
@@ -268,6 +284,7 @@
             <div class="ac-actions">
               <button class="ac-btn ghost" id="contact-copy" type="button">复制群号</button>
               <a class="ac-btn" id="contact-join" href="#" target="_blank" rel="noopener" hidden>直接加群</a>
+            <a class="ac-btn ghost" href="#price-panel">看价目表</a>
             </div>
             <p class="ac-tip">本站不开支付、不收钱；订阅和续费都在群里办理。</p>
           </div>
@@ -348,6 +365,29 @@
             </tbody>
           </table>
           <p class="ac-tip" id="lim-note">免费额度按自然日重置；会员到期后自动回到普通用户，续期立刻恢复。特约订阅只查首页钉住的那个人，钉谁由你在首页「我的订阅」里自己选；会员自带 1 个位置，特约码每份再加 1 个。</p>
+        </section>
+        <section class="ac-panel" id="price-panel">
+          <h2>价目表</h2>
+          <p class="hint">本站不开支付：在群里下单、付款后拿卡密，回本页「用授权码续期」核销就行。未过期在原有到期上叠加，已过期从当天重算。</p>
+          <div class="price-sec">
+            <p class="price-t">会员 <em>站内任何人随便查，自带 1 个「我的订阅」位置</em></p>
+            <div class="price-grid m5">
+              <div class="price-card"><b><span>¥</span>0.99</b><i>1 天</i><u>日均 ¥0.99</u></div>
+              <div class="price-card"><b><span>¥</span>2.49</b><i>3 天</i><u>日均 ¥0.83</u></div>
+              <div class="price-card"><b><span>¥</span>4.99</b><i>10 天</i><u>日均 ¥0.50</u></div>
+              <div class="price-card on"><span class="price-rec">推荐</span><b><span>¥</span>9.99</b><i>30 天</i><u>日均 ¥0.33</u></div>
+              <div class="price-card"><b><span>¥</span>24.90</b><i>90 天</i><u>日均 ¥0.28</u></div>
+            </div>
+          </div>
+          <div class="price-sec">
+            <p class="price-t">特约订阅 <em>只查绑定的那一个人，可解绑换人</em></p>
+            <div class="price-grid">
+              <div class="price-card"><b><span>¥</span>2.49</b><i>5 天</i><u>日均 ¥0.50</u></div>
+              <div class="price-card on"><span class="price-rec">推荐</span><b><span>¥</span>9.99</b><i>45 天</i><u>日均 ¥0.22</u></div>
+              <div class="price-card"><b><span>¥</span>18.90</b><i>90 天</i><u>日均 ¥0.21</u></div>
+            </div>
+          </div>
+          <p class="price-buy"><b>怎么选：</b>只查自己 → 特约 45 天 ¥9.99；要查队友、对手 → 会员 30 天 ¥9.99；长期用 → 会员 90 天，日均最低 ¥0.28。特约每多买一份，就多 1 个「我的订阅」位置。</p>
         </section>
         <section class="ac-panel" id="cache-panel">
           <h2>本机缓存</h2>
