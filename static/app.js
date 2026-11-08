@@ -3304,6 +3304,70 @@ function homePaint(notes) {
   homeRowsBind(box);
 }
 
+/* 订阅提醒：进站先核对首页盯的人有没有新对局。
+   只看 /api/home/overview 里 recent[0].id 与上次记录的比对，不额外打接口；
+   第一次访问只有基线、不弹提示，避免「一进站全是新的」。 */
+const WS_KEY = "va.watchseen.v1";
+const WS_FRESH = [];
+function wsAll() {
+  try { return JSON.parse(localStorage.getItem(WS_KEY) || "{}") || {}; } catch (_) { return {}; }
+}
+function wsKeyOf(kw) { return String(kw || "").trim().toLowerCase(); }
+function wsGet(kw) {
+  const all = wsAll();
+  return all[wsKeyOf(kw)] || null;
+}
+function wsSet(kw, id, total) {
+  if (!id) return;
+  const all = wsAll();
+  all[wsKeyOf(kw)] = { id: String(id), total: Number(total) || 0, at: Date.now() };
+  try { localStorage.setItem(WS_KEY, JSON.stringify(all)); } catch (_) {}
+}
+function wsCheck(kw, label, data) {
+  const row = ((data && data.recent) || [])[0] || {};
+  const id = row.id ? String(row.id) : "";
+  const total = Number((data && data.total) || 0);
+  const seen = wsGet(kw);
+  if (id && seen && seen.id && seen.id !== id) {
+    const grew = total > (Number(seen.total) || 0) ? total - Number(seen.total) : 1;
+    const dup = WS_FRESH.filter(function (f) { return wsKeyOf(f.kw) === wsKeyOf(kw); })[0];
+    if (dup) {
+      if (grew > dup.added) dup.added = grew;
+    } else {
+      WS_FRESH.push({ kw: kw, name: label || kw, added: grew });
+    }
+  }
+  if (id) wsSet(kw, id, total);
+}
+function renderFreshBar() {
+  const bar = $("#hm-new");
+  if (!bar) return;
+  if (!WS_FRESH.length) {
+    bar.hidden = true;
+    bar.innerHTML = "";
+    return;
+  }
+  bar.hidden = false;
+  const who = WS_FRESH.map(function (f, n) {
+    return '<button type="button" class="hm-fresh" data-fresh="' + n + '">' +
+      escapeHtml(f.name) + "<i>+" + f.added + " 场</i></button>";
+  }).join("");
+  bar.innerHTML = '<span class="hm-fresh-lead">有新对局</span>' + who +
+    '<button type="button" class="hm-fresh-x" id="hm-new-x">知道了</button>';
+  bar.querySelectorAll("[data-fresh]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      const f = WS_FRESH[Number(btn.dataset.fresh)];
+      if (f) loadPlayer(f.kw);
+    });
+  });
+  const x = $("#hm-new-x");
+  if (x) x.addEventListener("click", function () {
+    WS_FRESH.length = 0;
+    bar.hidden = true;
+    bar.innerHTML = "";
+  });
+}
+
 async function homeLoadOne(home, i, force) {
   const kw = home.keyword || home.label;
   const cached = homeCacheGet(kw);
@@ -3316,6 +3380,7 @@ async function homeLoadOne(home, i, force) {
       api.get("/api/player/history", { keyword: kw, mode, page: 1, size: 10, filter: "all", gm: "all", sort: "unlock", order: "desc" }).catch(() => null),
     ]);
     const note = cached ? homeDiff(cached.data, data) : [];
+    wsCheck(kw, home.label || kw, data);
     if (note && note.length) HOME.notes[i] = note;
     homeCacheSet(kw, data, { social, party, hist });
     homePaint();
@@ -3371,6 +3436,7 @@ async function homeReload() {
   $("#hm-bind").hidden = false;
   homePaint({});
   await Promise.all(homes.map((home, i) => homeLoadOne(home, i, false)));
+  renderFreshBar();
 }
 
 async function homeRedeem(code) {
@@ -3504,7 +3570,7 @@ function initHomeMe() {
       if (act.dataset.act === "swap") homeSwap(i);
       if (act.dataset.act === "refresh") {
         const home = (HOME.state.homes || [])[i];
-        if (home) homeLoadOne(home, i, true);
+        if (home) { WS_FRESH.length = 0; homeLoadOne(home, i, true).then(renderFreshBar); }
       }
     });
   }

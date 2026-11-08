@@ -5355,3 +5355,30 @@ body.me-view .home-faq { display: none; }
 @media (max-width: 720px) {
   .search-fix { font-size: 12px; margin-top: 6px; }
 }
+
+/* 订阅提醒条：进站时首页有订阅号出了新对局才出现 */
+.hm-new {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+  margin: 0 0 10px; padding: 8px 10px 8px 12px;
+  background: #f1fbf5; border: 1px solid rgba(21, 128, 91, .3);
+  border-radius: 12px; font-size: 12.5px; color: #12563f;
+}
+.hm-new[hidden] { display: none; }
+.hm-fresh-lead { font-weight: 700; color: #0f6b4c; letter-spacing: .02em; }
+.hm-fresh {
+  border: 1px solid rgba(21, 128, 91, .28); background: #fff; color: #14523d;
+  border-radius: 999px; padding: 3px 10px; font-size: 12.5px; cursor: pointer;
+  font-family: inherit;
+}
+.hm-fresh:hover { background: #e6f8ee; border-color: rgba(21, 128, 91, .45); }
+.hm-fresh i { font-style: normal; font-weight: 700; margin-left: 5px; color: #c2410c; }
+.hm-fresh-x {
+  margin-left: auto; border: 0; background: transparent; color: #55706a;
+  font-size: 12px; padding: 2px 4px; cursor: pointer; font-family: inherit;
+}
+.hm-fresh-x:hover { color: #1f3f37; text-decoration: underline; }
+@media (max-width: 480px) {
+  .hm-new { font-size: 12px; padding: 7px 9px 7px 10px; gap: 6px; }
+  .hm-fresh-lead { flex: 0 0 100%; }
+  .hm-fresh-x { margin-left: 0; }
+}
