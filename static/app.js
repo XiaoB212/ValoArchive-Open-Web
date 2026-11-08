@@ -556,11 +556,17 @@ function renderDataMeta(meta) {
   if (!meta) { box.classList.add("hidden"); return; }
   const when = meta.fetched_at ? new Date(meta.fetched_at * 1000) : null;
   const hhmmss = when ? when.toTimeString().slice(0, 8) : "—";
-  const ago = meta.age < 60 ? `${meta.age} 秒前` : `${Math.round(meta.age / 60)} 分钟前`;
-  const stale = meta.age >= (meta.ttl || 3600);
-  box.className = `data-meta${stale ? " stale" : ""}`;
-  box.innerHTML = `<span class="dot"></span><span>${meta.cached ? "本地缓存" : "刚刚拉取"} · 数据更新于 <b>${hhmmss}</b>（${ago}）</span>
-    <button type="button" id="refresh-now">刷新</button>`;
+  // 本机缓存那份的 age 停在「存下来那一刻」，会永远显示 0 秒前；改为按 fetched_at 现算。
+  const ageSec = meta.local
+    ? Math.max(0, Math.round(Date.now() / 1000 - (meta.fetched_at || 0)))
+    : meta.age;
+  const ago = ageSec < 60 ? `${ageSec} 秒前` : `${Math.round(ageSec / 60)} 分钟前`;
+  const stale = ageSec >= (meta.ttl || 3600);
+  // meta.local = 浏览器里那份（已经跟服务器核对过没有新对局）；meta.cached = 服务端缓存
+  const label = meta.local ? "本机缓存（已核对，没有新对局）" : meta.cached ? "服务端缓存" : "刚刚拉取";
+  box.className = `data-meta${!meta.local && stale ? " stale" : ""}`;
+  box.innerHTML = `<span class="dot"></span><span>${label} · 数据更新于 <b>${hhmmss}</b>（${ago}）</span>
+    <button type="button" id="refresh-now" title="重新从服务器拉一份">刷新</button>`;
   $("#refresh-now").addEventListener("click", () => loadPlayer(state.keyword, true));
 }
 
@@ -673,6 +679,81 @@ function renderRail() {
 }
 
 
+// ──────────────────────────────────────────────────────────── 本机档案缓存
+// 查过的人，把整份档案（玩家资料 + 第一页历史）留在浏览器里。下次再查同一个人，
+// 先打一次很轻的 /api/player/watch（只比「最新一场 + 官方总场次」，不刷新档案、
+// 不占每日查询额度）：两个值都没变就直接用本机那份渲染，/api/player 与第一页历史
+// 都不再下载；有任何变化、或者用户点了「刷新」，就照旧走完整请求。
+// 点账号页 /account.html 能看到占了多少空间，也能自己清。
+const PC_KEY = "va.pcache.v1";
+const PC_MAX = 20;          // 最多留几个人的档案
+const PC_CHARS = 3_600_000; // 字符数上限（localStorage 一般 5MB，给别的数据留余量）
+
+function pcKeyOf(keyword, mode) {
+  return `${mode || "game"}:${String(keyword || "").trim().toLowerCase()}`;
+}
+
+function pcReadAll() {
+  try {
+    const box = JSON.parse(localStorage.getItem(PC_KEY) || "{}");
+    return box && typeof box === "object" ? box : {};
+  } catch (_) {
+    return {};
+  }
+}
+
+function pcWriteAll(all) {
+  const keys = Object.keys(all).sort((a, b) => (all[b].at || 0) - (all[a].at || 0));
+  const keep = {};
+  let chars = 0;
+  keys.forEach((k) => {
+    if (Object.keys(keep).length >= PC_MAX) return;
+    const raw = JSON.stringify(all[k]);
+    if (chars + raw.length > PC_CHARS && Object.keys(keep).length) return;
+    chars += raw.length;
+    keep[k] = all[k];
+  });
+  try {
+    localStorage.setItem(PC_KEY, JSON.stringify(keep));
+  } catch (_) {
+    // 配额满了：只留最近三条再试一次，绝不因为缓存把页面搞崩
+    try {
+      const few = {};
+      keys.slice(0, 3).forEach((k) => { few[k] = all[k]; });
+      localStorage.setItem(PC_KEY, JSON.stringify(few));
+    } catch (__) { /* 隐私模式 / 禁用存储：当没有缓存 */ }
+  }
+}
+
+function pcGet(keyword, mode) {
+  const hit = pcReadAll()[pcKeyOf(keyword, mode)];
+  return hit && hit.player ? hit : null;
+}
+
+function pcPut(keyword, mode, entry) {
+  if (!keyword) return;
+  const all = pcReadAll();
+  all[pcKeyOf(keyword, mode)] = entry;
+  pcWriteAll(all);
+}
+
+// 存的时候记下「第一页历史是用什么条件取的」：大小/筛选/模式一变，这份历史就不能
+// 直接复用，于是只复用玩家资料、历史照常重新取。
+async function pcStore(keyword, mode, data, pagePromise) {
+  try {
+    const meta = data.meta || {};
+    const snap = { size: state.size, filter: state.filter, gm: state.gm };
+    const hist = pagePromise ? await pagePromise.catch(() => null) : null;
+    pcPut(keyword, mode, {
+      at: Date.now(),
+      latest: String(meta.latest_match || ""),
+      total: Number(meta.total_fp || data.total || (data.stats && data.stats.matches) || 0),
+      player: data,
+      hist: hist ? { size: snap.size, filter: snap.filter, gm: snap.gm, payload: hist } : null,
+    });
+  } catch (_) { /* 缓存只是加速，失败不影响页面 */ }
+}
+
 async function loadPlayer(keyword, refresh = false) {
   setBusy(true, "正在解析玩家");
   try {
@@ -696,10 +777,35 @@ async function loadPlayer(keyword, refresh = false) {
     const node = document.querySelector(sel);
     if (node) node.textContent = "";
   });
+  // 本机有这份档案就先核对一下：watch 只回「最新一场 + 总场次」，开销远小于整份档案。
+  const pcHit = refresh || EXPORT_KIND ? null : pcGet(keyword, state.source);
+  let fromCache = null;
+  let firstPage = null;
+  let data = null;
+  if (pcHit) {
+    setBusy(true, "正在核对有没有新对局");
+    const probe = await api.get("/api/player/watch", { keyword, mode: state.source }).catch(() => null);
+    const same = Boolean(probe)
+      && String(probe.latest_match || "") === String(pcHit.latest || "")
+      && Number(probe.total || 0) === Number(pcHit.total || 0);
+    if (same) {
+      fromCache = pcHit;
+      data = pcHit.player;
+      data.meta = Object.assign({}, data.meta || {}, {
+        local: true,
+        local_age: Math.max(0, Math.round((Date.now() - (pcHit.at || Date.now())) / 1000)),
+      });
+      const hist = pcHit.hist;
+      // 第一页历史只在取它的条件（条数/筛选/模式）完全一致时复用，否则单独重取。
+      if (hist && hist.size === state.size && hist.filter === state.filter && hist.gm === state.gm) {
+        firstPage = Promise.resolve(hist.payload);
+      }
+    }
+  }
   // 第一页历史和玩家资料互不依赖：同时发，省掉一次完整往返（前端「渲染慢」的主要来源）。
-  const firstPage = EXPORT_KIND ? null : prefetchHistory(keyword, refresh);
+  if (!firstPage) firstPage = EXPORT_KIND ? null : prefetchHistory(keyword, refresh);
   try {
-    const data = await api.get("/api/player", { keyword, mode: state.source, refresh });
+    data = data || await api.get("/api/player", { keyword, mode: state.source, refresh });
   state.coverage = data.note || "";
     state.player = data.player;
     const p = data.player;
@@ -798,6 +904,9 @@ async function loadPlayer(keyword, refresh = false) {
       renderHistory(data.recent, { total: data.stats.matches, page: 1, size: 10 });
     } else {
       await loadPage(1, false, firstPage);
+      // 历史那一页的 meta 会把「本机缓存」盖回「刚刚拉取」，本机命中时再摊回来一次。
+      if (fromCache) renderDataMeta(data.meta);
+      if (!fromCache) pcStore(keyword, state.source, data, firstPage);
     }
     switchTab(EXPORT_KIND || "history");
     if (!EXPORT_KIND) {

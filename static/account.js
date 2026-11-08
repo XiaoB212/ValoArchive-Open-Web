@@ -458,6 +458,121 @@
     localStorage.setItem("va-merge-skip", "1");
   });
 
+  // ---------------- 本机缓存 ----------------
+  // app.js 查玩家时写 va.pcache.v1；这里只做展示与清理，不碰业务逻辑。
+  var CACHE_LABELS = {
+    "va.pcache.v1": "玩家档案缓存",
+    "va.home.v2": "首页订阅卡缓存",
+    "va.home.assets.v1": "资产变化标记",
+    "va.home.friends.v1": "好友变化标记",
+    "va.home.mates.v1": "组队变化标记",
+    "va-merge-skip": "合并提示（已跳过）",
+    "valo.gm": "上次查看模式",
+    "valo.openMode": "单局打开方式",
+    "valo.rememberSearch": "记住查询",
+    "valo.exportPrivacy": "导出隐私开关",
+    "valo.fixedTipSeen": "固定 ID 提示已读"
+  };
+  var PREF_KEYS = {
+    "valo.gm": 1, "valo.openMode": 1, "valo.rememberSearch": 1,
+    "valo.exportPrivacy": 1, "valo.fixedTipSeen": 1
+  };
+
+  function lsKeys() {
+    var out = [];
+    try {
+      for (var i = 0; i < localStorage.length; i += 1) {
+        var k = localStorage.key(i);
+        if (!k) continue;
+        if (k.indexOf("va.") === 0 || k.indexOf("va-") === 0 || k.indexOf("valo.") === 0) out.push(k);
+      }
+    } catch (e) { /* 隐私模式没有 localStorage */ }
+    return out.sort();
+  }
+
+  function fmtBytes(n) {
+    if (!n) return "0 B";
+    if (n < 1024) return n + " B";
+    if (n < 1024 * 1024) return (n / 1024).toFixed(n < 10240 ? 1 : 0) + " KB";
+    return (n / 1048576).toFixed(2) + " MB";
+  }
+
+  function readItem(k) {
+    try { return localStorage.getItem(k) || ""; } catch (e) { return ""; }
+  }
+
+  function playerCount() {
+    try {
+      var box = JSON.parse(readItem("va.pcache.v1") || "{}");
+      return Object.keys(box || {}).length;
+    } catch (e) { return 0; }
+  }
+
+  function renderCache() {
+    var list = q("cache-list");
+    if (!list) return;
+    var keys = lsKeys();
+    var total = 0;
+    list.innerHTML = "";
+    keys.forEach(function (k) {
+      var v = readItem(k);
+      // localStorage 按 UTF-16 存，一个字算 2 字节
+      var size = (k.length + v.length) * 2;
+      total += size;
+      var li = document.createElement("li");
+      var name = document.createElement("span");
+      name.className = "cname";
+      name.textContent = CACHE_LABELS[k] || k;
+      name.title = k;
+      var sz = document.createElement("span");
+      sz.className = "csize";
+      sz.textContent = fmtBytes(size);
+      li.appendChild(name);
+      li.appendChild(sz);
+      if (PREF_KEYS[k]) {
+        var pref = document.createElement("span");
+        pref.className = "cpref";
+        pref.textContent = "偏好";
+        li.appendChild(pref);
+      } else {
+        var del = document.createElement("button");
+        del.type = "button";
+        del.className = "cdel";
+        del.textContent = "删除";
+        del.onclick = function () {
+          try { localStorage.removeItem(k); } catch (e) { /* ignore */ }
+          renderCache();
+        };
+        li.appendChild(del);
+      }
+      list.appendChild(li);
+    });
+    var sizeEl = q("cache-size");
+    if (sizeEl) sizeEl.textContent = fmtBytes(total);
+    var countEl = q("cache-count");
+    if (countEl) {
+      var n = playerCount();
+      countEl.textContent = keys.length
+        ? "· 共 " + keys.length + " 项" + (n ? "，含 " + n + " 个玩家档案" : "")
+        : "· 还没有缓存";
+    }
+  }
+
+  function clearCache() {
+    var removed = 0;
+    lsKeys().forEach(function (k) {
+      if (PREF_KEYS[k] || k === "va-merge-skip") return;
+      try { localStorage.removeItem(k); removed += 1; } catch (e) { /* ignore */ }
+    });
+    renderCache();
+    var note = q("cache-note");
+    if (note) note.textContent = removed ? "已清空 " + removed + " 项缓存。" : "本来就没有可清的缓存。";
+  }
+
+  if (q("cache-clear")) q("cache-clear").addEventListener("click", clearCache);
+  if (q("cache-refresh")) q("cache-refresh").addEventListener("click", renderCache);
+  renderCache();
+
   loadLimits();
   loadContact();
   load();

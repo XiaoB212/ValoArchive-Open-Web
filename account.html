@@ -102,6 +102,17 @@
     .ac-invite h2{font-size:15px;margin:0 0 4px}
     .ac-invite .code{font-family:var(--mono);font-size:20px;letter-spacing:.14em;color:var(--accent-ink);margin:12px 0 14px}
     .legal{font-size:11.5px;line-height:1.8;color:var(--muted);margin:18px 2px 0}
+    /* 本机缓存：占用 + 单项删除 */
+    .cache-total{display:flex;align-items:baseline;gap:8px;margin:12px 0 4px;font-size:12.5px;color:var(--muted)}
+    .cache-total b{font-size:19px;color:inherit;font-variant-numeric:tabular-nums}
+    .cache-list{list-style:none;margin:6px 0 0;padding:0}
+    .cache-list li{display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px dashed var(--line);font-size:12.5px}
+    .cache-list li:first-child{border-top:0}
+    .cache-list .cname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .cache-list .csize{flex:none;font-family:var(--mono);font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+    .cache-list .cpref{flex:none;font-size:10.5px;color:var(--muted);opacity:.7}
+    .cache-list .cdel{flex:none;border:0;background:none;padding:2px 5px;font-size:11.5px;color:var(--muted);cursor:pointer;border-radius:6px}
+    .cache-list .cdel:hover{color:#b3261e;background:rgba(179,38,30,.08)}
     .ac-hide{display:none!important}
     @media (max-width:900px){.ac-grid{grid-template-columns:1fr}.ac-main{padding-top:30px}}
     @media (max-width:560px){.ac-row{grid-template-columns:1fr}.ac-panel{padding:20px 18px}}
@@ -338,12 +349,23 @@
           </table>
           <p class="ac-tip" id="lim-note">免费额度按自然日重置；会员到期后自动回到普通用户，续期立刻恢复。特约订阅只查首页钉住的那个人，钉谁由你在首页「我的订阅」里自己选；会员自带 1 个位置，特约码每份再加 1 个。</p>
         </section>
+        <section class="ac-panel" id="cache-panel">
+          <h2>本机缓存</h2>
+          <p class="hint">查过的人会在本机留一份档案：下次再查同一人、又没有新对局时直接读它，不必重新下载。清掉只丢这些副本，不影响账号和会员。</p>
+          <p class="cache-total">当前占用 <b id="cache-size">—</b><span id="cache-count">—</span></p>
+          <ul class="cache-list" id="cache-list"></ul>
+          <div class="ac-actions">
+            <button class="ac-btn ghost" id="cache-clear" type="button">清空本机缓存</button>
+            <button class="ac-btn ghost" id="cache-refresh" type="button">重新统计</button>
+          </div>
+          <p class="ac-tip" id="cache-note">标了「偏好」的小设置（记住查询、查看模式、单局打开方式）不会被清掉。</p>
+        </section>
         <p class="legal">本工具为非官方第三方项目，与 Riot Games、腾讯公司及《无畏契约》《掌上无畏契约》运营方无任何关联；相关名称与商标归各自权利人所有。</p>
       </aside>
     </div>
   </main>
 
-  <script src="/static/account.js?v=2777f1b4d8"></script>
+  <script src="/static/account.js?v=9d49f06705"></script>
 <script src="/static/statusdot.js?v=e4f8a35baa" defer></script>
 </body>
 </html>
