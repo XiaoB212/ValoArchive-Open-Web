@@ -2689,6 +2689,17 @@ body::before { opacity: .35; }
   .season-modes table.board th,
   .season-modes table.board td { padding-left: 8px; padding-right: 8px; font-size: 12px; white-space: nowrap; }
 }
+/* 手机：各赛幕总览是 7 列表格，上面 720 段那句全局的 table.board{min-width:640px}
+   会把它顶到 640 宽、把整个面板撑出屏幕。给这一块自己的滚动壳（index.html 上的
+   data-hscroll 负责画常驻滚动条），表格在壳里横向滚，不再撑宽父级。 */
+@media (max-width: 720px) {
+  #season-acts { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  #season-acts table.board { min-width: 0; width: 100%; }
+  #season-acts table.board th,
+  #season-acts table.board td { padding-left: 8px; padding-right: 8px; font-size: 12px; white-space: nowrap; }
+  /* 时间列「起 ~ 止」允许折行，横向要滑的距离少一截 */
+  #season-acts table.board td:nth-child(2) { white-space: normal; }
+}
 
 /* 走势图上的段位名 */
 svg.trend .tierlab {
