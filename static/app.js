@@ -3010,7 +3010,7 @@ function homeFriendRows(extra, kw, freshSet) {
   });
   if (!roster.length) return '<p class="hf-none">这个号没读到好友名单</p>';
   roster.sort((a, b) => (b.last || 0) - (a.last || 0) || String(a.name).localeCompare(String(b.name), "zh"));
-  const shown = roster.slice(0, 8);
+  const shown = roster.slice(0, 5);
   const mateNames = new Set(((extra.party && (extra.party.mates || extra.party.teammates)) || []).map((m) => m.name));
   return shown.map((f) => {
     const isNew = freshSet && freshSet.has(f.name);
@@ -3049,7 +3049,7 @@ function homeMateRows(extra, freshSet) {
   }
   if (!rows.length) return '<p class="hf-none">最近没和谁一起排过</p>';
   rows.sort((a, b) => (b.last || 0) - (a.last || 0) || String(a.name || "").localeCompare(String(b.name || ""), "zh"));
-  return rows.slice(0, 8).map((m) => {
+  return rows.slice(0, 5).map((m) => {
     const isNew = freshSet && freshSet.has(m.name);
     return `<div class="hf${isNew ? " hot" : ""}">
       ${m.avatar ? `<img class="hf-ava" src="${escapeHtml(m.avatar)}" alt="" loading="lazy" />` : '<i class="hf-ava"></i>'}
@@ -3133,7 +3133,7 @@ function homeSlotHtml(home, i, note) {
   const hrows = (extra.hist && extra.hist.rows) || [];
   const histTotal = (extra.hist && extra.hist.total) || (data.recent && data.recent.total) || 0;
   const histRows = hrows.length
-    ? hrows.map(homeRowHtml).join("")
+    ? hrows.slice(0, 5).map(homeRowHtml).join("")
     : '<p class="dim hm-wait">这一页没有记录。</p>';
   const rankStrip = `<section class="hm-sec rankstrip"><span class="hm-k">段位情况</span><div class="hm-v">${homeRankHtml(data)}</div></section>`;
   const upd = note && note.length
