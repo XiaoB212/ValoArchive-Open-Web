@@ -4657,6 +4657,17 @@ function renderAssetGrids(data, card) {
   $("#asset-agents").innerHTML = agents.map((item) => card(item, unlockLine(item) || item.role || "英雄")).join("");
 }
 
+/* 左上角站名 = 回到首页：已经在大首页时只滚回顶部，不整页重载 */
+document.addEventListener("click", (event) => {
+  const node = event.target;
+  const brand = node instanceof Element ? node.closest("a.brand") : null;
+  if (!brand || brand.target === "_blank") return;
+  if (!state.keyword) {
+    event.preventDefault();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+});
+
 /* ── 手机：所有数据表格统一塞进 .board-wrap 横向滚动壳 ──────────────
    以前只有单局记分板自己包了壳，历史/赛季/资产里的表格在窄屏会把面板撑宽。
    这里统一包一层（幂等），再交给 scrollhint.js 画常驻细滚动条。 */
