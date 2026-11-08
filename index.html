@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#0e7c6b" />
 <meta name="site-home" content="https://va.223212.xyz" />
 <meta name="description" content="瓦罗兰档案：非官方《无畏契约》社区项目，支持长历史、单局详情、对位击杀热力图与组队分析。" />
-<link rel="stylesheet" href="/static/style.css?v=27f6db71a8" />
+<link rel="stylesheet" href="/static/style.css?v=3e5332209e" />
 </head>
 <body>
 <div class="grid-bg" aria-hidden="true"></div>
@@ -289,6 +289,9 @@
               <button class="chip active" data-group="all">全部</button>
               <button class="chip" data-group="friends">好友</button>
               <button class="chip" data-group="strangers">组排非好友</button>
+              <i class="cs-sep" aria-hidden="true"></i>
+              <button class="chip active" data-sort="recent" title="按最近一起排的时间排序">最近同排</button>
+              <button class="chip" data-sort="games" title="按一起排过的场次排序">一起玩最多</button>
             </div>
           </div>
           <div class="friend-strip" id="social-friends"></div>
@@ -397,7 +400,7 @@
 </footer>
 
 <script src="/config.js?v=78787eb4fa"></script>
-<script src="/static/app.js?v=a63529de3b"></script>
+<script src="/static/app.js?v=4c2f1fe4fb"></script>
 <script>
 (function () {
   document.querySelectorAll("#home-try .try").forEach(function (el) {

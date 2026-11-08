@@ -5621,3 +5621,14 @@ body.me-view .home-faq { display: none; }
   .hm-fresh-x { color: var(--muted); }
   .hm-fresh-x:hover { color: var(--accent-ink); }
 }
+
+/* 最近 RR 走势的小折线（「我的订阅」段位条里） */
+.hm-card .hm-spark { width: 92px; height: 24px; flex: 0 0 auto; overflow: visible; }
+.hm-card .hm-spark .base { stroke: var(--line); stroke-width: 1; stroke-dasharray: 2 3; }
+.hm-card .hm-spark .line { fill: none; stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
+.hm-card .hm-spark.up .line { stroke: #16a34a; }
+.hm-card .hm-spark.down .line { stroke: #dc2626; }
+.hm-card .hm-spark.flat .line { stroke: var(--muted); }
+
+/* 好友与组队：分组 chips 与排序 chips 之间一道竖线 */
+.social-counts .cs-sep { width: 1px; height: 16px; flex: 0 0 auto; background: var(--line); margin: 0 2px; }

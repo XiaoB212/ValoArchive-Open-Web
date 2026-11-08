@@ -49,6 +49,7 @@ const state = {
   matchLoaded: false,
   tab: "history",
   socialGroup: "all",
+  socialSort: "recent",
   friendPage: 1,
   seasonData: null,
 };
@@ -2376,7 +2377,7 @@ function renderPeople() {
     (list || [])
       .filter((p) => relTime(p.last))
       .map((p) => ({ ...p, group: label }))
-      .sort((a, b) => (Number(b.last) || 0) - (Number(a.last) || 0));
+      .sort(peopleSort(state.socialSort));
   const friends = fresh(data.friends, "好友");
   const strangers = fresh(data.strangers, "组排非好友");
 
@@ -2403,7 +2404,7 @@ function renderPeople() {
           hot: !!(hit && relTime(hit.last)),
         };
       })
-      .sort((a, b) => (b.last || 0) - (a.last || 0) || String(a.name || "").localeCompare(String(b.name || ""), "zh"));
+      .sort(peopleSort(state.socialSort));
     const size = 10;
     const pages = Math.max(1, Math.ceil(rows.length / size));
     const page = Math.min(Math.max(1, state.friendPage || 1), pages);
@@ -2433,7 +2434,7 @@ function renderPeople() {
         </div>`
       : "";
     strip.innerHTML = list.length
-      ? `<div class="flist-head"><span>全部好友名单 ${list.length} 人${rows.some((f) => f.hot) ? ` · 近期同排 ${rows.filter((f) => f.hot).length} 人` : ""}</span><span class="dim">按最近同排排序</span></div>
+      ? `<div class="flist-head"><span>全部好友名单 ${list.length} 人${rows.some((f) => f.hot) ? ` · 近期同排 ${rows.filter((f) => f.hot).length} 人` : ""}</span><span class="dim">按${state.socialSort === "games" ? "一起玩最多" : "最近同排"}排序</span></div>
          <div class="flist">${body}</div>${pager}`
       : `<div class="flist-head"><span>没有拿到好友名单</span></div>`;
   }
@@ -3136,6 +3137,48 @@ function homeDiff(before, after) {
   return out.slice(0, 4);
 }
 
+/* 好友与组队两处共用的排序器：recent = 最近同排，games = 一起玩过的场次最多 */
+function peopleSort(mode) {
+  if (mode === "games") {
+    return (a, b) =>
+      (Number(b.games) || 0) - (Number(a.games) || 0)
+      || (Number(b.last) || 0) - (Number(a.last) || 0)
+      || String(a.name || "").localeCompare(String(b.name || ""), "zh");
+  }
+  return (a, b) =>
+    (Number(b.last) || 0) - (Number(a.last) || 0)
+    || (Number(b.games) || 0) - (Number(a.games) || 0)
+    || String(a.name || "").localeCompare(String(b.name || ""), "zh");
+}
+
+/* 最近 RR 走势：把最近若干场结算过的 RR 累加起来画一条折线，一眼看出这波是涨是跌。
+   recent.rows 是新的在前，画的时候翻过来；rr 缺省或为 0 的场次（未结算/非竞技）不占点。 */
+function homeSparkHtml(rows) {
+  const series = [];
+  (rows || []).slice().reverse().forEach((row) => {
+    const rr = Number(row.rr);
+    if (!Number.isFinite(rr) || !rr) return;
+    series.push(series.length ? series[series.length - 1] + rr : rr);
+  });
+  if (series.length < 2) return "";
+  const w = 92;
+  const h = 24;
+  const pad = 3;
+  const min = Math.min(0, ...series);
+  const max = Math.max(0, ...series);
+  const span = max - min || 1;
+  const px = (i) => pad + (i * (w - pad * 2)) / (series.length - 1);
+  const py = (v) => h - pad - ((v - min) / span) * (h - pad * 2);
+  const points = series.map((v, i) => `${px(i).toFixed(1)},${py(v).toFixed(1)}`).join(" ");
+  const net = series[series.length - 1];
+  const tone = net > 0 ? "up" : net < 0 ? "down" : "flat";
+  const zero = py(0).toFixed(1);
+  return `<svg class="hm-spark ${tone}" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true" focusable="false">`
+    + `<line class="base" x1="0" y1="${zero}" x2="${w}" y2="${zero}" />`
+    + `<polyline class="line" points="${points}" />`
+    + `</svg>`;
+}
+
 function homeRankHtml(data) {
   const p = data.player || {};
   const rows = (data.recent && data.recent.rows) || [];
@@ -3149,6 +3192,8 @@ function homeRankHtml(data) {
       ? `近 ${rows.length} 场 RR ${rr > 0 ? "+" : ""}${rr}`
       : `近 ${rows.length} 场 ${wins} 胜 ${rows.length - wins} 负`;
     bits.push(`<span class="${rr > 0 ? "hm-up" : rr < 0 ? "hm-down" : "hm-dim"}">${tag}</span>`);
+    const spark = homeSparkHtml(rows);
+    if (spark) bits.push(spark);
   }
   return bits.join(" ");
 }
@@ -4389,10 +4434,16 @@ async function boot() {
   });
 
   $("#social-filter").addEventListener("input", () => renderPeople());
-  $$(".social-counts .chip").forEach((chip) => chip.addEventListener("click", () => {
-    $$(".social-counts .chip").forEach((c) => c.classList.remove("active"));
+  $$(".social-counts .chip[data-group]").forEach((chip) => chip.addEventListener("click", () => {
+    $$(".social-counts .chip[data-group]").forEach((c) => c.classList.remove("active"));
     chip.classList.add("active");
     state.socialGroup = chip.dataset.group;
+    renderPeople();
+  }));
+  $$(".social-counts .chip[data-sort]").forEach((chip) => chip.addEventListener("click", () => {
+    $$(".social-counts .chip[data-sort]").forEach((c) => c.classList.remove("active"));
+    chip.classList.add("active");
+    state.socialSort = chip.dataset.sort === "games" ? "games" : "recent";
     renderPeople();
   }));
 
