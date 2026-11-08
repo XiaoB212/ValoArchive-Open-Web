@@ -310,14 +310,16 @@ function clearError() {
 }
 
 function tierChip(row) {
-  const name = row.tier_after_name || "";
-  const iconUrl = row.tier_after_icon || "";
+  // 优先「本局赛后段位」；非常规模式（乱斗/斗牛/异变轮战）上游不给段位，就用
+  // 后端按竞技场次时间线推出来的「当时段位」tier_at，文字和图标一定同源。
+  const name = row.tier_after_name || row.tier_at_name || "";
+  const iconUrl = row.tier_after_icon || row.tier_at_icon || "";
   const promo = row.promoted ? '<span class="promo">晋级</span>' : "";
   if (name || iconUrl) {
     const icon = iconUrl ? `<img class="tier-mini" src="${img(iconUrl)}" alt="" loading="lazy" />` : "";
     return `<span class="tier-chip">${icon}<span>${name || "—"}</span>${promo}</span>`;
   }
-  // 赛后段位没拿到（非常规模式/PD 结算延迟）时，退回到玩家当前段位，至少图标不空。
+  // 两条路都没有才退回当前段位（并标灰，提示这不是本场数据）。
   const me = state.player || {};
   if (!me.tier && !me.tier_icon) return "";
   const icon = me.tier_icon ? `<img class="tier-mini" src="${img(me.tier_icon)}" alt="" loading="lazy" />` : "";
