@@ -4463,3 +4463,43 @@ function renderAssetGrids(data, card) {
   // 英雄也顺手显示获取时间（ACLOS 的 unlock_time，「只显示到年月日」）
   $("#asset-agents").innerHTML = agents.map((item) => card(item, unlockLine(item) || item.role || "英雄")).join("");
 }
+
+/* ── 手机：所有数据表格统一塞进 .board-wrap 横向滚动壳 ──────────────
+   以前只有单局记分板自己包了壳，历史/赛季/资产里的表格在窄屏会把面板撑宽。
+   这里统一包一层（幂等），再交给 scrollhint.js 画常驻细滚动条。 */
+function wrapBoards(root) {
+  const body = document.body;
+  if (!body || body.classList.contains("export") || body.classList.contains("exporting")) return;
+  const scope = root && root.querySelectorAll ? root : document;
+  const list = scope.matches && scope.matches("table.board")
+    ? [scope]
+    : [...scope.querySelectorAll("table.board")];
+  for (const table of list) {
+    const parent = table.parentElement;
+    if (!parent || parent.classList.contains("board-wrap")) continue;
+    // 导出用的打印布局不要包，包了会把整页撑开
+    if (parent.closest(".export-brand, [data-nowrap]")) continue;
+    const wrap = document.createElement("div");
+    wrap.className = "board-wrap";
+    wrap.setAttribute("data-hscroll", "");
+    parent.insertBefore(wrap, table);
+    wrap.appendChild(table);
+  }
+}
+
+function bootBoardWrap() {
+  wrapBoards();
+  let queued = false;
+  const run = () => {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => { queued = false; wrapBoards(); });
+  };
+  new MutationObserver(run).observe(document.body, { childList: true, subtree: true });
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", bootBoardWrap, { once: true });
+} else {
+  bootBoardWrap();
+}

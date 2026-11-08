@@ -25,10 +25,10 @@
   --win: #16866a;
   --loss: #c0453c;
   --gold: #a87a22;
+  color-scheme: light;
   --mono: "Cascadia Mono", "JetBrains Mono", Consolas, ui-monospace, monospace;
   --sans: "MiSans", "PingFang SC", "Microsoft YaHei UI", system-ui, sans-serif;
 }
-
 * { box-sizing: border-box; }
 
 html, body {
@@ -1296,7 +1296,7 @@ body {
 
 /* 搜索框：内阴影 + 聚焦光环 */
 .search input {
-  background: #fff;
+  background: var(--card);
   border: 1px solid var(--line-strong);
   box-shadow: inset 0 1px 2px rgba(18, 24, 22, 0.05), var(--shadow-1);
   transition: border-color 0.16s ease, box-shadow 0.16s ease;
@@ -1308,7 +1308,7 @@ body {
 }
 .search button, .export-btn {
   border: 1px solid var(--line-strong);
-  background: #fff;
+  background: var(--card);
   box-shadow: var(--shadow-1);
   transition: transform 0.12s ease, background 0.16s ease, border-color 0.16s ease;
 }
@@ -1338,7 +1338,7 @@ body {
 
 /* 四格指标：顶部色条 + 悬停 */
 .tile {
-  background: #fff;
+  background: var(--card);
   border: 1px solid var(--line);
   box-shadow: var(--shadow-1);
   transition: transform 0.14s ease, box-shadow 0.14s ease;
@@ -1370,7 +1370,7 @@ body {
 
 /* 列表行：悬停抬起 + 左侧强调 */
 .rows .row {
-  background: #fff;
+  background: var(--card);
   border: 1px solid var(--line);
   border-left: 1px solid var(--line);
   border-radius: 2px;
@@ -1441,7 +1441,7 @@ table.board tr.board-sep td {
   flex: 0 0 auto;
 }
 .asset-grid > *, .gun-card, .person, .mate {
-  background: #fff;
+  background: var(--card);
   border: 1px solid var(--line);
   box-shadow: var(--shadow-1);
   transition: transform 0.12s ease, box-shadow 0.14s ease, border-color 0.14s ease;
@@ -1525,7 +1525,7 @@ footer .dim { font-size: 12.5px; }
 }
 /* 搜索框与整体视觉收敛：去掉重内阴影/光环，回到干净白底细边 */
 .search {
-  background: #fff;
+  background: var(--card);
   border: 1px solid var(--line);
   border-radius: 12px;
   box-shadow: none;
@@ -1698,7 +1698,7 @@ body::before { opacity: .35; }
   padding: 0 6px 0 5px;
   border: 1px solid var(--line-strong);
   border-radius: 999px;
-  background: #fff;
+  background: var(--card);
   box-shadow: 0 1px 2px rgba(18, 24, 22, .05);
   transition: border-color .16s ease, box-shadow .16s ease;
 }
@@ -1736,7 +1736,7 @@ body::before { opacity: .35; }
 }
 .top .search #search-mode button:hover { color: var(--ink); background: rgba(14, 124, 107, .07); }
 .top .search #search-mode button.active {
-  background: #fff;
+  background: var(--card);
   color: var(--accent);
   box-shadow: 0 1px 3px rgba(11, 15, 17, .13);
 }
@@ -2253,7 +2253,7 @@ body::before { opacity: .35; }
 }
 .match-tabs .mtab:hover { color: var(--ink); }
 .match-tabs .mtab.on {
-  background: #fff;
+  background: var(--card);
   color: var(--accent);
   box-shadow: 0 1px 2px rgba(18, 24, 22, 0.06);
 }
@@ -2349,7 +2349,7 @@ body::before { opacity: .35; }
   padding: 0 6px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
+  background: var(--card);
   color: var(--ink);
   font: inherit;
   font-size: 13px;
@@ -2411,7 +2411,7 @@ body::before { opacity: .35; }
   padding: 1px 6px;
   border: 1px solid var(--line);
   border-radius: 6px;
-  background: #fff;
+  background: var(--card);
   color: var(--muted);
   font-style: normal;
   font-size: 10.5px;
@@ -2431,7 +2431,7 @@ body::before { opacity: .35; }
   @page { size: A4 landscape; margin: 8mm; }
 
   html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  body.export { background: #fff !important; }
+  body.export { background: var(--card) !important; }
 
   body.export .shell { max-width: none; padding: 0; }
   body.export .board-wrap { overflow: visible; max-width: none; }
@@ -2507,7 +2507,7 @@ body::before { opacity: .35; }
 /* 武器 chip：名字常显、颜色不要再发灰 */
 .rd-econ .econ .guns em {
   color: var(--ink, #20262a);
-  background: #fff;
+  background: var(--card);
   border-color: var(--line);
   opacity: 1;
   font-weight: 500;
@@ -3621,7 +3621,8 @@ body.modal-open { overflow: hidden; }
 }
 
 /* ---- landing (home) ------------------------------------------------- */
-.home { max-width: 1080px; padding: 56px 0 24px; }
+/* 首页那一栏跟顶栏同宽（原来 1080，右边空出一截） */
+.home { max-width: none; padding: 56px 0 24px; }
 .home-hero { max-width: 720px; }
 .home-hero h1 { font-size: 52px; line-height: 1.08; letter-spacing: -0.02em; }
 .home-hero p { margin-top: 14px; font-size: 15.5px; }
@@ -3681,7 +3682,7 @@ body.exporting .export-brand {
   flex-wrap: wrap; gap: 8px 16px;
   margin: 22px 0 4px; padding: 10px 14px;
   border: 1px solid var(--line); border-radius: 10px;
-  background: #fff; color: #6a6255; font-size: 12.5px; line-height: 1.5;
+  background: var(--card); color: #6a6255; font-size: 12.5px; line-height: 1.5;
 }
 body.exporting .export-brand a {
   color: var(--accent); font-weight: 600; text-decoration: none;
@@ -4124,7 +4125,7 @@ body.exporting .export-brand a {
 
 /* ===== 登录提示（只在用户自己动手时出现） ===== */
 #login-gate{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(6,9,14,.6);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
-#login-gate .lg-card{width:min(430px,100%);background:#fff;color:#1b2230;border-radius:16px;padding:26px 24px 20px;box-shadow:0 24px 60px -20px rgba(0,0,0,.55);font-size:14.5px;line-height:1.7}
+#login-gate .lg-card{width:min(430px,100%);background:var(--card);color:#1b2230;border-radius:16px;padding:26px 24px 20px;box-shadow:0 24px 60px -20px rgba(0,0,0,.55);font-size:14.5px;line-height:1.7}
 #login-gate h3{margin:0 0 8px;font-size:19px;color:#111823;letter-spacing:.2px}
 #login-gate p{margin:0 0 18px;color:#4a5568}
 #login-gate .lg-actions{display:flex;gap:10px;align-items:center}
@@ -4180,8 +4181,8 @@ body.exporting .export-brand a {
 .filters .open-mode button{height:26px;padding:0 13px;border-radius:999px;color:#5d6a6e;font-weight:600;background:transparent}
 .filters .open-mode button.active{background:var(--accent);color:#fff;box-shadow:0 1px 2px rgba(16,24,40,.18)}
 .filters .f-sep{height:18px;width:1px;background:#d9d3c4}
-.filters .pager button{background:#fff;border:1px solid #e2ddd0}
-.filters #gm-select{border-radius:999px;border-color:#ddd7c7;background:#fff}
+.filters .pager button{background:var(--card);border:1px solid #e2ddd0}
+.filters #gm-select{border-radius:999px;border-color:#ddd7c7;background:var(--card)}
 @media (max-width:720px){
   .filters{padding:6px 8px}
   .filters .f-seg .chip{height:28px;font-size:13px}
@@ -4189,7 +4190,7 @@ body.exporting .export-brand a {
 }
 
 /* ===== 玩家 ID 旁的收藏按钮 ===== */
-.id-meta .fav-btn{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border:1px solid var(--accent);background:#fff;color:var(--accent);border-radius:999px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:background .15s,color .15s,transform .1s}
+.id-meta .fav-btn{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border:1px solid var(--accent);background:var(--card);color:var(--accent);border-radius:999px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:background .15s,color .15s,transform .1s}
 .id-meta .fav-btn:hover{background:var(--accent);color:#fff}
 .id-meta .fav-btn:active{transform:scale(.97)}
 .id-meta .fav-btn.on{background:var(--accent);color:#fff}
@@ -4298,9 +4299,9 @@ footer.shell .legal{text-wrap:pretty;word-break:normal;overflow-wrap:break-word;
   box-shadow:0 2px 5px rgba(14,124,107,.32),inset 0 1px 0 rgba(255,255,255,.16);
 }
 .filters .f-sep{background:#c6bb9f}
-.filters .pager button{background:#fff;border:1px solid #cfc4a9;color:#3f4a4d}
+.filters .pager button{background:var(--card);border:1px solid #cfc4a9;color:#3f4a4d}
 .filters .pager button:hover:not(:disabled){border-color:#0e7c6b;color:#0a5b4e}
-.filters #gm-select{background:#fff;border:1px solid #cfc4a9;color:#2a3335;font-weight:600}
+.filters #gm-select{background:var(--card);border:1px solid #cfc4a9;color:#2a3335;font-weight:600}
 @media (max-width:720px){.filters{padding:6px 8px}}
 
 /* ===== 历史工具条 v5：作用域收回到 .panel-head，真正压深底色 ===== */
@@ -4317,8 +4318,8 @@ footer.shell .legal{text-wrap:pretty;word-break:normal;overflow-wrap:break-word;
   box-shadow:0 2px 5px rgba(14,124,107,.32),inset 0 1px 0 rgba(255,255,255,.16);
 }
 .panel-head .filters .f-sep{background:#c4b899}
-.panel-head .filters .pager button{background:#fff;border:1px solid #ccc0a4;color:#3c4749}
-.panel-head .filters #gm-select{background:#fff;border:1px solid #ccc0a4;color:#283234;font-weight:600}
+.panel-head .filters .pager button{background:var(--card);border:1px solid #ccc0a4;color:#3c4749}
+.panel-head .filters #gm-select{background:var(--card);border:1px solid #ccc0a4;color:#283234;font-weight:600}
 @media (max-width:720px){.panel-head .filters{padding:6px 8px}}
 
 /* ===== 历史工具条 v6：只作用于对局记录，资产排序条保持素净 ===== */
@@ -4336,8 +4337,8 @@ footer.shell .legal{text-wrap:pretty;word-break:normal;overflow-wrap:break-word;
   box-shadow:0 2px 5px rgba(14,124,107,.32),inset 0 1px 0 rgba(255,255,255,.16);
 }
 #panel-history .filters .f-sep{background:#c4b899}
-#panel-history .filters .pager button{background:#fff;border:1px solid #ccc0a4;color:#3c4749}
-#panel-history .filters #gm-select{background:#fff;border:1px solid #ccc0a4;color:#283234;font-weight:600}
+#panel-history .filters .pager button{background:var(--card);border:1px solid #ccc0a4;color:#3c4749}
+#panel-history .filters #gm-select{background:var(--card);border:1px solid #ccc0a4;color:#283234;font-weight:600}
 @media (max-width:720px){#panel-history .filters{padding:6px 8px}}
 
 /* ===== 收藏按钮 v5：低饱和浅底，靠字重和描边清楚，不再艳 ===== */
@@ -4366,7 +4367,7 @@ footer.shell .legal{text-wrap:pretty;word-break:normal;overflow-wrap:break-word;
   background:#0e7c6b;color:#fff;box-shadow:0 1px 2px rgba(14,124,107,.25);
 }
 #panel-history .filters .f-sep{background:#cfc6ae}
-#panel-history .filters .pager button{background:#fff;border:1px solid #dcd4c0;color:#2b3537}
+#panel-history .filters .pager button{background:var(--card);border:1px solid #dcd4c0;color:#2b3537}
 
 /* ===== 已收藏：去掉金色，改中性灰绿 ===== */
 .id-row .fav-btn.on,.id-meta .fav-btn.on{
@@ -4386,16 +4387,16 @@ footer.shell .legal{text-wrap:pretty;word-break:normal;overflow-wrap:break-word;
   background:transparent;color:#38423e;font-weight:600;
 }
 #panel-history .filters .f-seg .chip:not(.active):hover,#panel-history .filters .open-mode button:not(.active):hover{
-  background:#fff;border-color:#e6dfcc;color:#141c1a;
+  background:var(--card);border-color:#e6dfcc;color:#141c1a;
 }
 #panel-history .filters .f-seg .chip.active,#panel-history .filters .open-mode button.active{
-  background:#fff;border-color:#c9d5cf;color:#0a5b4e;
+  background:var(--card);border-color:#c9d5cf;color:#0a5b4e;
   box-shadow:0 1px 2px rgba(16,24,40,.08);
 }
 #panel-history .filters .f-sep{background:#e0d9c6}
-#panel-history .filters .pager button{width:26px;height:26px;border-radius:8px;background:#fff;border:1px solid #e0d9c6;color:#38423e}
+#panel-history .filters .pager button{width:26px;height:26px;border-radius:8px;background:var(--card);border:1px solid #e0d9c6;color:#38423e}
 #panel-history .filters .pager button:hover:not(:disabled){border-color:#b9c7c0;color:#0a5b4e}
-#panel-history .filters #gm-select{height:28px;border-radius:9px;border:1px solid #e0d9c6;background:#fff;color:#28312e;font-weight:600}
+#panel-history .filters #gm-select{height:28px;border-radius:9px;border:1px solid #e0d9c6;background:var(--card);color:#28312e;font-weight:600}
 @media (max-width:720px){
   #panel-history .panel-head{padding-bottom:8px;margin-bottom:8px}
   #panel-history .filters{padding:0}
@@ -4430,7 +4431,7 @@ footer.shell .legal{text-wrap:pretty;word-break:normal;overflow-wrap:break-word;
 }
 #panel-history .filters .pager button:hover:not(:disabled){background:#f1eee2;border-color:#e5dfcd;color:#0a5b4e}
 #panel-history .filters .pager span{font-size:12px;color:#5b6560;font-variant-numeric:tabular-nums}
-#panel-history .filters #gm-select{height:28px;border-radius:7px;border:1px solid #ddd6c3;background:#fff;color:#2b3531;font-weight:600}
+#panel-history .filters #gm-select{height:28px;border-radius:7px;border:1px solid #ddd6c3;background:var(--card);color:#2b3531;font-weight:600}
 #panel-history .filters .open-mode{height:30px}
 #panel-history .filters .open-mode button{height:26px;padding:0 10px}
 @media (max-width:720px){
@@ -4965,14 +4966,14 @@ body.me-view .home-me { display: block; }
   border: 1px solid rgba(14, 124, 107, .30);
   background: #0e7c6b; color: #fff; font-size: 12.5px; cursor: pointer;
 }
-.hm-btn.ghost { background: #fff; color: #0e7c6b; }
+.hm-btn.ghost { background: var(--card); color: #0e7c6b; }
 .hm-btn:hover { filter: brightness(.97); }
 
 .hm-lock { margin: 12px 0 0; font-size: 13px; line-height: 1.7; color: #5d6f6b; }
 
 .hm-body { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 12px; margin: 14px 0 0; }
 .hm-sec {
-  background: #fff; border: 1px solid rgba(20, 101, 79, .10);
+  background: var(--card); border: 1px solid rgba(20, 101, 79, .10);
   border-radius: 12px; padding: 12px 14px; min-width: 0;
 }
 .hm-sec.rank { grid-column: 1 / -1; }
@@ -4999,7 +5000,7 @@ body.me-view .home-me { display: block; }
 .hm-bind input {
   flex: 1 1 200px; height: 36px; border-radius: 9px;
   border: 1px solid rgba(20, 101, 79, .18);
-  padding: 0 12px; font-size: 13px; background: #fff; color: #1c2b28;
+  padding: 0 12px; font-size: 13px; background: var(--card); color: #1c2b28;
 }
 .hm-bind input:focus { outline: none; border-color: rgba(14, 124, 107, .55); }
 
@@ -5010,7 +5011,7 @@ body.me-view .home-me { display: block; }
 .hm-foot { margin: 12px 0 0; display: flex; align-items: center; gap: 10px; font-size: 12px; color: #7d8f8a; }
 .hm-mini {
   height: 26px; padding: 0 10px; border-radius: 8px;
-  border: 1px solid rgba(20, 101, 79, .24); background: #fff;
+  border: 1px solid rgba(20, 101, 79, .24); background: var(--card);
   color: #0e7c6b; font-size: 12px; cursor: pointer;
 }
 
@@ -5061,7 +5062,7 @@ body.me-view .home-faq { display: none; }
 .home-me .hm-modes { display: flex; gap: 6px; margin-bottom: 8px; }
 .home-me .hm-modes button {
   height: 26px; padding: 0 11px; border-radius: 999px; border: 1px solid rgba(20, 101, 79, .18);
-  background: #fff; color: #35544c; font-size: 12px; cursor: pointer;
+  background: var(--card); color: #35544c; font-size: 12px; cursor: pointer;
 }
 .home-me .hm-modes button.on { background: #0e7c6b; border-color: #0e7c6b; color: #fff; }
 .hm-bindrow { display: flex; gap: 8px; }
@@ -5072,7 +5073,7 @@ body.me-view .home-faq { display: none; }
 .home-me > .hm-head { display: flex; align-items: baseline; gap: 10px; margin: 0 0 10px; padding: 0 2px; flex-wrap: wrap; }
 .home-me > .hm-head .hm-id b { font-size: 15px; letter-spacing: .02em; color: #16241f; }
 .home-me > .hm-head #hm-meta { font-size: 11.5px; color: #7b8a86; }
-.hm-card { background: #fff; border: 1px solid rgba(20, 101, 79, .10); border-radius: 18px;
+.hm-card { background: var(--card); border: 1px solid rgba(20, 101, 79, .10); border-radius: 18px;
   box-shadow: 0 1px 2px rgba(16, 40, 34, .04), 0 14px 30px -22px rgba(16, 40, 34, .30);
   margin: 0 0 14px; overflow: hidden; }
 .hm-chead { display: flex; align-items: center; gap: 12px; padding: 15px 18px 13px;
@@ -5083,7 +5084,7 @@ body.me-view .home-faq { display: none; }
 .hm-card .hm-id b { font-size: 16.5px; line-height: 1.25; color: #16241f; letter-spacing: .01em; }
 .hm-card .hm-meta { font-size: 11.5px; color: #7b8a86; }
 .hm-card .hm-tools { margin-left: auto; display: flex; gap: 6px; flex: 0 0 auto; }
-.hm-card .hm-btn.ghost { background: #fff; border: 1px solid rgba(20, 101, 79, .18); color: #14594a;
+.hm-card .hm-btn.ghost { background: var(--card); border: 1px solid rgba(20, 101, 79, .18); color: #14594a;
   border-radius: 10px; padding: 6px 12px; font-size: 12px; line-height: 1; }
 .hm-card .hm-btn.ghost:hover { background: #f1f8f5; border-color: rgba(20, 101, 79, .30); }
 .hm-card .hm-body { display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr); }
@@ -5101,7 +5102,7 @@ body.me-view .home-faq { display: none; }
 .hm-card .hm-sec.assets .hm-v { display: flex; flex-wrap: wrap; gap: 6px 16px; }
 .hm-card .hm-foot { display: flex; align-items: center; gap: 10px; padding: 10px 18px 13px;
   border-top: 1px solid rgba(20, 101, 79, .06); font-size: 11.5px; }
-.hm-card .hm-mini { margin-left: auto; background: #fff; border: 1px solid rgba(20, 101, 79, .16);
+.hm-card .hm-mini { margin-left: auto; background: var(--card); border: 1px solid rgba(20, 101, 79, .16);
   color: #14594a; border-radius: 9px; padding: 4px 10px; font-size: 11.5px; line-height: 1; }
 .hm-wait { margin: 0; padding: 12px 18px 15px; font-size: 12.5px; color: #7b8a86; }
 .hm-upd { margin: 0; padding: 7px 18px; font-size: 11.5px; color: #14594a; background: #f2faf6;
@@ -5124,7 +5125,7 @@ body.me-view .home-faq { display: none; }
 .hm-colh span { font-size: 12px; font-weight: 700; color: #1d3b32; letter-spacing: .02em; }
 .hm-colh em { font-style: normal; font-size: 11px; color: #8a9994; }
 /* 「最近一起组队」标题右侧的「查看全部」 */
-.hm-colh .hm-more { margin-left: auto; background: #fff; border: 1px solid rgba(20, 101, 79, .18);
+.hm-colh .hm-more { margin-left: auto; background: var(--card); border: 1px solid rgba(20, 101, 79, .18);
   color: #14594a; border-radius: 8px; padding: 3px 9px; font-size: 11px; line-height: 1.35; cursor: pointer; }
 .hm-colh .hm-more:hover { background: #f1f8f5; border-color: rgba(20, 101, 79, .30); }
 .hm-card .hm-cols.single { grid-template-columns: minmax(0, 1fr); }
@@ -5366,7 +5367,7 @@ body.me-view .home-faq { display: none; }
 .hm-new[hidden] { display: none; }
 .hm-fresh-lead { font-weight: 700; color: #0f6b4c; letter-spacing: .02em; }
 .hm-fresh {
-  border: 1px solid rgba(21, 128, 91, .28); background: #fff; color: #14523d;
+  border: 1px solid rgba(21, 128, 91, .28); background: var(--card); color: #14523d;
   border-radius: 999px; padding: 3px 10px; font-size: 12.5px; cursor: pointer;
   font-family: inherit;
 }
@@ -5381,4 +5382,206 @@ body.me-view .home-faq { display: none; }
   .hm-new { font-size: 12px; padding: 7px 9px 7px 10px; gap: 6px; }
   .hm-fresh-lead { flex: 0 0 100%; }
   .hm-fresh-x { margin-left: 0; }
+}
+
+/* 暗色：只换变量 + 少量硬编码面，组件规则一律不动。
+   跟随系统设置，不做站内开关（避免再往 localStorage 里加东西）。 */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --paper: #101315;
+    --paper-2: #16191c;
+    --card: #1a1e21;
+    --ink: #e9e7e1;
+    --ink-2: #c5cbcb;
+    --muted: #9aa5a6;
+    --dim: #79837f;
+    --line: #2a2f32;
+    --line-strong: #3b4346;
+    --accent: #3aa88f;
+    --accent-ink: #7fd8c4;
+    --accent-soft: #14322d;
+    --win: #4fc79e;
+    --loss: #e37a72;
+    --gold: #d3a851;
+    --squad-1: #1d6f5f;
+    --squad-2: #2d5a94;
+    --squad-3: #8a5a1c;
+    --squad-4: #6f3f8a;
+    --squad-1-ink: #ffffff;
+    --squad-2-ink: #ffffff;
+    --squad-3-ink: #ffffff;
+    --squad-4-ink: #ffffff;
+  }
+  .grid-bg {
+    background-image:
+      linear-gradient(to right, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  }
+  body { background: var(--paper); }
+  img { filter: brightness(0.94); }
+  .search { box-shadow: none; }
+
+  /* 少数写死浅色的面，换成变量 */
+  .season-radar, .id-card { background: linear-gradient(180deg, var(--card), var(--paper-2)); }
+  .filters, .panel-head .filters, #panel-history .filters { background: var(--card); }
+  .rdk, .rd-kills .helper .hb, .hf-ava, .multis em.more,
+  .round-strip .rc, .rd-econ .econ,
+  :is(#match-body, .inline-match) .match-hero .tag-mode { background: var(--paper-2); }
+  .round-strip .rc.draw { background: var(--card); }
+
+  .radar-svg .ring { stroke: var(--line); }
+
+  /* 强调色填色块：深色下 accent 变浅，白字对比不足，翻成深字。
+     只列「底色确实是 var(--accent)」的那几个，别去动用 card 当底的分段按钮。 */
+  .search button, .top .search #search-btn, .search-band .search #search-btn, .squad,
+  .acct-entry, .acct-entry .acct-av,
+  .acct-entry .acct-txt b, .acct-entry .acct-txt small,
+  .em-go, .iq-page:hover, .iq-who .you,
+  #p-appnum .bind-btn:hover, .price-rec { color: #07130f; }
+  .top .search #search-mode button.active { background: var(--accent); color: #07130f; }
+  .search-band .search #search-mode button.active { background: var(--accent); color: #07130f; }
+  /* 收藏按钮：历史规则里写死了浅底色，深色下换成变量 */
+  .id-row .fav-btn, .id-meta .fav-btn {
+    background: var(--accent-soft);
+    border-color: color-mix(in srgb, var(--accent) 32%, var(--line));
+  }
+  .id-row .fav-btn.on, .id-meta .fav-btn.on {
+    background: color-mix(in srgb, var(--gold) 20%, var(--card));
+    border-color: color-mix(in srgb, var(--gold) 42%, var(--line));
+    color: var(--gold);
+  }
+
+  /* 写死颜色的文字：统一映射到语义变量（否则深色下是深字压深底） */
+  .side-tag.team-ally { color: var(--accent-ink); }
+  .side-tag.team-enemy { color: var(--loss); }
+  .session-hint { color: var(--gold); }
+  .promo { color: var(--ink); }
+  .promo { color: var(--gold); }
+  :is(#match-body, .inline-match) .match-hero .hero-tags .tag-srv { color: var(--accent-ink); }
+  .id-meta #p-server { color: var(--accent-ink); }
+  #summary .pod-chip { color: var(--accent-ink); }
+  #summary .pod-chip.main { color: var(--accent-ink); }
+  .team-tag.blue { color: var(--accent-ink); }
+  .side-chip.def { color: var(--accent-ink); }
+  .multis em { color: var(--accent-ink); }
+  .hero-tags .tag-map { color: var(--accent-ink); }
+  .rows .row .party-badge.n2, .party-badge.n2 { color: var(--accent-ink); }
+  .rows .row .party-badge.n3, .party-badge.n3 { color: var(--accent-ink); }
+  .rows .row .party-badge.n4, .party-badge.n4 { color: var(--gold); }
+  .rows .row .party-badge.n5, .party-badge.n5 { color: var(--ink); }
+  .match-hero .hero-map { color: var(--ink); }
+  .rd-kills .helper .hb { color: var(--accent-ink); }
+  .multis em.more { color: var(--muted); }
+  #social-friends .fchip.hot { color: var(--accent-ink); }
+  #social-friends .fchip .hot-tag { color: var(--accent-ink); }
+  table.kmatrix thead th.ally .km-col i { color: var(--accent-ink); }
+  table.kmatrix thead th.enemy .km-col i { color: var(--loss); }
+  .name-note { color: var(--muted); }
+  .name-note .inline-link { color: var(--gold); }
+  .cred-alert { color: var(--gold); }
+  .cred-alert.bad { color: var(--loss); }
+  .cred-chip { color: var(--loss); }
+  .cred-chip.warn { color: var(--gold); }
+  .em-range input.bad { color: var(--loss); }
+  body.exporting .export-brand { color: var(--muted); }
+  .acct-entry.vip .acct-txt b { color: var(--gold); }
+  .acct-entry.vip .acct-txt small { color: var(--gold); }
+  .rows .row.win .tail .res { color: var(--accent-ink); }
+  .rows .row.loss .tail .res { color: var(--loss); }
+  .rows .row.draw .tail .res { color: var(--muted); }
+  .p-tag { color: var(--accent-ink); }
+  #login-gate .lg-card { color: var(--ink); }
+  #login-gate h3 { color: var(--ink); }
+  #login-gate p { color: var(--ink-2); }
+  #login-gate .lg-close { color: var(--accent-ink); }
+  .filters .f-seg .chip { color: var(--muted); }
+  .filters .open-mode button { color: var(--muted); }
+  footer.shell { color: var(--muted); }
+  footer.shell .foot-link:hover { color: var(--accent-ink); }
+  footer.shell .legal { color: var(--muted); }
+  .rail-note .legal { color: var(--muted); }
+  .id-row .fav-btn.on,.id-meta .fav-btn.on { color: var(--ink); }
+  .filters .f-seg .chip,.filters .open-mode button { color: var(--ink-2); }
+  .filters .f-seg .chip:not(.active):hover,.filters .open-mode button:not(.active):hover { color: var(--ink); }
+  .filters .pager button { color: var(--ink-2); }
+  .filters .pager button:hover:not(:disabled) { color: var(--accent-ink); }
+  .filters #gm-select { color: var(--ink); }
+  .panel-head .filters .f-seg .chip,.panel-head .filters .open-mode button { color: var(--ink-2); }
+  .panel-head .filters .f-seg .chip:not(.active):hover,.panel-head .filters .open-mode button:not(.active):hover { color: var(--ink); }
+  .panel-head .filters .pager button { color: var(--ink-2); }
+  .panel-head .filters #gm-select { color: var(--ink); }
+  #panel-history .filters .f-seg .chip,#panel-history .filters .open-mode button { color: var(--ink-2); }
+  #panel-history .filters .f-seg .chip:not(.active):hover,#panel-history .filters .open-mode button:not(.active):hover { color: var(--ink); }
+  #panel-history .filters .pager button { color: var(--ink-2); }
+  #panel-history .filters #gm-select { color: var(--ink); }
+  .id-row .fav-btn,.id-meta .fav-btn { color: var(--accent-ink); }
+  .id-row .fav-btn:hover,.id-meta .fav-btn:hover { color: var(--accent-ink); }
+  .id-row .fav-btn.on,.id-meta .fav-btn.on { color: var(--gold); }
+  .id-row .fav-btn.on:hover { color: var(--ink-2); }
+  #panel-history .filters .f-seg .chip,#panel-history .filters .open-mode button { color: var(--ink); }
+  #panel-history .filters .pager button { color: var(--ink); }
+  .id-row .fav-btn.on,.id-meta .fav-btn.on { color: var(--ink-2); }
+  .id-row .fav-btn.on:hover,.id-meta .fav-btn.on:hover { color: var(--ink); }
+  #panel-history .filters .f-seg .chip.active,#panel-history .filters .open-mode button.active { color: var(--accent-ink); }
+  #panel-history .filters .pager button:hover:not(:disabled) { color: var(--accent-ink); }
+  .id-row .fav-btn.on,.id-meta .fav-btn.on { color: var(--muted); }
+  .id-row .fav-btn.on:hover,.id-meta .fav-btn.on:hover { color: var(--ink-2); }
+  #panel-history .filters .pager span { color: var(--muted); }
+  #error { color: var(--ink); }
+  #error .err-x { color: var(--dim); }
+  #error.is-error { color: var(--loss); }
+  #error.is-ok { color: var(--accent-ink); }
+  .top-tools .tool-link[href="/valoadmin"] { color: var(--accent-ink); }
+  .rdk .multi { color: var(--loss); }
+  .hm-back { color: var(--accent-ink); }
+  .hm-id b { color: var(--accent-ink); }
+  .hm-meta { color: var(--muted); }
+  .hm-btn.ghost { color: var(--accent-ink); }
+  .hm-lock { color: var(--muted); }
+  .hm-k { color: var(--dim); }
+  .hm-v { color: var(--ink); }
+  .hm-v b { color: var(--accent-ink); }
+  .hm-map { color: var(--ink); }
+  .hm-kda { color: var(--accent-ink); }
+  .hm-dim { color: var(--dim); }
+  .hm-up { color: var(--accent-ink); }
+  .hm-down { color: var(--loss); }
+  .hm-bind input { color: var(--ink); }
+  .hm-upd { color: var(--accent-ink); }
+  .hm-foot { color: var(--dim); }
+  .hm-mini { color: var(--accent-ink); }
+  .hm-card .hm-wait { color: var(--dim); }
+  .hm-card .hm-upd { color: var(--accent-ink); }
+  .home-me .hm-modes button { color: var(--accent-ink); }
+  .home-me .hm-modes button.on { color: var(--accent-ink); }
+  .home-me > .hm-head .hm-id b { color: var(--ink); }
+  .home-me > .hm-head #hm-meta { color: var(--dim); }
+  .hm-card .hm-id b { color: var(--ink); }
+  .hm-card .hm-meta { color: var(--dim); }
+  .hm-card .hm-btn.ghost { color: var(--accent-ink); }
+  .hm-card .hm-mini { color: var(--accent-ink); }
+  .hm-wait { color: var(--dim); }
+  .hm-colh span { color: var(--ink); }
+  .hm-colh .hm-more { color: var(--accent-ink); }
+  .hf-main b { color: var(--ink); }
+  .hf-n { color: var(--muted); }
+  .hf-tag { color: var(--accent-ink); }
+  .hf-tag.new { color: var(--loss); }
+  .hm-card .hm-col .hm-row .hm-map { color: var(--ink); }
+  .hm-card .hm-col .hm-row .hm-kda { color: var(--ink-2); }
+  .hm-card .hm-sec.assets .hm-up { color: var(--accent-ink); }
+  .hm-card .hm-sec.assets .hm-v .hm-up { color: var(--accent-ink); }
+  .hm-card .hm-sec.matches .hm-map { color: var(--ink); }
+  .hm-card .hm-sec.matches .hm-kda { color: var(--ink-2); }
+  .hm-card > .hm-upd { color: var(--gold); }
+  .hm-card > .hm-upd b { color: var(--gold); }
+  .hm-card .hm-q { color: var(--muted); }
+  .search-fix { color: var(--accent-ink); }
+  .hm-new { color: var(--accent-ink); }
+  .hm-fresh-lead { color: var(--accent-ink); }
+  .hm-fresh { color: var(--accent-ink); }
+  .hm-fresh i { color: var(--loss); }
+  .hm-fresh-x { color: var(--muted); }
+  .hm-fresh-x:hover { color: var(--accent-ink); }
 }

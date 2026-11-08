@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>准星库 · VALO ARCHIVE</title>
 <link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=4" sizes="any" />
-<link rel="stylesheet" href="/static/style.css?v=59c55685b4" />
-<link rel="stylesheet" href="/static/tools.css?v=2a245b1dd8" />
+<link rel="stylesheet" href="/static/style.css?v=865b38bab4" />
+<link rel="stylesheet" href="/static/tools.css?v=dcbc4fe126" />
 </head>
 <body>
 <div class="grid-bg" aria-hidden="true"></div>
@@ -44,6 +44,7 @@
       <button class="tool-chip" data-tag="long">长十字</button>
     </div>
     <input class="input search" id="search" placeholder="搜名字 / 标签" />
+    <span class="tool-count" id="count"></span>
     <button class="btn small" id="open-form">发布我的准星</button>
   </div>
 
@@ -153,6 +154,8 @@
       toast("库暂时读不到，稍后再试");
     }
     $("#empty").style.display = rows.length ? "none" : "block";
+    const countEl = $("#count");
+    if (countEl) countEl.textContent = rows.length ? "共 " + rows.length + " 款" : "";
     rows.forEach((row) => grid.appendChild(card(row)));
   }
 
