@@ -2999,6 +2999,33 @@ function homeFriendDelta(kw, extra) {
   return fresh;
 }
 
+// 「好友列表」：只列好友，按最近一次同排倒序，最多 8 条；同排的人挂「同排」标记。
+function homeFriendRows(extra, kw, freshSet) {
+  const soc = extra && extra.social;
+  if (!soc) return '<p class="hf-none">好友列表读取中…</p>';
+  const played = new Map((soc.friends || []).map((f) => [f.subject, f]));
+  const roster = (soc.friends_list || []).map((f) => {
+    const hit = played.get(f.subject) || {};
+    return { name: f.name, avatar: f.avatar, games: hit.games || 0, last: hit.last || 0 };
+  });
+  if (!roster.length) return '<p class="hf-none">这个号没读到好友名单</p>';
+  roster.sort((a, b) => (b.last || 0) - (a.last || 0) || String(a.name).localeCompare(String(b.name), "zh"));
+  const shown = roster.slice(0, 8);
+  const mateNames = new Set(((extra.party && (extra.party.mates || extra.party.teammates)) || []).map((m) => m.name));
+  return shown.map((f) => {
+    const isNew = freshSet && freshSet.has(f.name);
+    const tags = [];
+    if (isNew) tags.push('<i class="hf-tag new">新</i>');
+    if (mateNames.has(f.name)) tags.push('<i class="hf-tag">同排</i>');
+    return `<div class="hf">
+      ${f.avatar ? `<img class="hf-ava" src="${escapeHtml(f.avatar)}" alt="" loading="lazy" />` : '<i class="hf-ava"></i>'}
+      <div class="hf-main"><b>${escapeHtml(homeNick(f.name))}${tags.join("")}</b>
+        <span>${f.last ? `最近同排 ${escapeHtml(homeWhen2(f.last))}` : "近一月没一起排过"}</span></div>
+      <span class="hf-n">${f.games ? `${f.games} 场` : ""}</span>
+    </div>`;
+  }).join("");
+}
+
 // 「最近一起组队」：好友、非好友都列，按最近一次同排倒序，最多 8 条；
 // 组队数据还没回来时先用好友名单顶上，别让这一栏空着。
 function homeMateRows(extra, freshSet) {
@@ -3121,16 +3148,20 @@ function homeSlotHtml(home, i, note) {
     ${rankStrip}
     <div class="hm-cols">
       <section class="hm-col">
-        <header class="hm-colh"><span>最近一起组队<em>${partyN ? ` ${partyN} 人` : friendN ? ` 好友 ${friendN} 人` : ""}</em></span>
+        <header class="hm-colh"><span>好友列表<em>${friendN ? ` ${friendN} 人 · 近一月同排` : ""}</em></span>
           <button type="button" class="hm-more" data-act="allmates">查看全部 ›</button></header>
+        ${homeFriendRows(extra, kw, mateFreshAll)}
+      </section>
+      <section class="hm-col">
+        <header class="hm-colh"><span>最近一起组队<em>${partyN ? ` ${partyN} 人` : ""}</em></span></header>
         ${homeMateRows(extra, mateFreshAll)}
       </section>
+    </div>
+    <div class="hm-cols">
       <section class="hm-col">
         <header class="hm-colh"><span>组队表现</span><em>${party.party_matches ? `${party.party_matches} 场有人一起` : ""}</em></header>
         ${homePartyStatsHtml(data, party)}
       </section>
-    </div>
-    <div class="hm-cols single">
       <section class="hm-col">
         <header class="hm-colh"><span>段位细节</span></header>
         ${homeRankDetailHtml(data)}
