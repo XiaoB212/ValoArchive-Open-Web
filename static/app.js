@@ -1518,7 +1518,7 @@ function renderQuickMatch(payload, matchId, host) {
       : "";
     // 段位图标、队徽都占固定格子：没有的补空占位，否则有队徽的行名字会被挤右。
     const tierIcon = seat.tier_icon
-      ? `<img class="iq-tier" src="${img(seat.tier_icon)}" alt="" title="${escapeHtml(seat.tier_name || "未定级")}" loading="lazy" onerror="this.remove()" />`
+      ? `<img class="iq-tier" src="${img(seat.tier_icon)}" alt="" title="${escapeHtml(seat.tier_name || "未定级")}${seat.tier_source === "current" ? "（当前段位）" : ""}" loading="lazy" onerror="this.remove()" />`
       : '<span class="iq-tier blank"></span>';
     // 死斗这类自由混战没有「两方」，但同一小队的人仍要能看出来，所以只按 multiTeam 排除。
     const squadBadge = seat.party_letter
