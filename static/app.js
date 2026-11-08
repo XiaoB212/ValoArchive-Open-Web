@@ -170,10 +170,21 @@ const api = {
   async get(path, params = {}) {
     const url = new URL(path, location.origin);
     Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v === "uid" ? "game" : v));
-    const res = await fetch(url);
+    let res = await fetch(url);
+    // 502/503/504 是反向代理那层没连上后端（部署重启的那几秒最常见）。
+    // 等一下重试一次就过去了，别让用户以为「查不到这个人」。
+    if (res.status >= 502 && res.status <= 504) {
+      await new Promise((resolve) => setTimeout(resolve, 700));
+      res = await fetch(url);
+    }
     if (res.status === 401) {
       showLoginGate();
       throw new Error("需要登录");
+    }
+    if (res.status >= 502 && res.status <= 504) {
+      const err = new Error("服务器正在更新，稍等几秒再点一次检索");
+      err.status = res.status;
+      throw err;
     }
     if (!res.ok) {
       let detail = res.statusText;
@@ -992,7 +1003,8 @@ async function loadPlayer(keyword, refresh = false) {
       showError(`查询失败：${err.message}`, action, $("#search-form"));
     }
     // 人已经找到了（只是换不出 PUUID）时不用再提供「是不是这个」候选，那反而更乱。
-    if (!(detail && detail.found)) suggest(keyword);
+    // 5xx 是服务端一时没连上，不是「查无此人」，更不能拿候选名单糊人。
+    if (!(detail && detail.found) && !(err.status >= 500)) suggest(keyword);
   }
 
   } finally {
