@@ -1679,7 +1679,7 @@ function renderMatch(payload, matchId, host) {
       <td class="side" data-label="阵营"><i class="${teamCls}"${sideStyle}>${side}</i></td>
       <td class="who" data-label="玩家"><div class="seat">${face || '<span class="face blank"></span>'}<div class="seat-txt"><span class="nm${seat.display_name || seat.user_name ? " nm-click" : " nm-unknown"}"${seat.display_name || seat.user_name ? ` data-q="${escapeHtml(seat.display_name || seat.user_name)}" title="点一下查这名玩家"` : ' title="名字没取到：名字查询服务未登录，或这名玩家没绑定过游戏账号"'}>${escapeHtml(seat.display_name || seat.user_name || "未知玩家")}${seat.subject === payload.viewer ? '<em class="you">你</em>' : ""}</span><span class="who-tags">${badge}${tag}${multiBadges(seat.multis, "board")}</span></div></div></td>
       <td class="c-agent" data-label="英雄">${seat.used_agent?.name || "—"}</td>
-      <td class="tier" data-label="段位">${seat.tier_icon ? `<img src="${img(seat.tier_icon)}" alt="" title="${seat.tier_name || ""}" loading="lazy" /><span>${seat.tier_name || ""}</span>` : seat.tier_name || "—"}</td>
+      <td class="tier" data-label="段位">${seat.tier_icon ? `<img src="${img(seat.tier_icon)}" alt="" title="${seat.tier_name || ""}${seat.tier_source === "current" ? "（当前段位）" : ""}" loading="lazy" /><span>${seat.tier_name || ""}</span>` : seat.tier_name || "—"}</td>
       <td class="c-acs" data-label="ACS">${seat.acs || 0}</td>
       <td class="c-dpr" data-label="回合均伤">${seat.damage_per_round || 0}</td>
       <td class="c-hs" data-label="爆头率">${seat.headshot_rate || 0}%</td>
