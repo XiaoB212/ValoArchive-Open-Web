@@ -349,6 +349,14 @@ function squadTag(row) {
   return "";
 }
 
+// 站点对外主页：优先读页面上的 <meta name="site-home">（两个站点各写各的域名），
+// 没有就退回当前地址。导出图里用它，避免出现 127.0.0.1:端口。
+function siteHome() {
+  const meta = document.querySelector('meta[name="site-home"]');
+  const home = meta && meta.getAttribute("content");
+  return (home || location.origin).replace(/\/+$/, "");
+}
+
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
 }
@@ -4288,8 +4296,11 @@ async function boot() {
     if (EXPORT_KIND === "match") document.body.classList.add("export-match");
     const link = $("#export-brand-link");
     if (link) {
-      link.href = location.origin;
-      link.textContent = location.origin.replace(/^https?:\/\//, "");
+      // 导出图/分享卡上的「数据来自」要写站点域名，不能写当前地址：
+      // 本地调试、源站直连（127.0.0.1:8766 之类）都会把 IP:端口带进图里。
+      const home = siteHome();
+      link.href = home;
+      link.textContent = home.replace(/^https?:\/\//, "");
     }
     const when = $("#export-brand-time");
     if (when) {
