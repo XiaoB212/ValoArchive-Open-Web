@@ -337,12 +337,16 @@ function fmtDelta(delta) {
   return `<span class="rr ${cls}" title="本局段位分变化">${sign}${Math.abs(n)} 分</span>`;
 }
 
-const NO_PARTY_MODES = new Set(["deathmatch", "skirmish2v2", "abilitydraftarena", "hurm", "ggteam"]);
+// 组队徽章：只有「确实知道这场是单排」才写单排。掌瓦老对局没有 partyId，
+// party 是 0/缺失、party_known 为假 —— 那是「不知道」，不是单排，留空更诚实。
 function squadTag(row) {
-  if (NO_PARTY_MODES.has(String(row.mode || ""))) return "";
-  if (!row.party || row.party < 2) return '<span class="party-badge solo">单排</span>';
-  const label = { 2: "双排", 3: "三排", 4: "四排", 5: "五排" }[row.party] || `${row.party} 人组队`;
-  return `<span class="party-badge n${Math.min(row.party, 5)}">${label}</span>`;
+  const n = Number(row && row.party) || 0;
+  if (n >= 2) {
+    const label = { 2: "双排", 3: "三排", 4: "四排", 5: "五排" }[n] || `${n} 人组队`;
+    return `<span class="party-badge n${Math.min(n, 5)}">${label}</span>`;
+  }
+  if (row && row.party_known === true) return '<span class="party-badge solo">单排</span>';
+  return "";
 }
 
 function escapeHtml(value) {
@@ -1173,6 +1177,12 @@ function syncModeOptions(payload) {
      老后端只给 mode_groups 时退回分组。 */
   const groups = (payload && (payload.mode_filters || payload.mode_groups)) || [];
   if (!box || !Array.isArray(groups) || !groups.length) return;
+  // 老版本存下来的模式筛选（deathmatch / hurm / ggteam 这些单队列 key）已经没用了，
+  // 新后端只认大类；不认的值回到「全部」，否则会显示成一颗都没选中。
+  if (state.gm !== "all" && !groups.some((g) => g.id === state.gm)) {
+    state.gm = "all";
+    try { localStorage.setItem("valo.gm", "all"); } catch (_) { /* 隐私模式忽略 */ }
+  }
   const sig = groups.map((g) => `${g.id}:${g.label}`).join("|");
   if (box.dataset && box.dataset.modeSig === sig) {
     syncModeChips();
@@ -1316,8 +1326,9 @@ async function toggleQuick(matchId, rowEl) {
 const TEAM_COLORS = ["#3d9ef0", "#e85a5a", "#f0b429", "#3ec98a", "#a97bf0", "#f08a3d", "#3dc9cf", "#ef7fc0"];
 const TEAM_COLOR_NAMES = ["蓝", "红", "黄", "绿", "紫", "橙", "青", "粉"];
 
-// 红蓝两方制模式（有 A/B 队徽的意义）；异变轮战、斗牛等 8 队模式不算。
-const TWO_SIDE_MODES = new Set(["competitive", "unrated", "swiftplay", "premier", "onefa", "custom", "hurm"]);
+// 红蓝两方制模式（有 A/B 队徽的意义）：5v5 的竞技/匹配/快速/武装升级/技能乱斗/团队乱斗，
+// 以及 2v2 斗牛，都是两边队伍。只有「多队各自颜色」的异变轮战和自由混战的死斗不算。
+const TWO_SIDE_MODES = new Set(["competitive", "unrated", "swiftplay", "premier", "onefa", "custom", "hurm", "ggteam", "spikerush", "skirmish2v2"]);
 
 
 // 队名 → 队伍编号（Team_7 → 7）；PD 的 teams[] 里有 team_number 就优先用。
@@ -1379,9 +1390,10 @@ function renderQuickMatch(payload, matchId, host) {
     ? [...score].sort((a, b) => teamNumber(a.team, teams) - teamNumber(b.team, teams))
     : [...score];
   const squadList = (payload.squads || []).filter((sq) => Number(sq.size) >= 2);
+  const ffaMode = !multiTeam && distinctTeams(score).length > 2;
   const squadText = squadList.length
     ? squadList.map((sq, i) => `${"ABCD"[i] || "?"}队 ${sq.size} 人`).join(" · ")
-    : "全场单排";
+    : (ffaMode ? "自由混战，没有组队" : "全场单排");
   const rowOf = (seat) => {
     const pal = teamPalette(seat.team, teams);
     const kda = String(seat.kda || "0/0/0").split("/");
@@ -1395,10 +1407,11 @@ function renderQuickMatch(payload, matchId, host) {
     const tierIcon = seat.tier_icon
       ? `<img class="iq-tier" src="${img(seat.tier_icon)}" alt="" title="${escapeHtml(seat.tier_name || "未定级")}" loading="lazy" onerror="this.remove()" />`
       : '<span class="iq-tier blank"></span>';
+    // 死斗这类自由混战没有「两方」，但同一小队的人仍要能看出来，所以只按 multiTeam 排除。
     const squadBadge = seat.party_letter
-      ? (multiTeam || !sideGrouped ? "" : `<span class="party-lg" style="background:var(--squad-${"ABCD".indexOf(seat.party_letter) + 1})">${seat.party_letter}队</span>`)
+      ? (multiTeam ? "" : `<span class="party-lg" style="background:var(--squad-${"ABCD".indexOf(seat.party_letter) + 1})">${seat.party_letter}队</span>`)
       : Number(seat.party_size) >= 2
-        ? (multiTeam || !sideGrouped ? "" : `<span class="party-lg solo">${seat.party_size}人</span>`)
+        ? (multiTeam ? "" : `<span class="party-lg solo">${seat.party_size}人</span>`)
         : '<span class="party-lg blank"></span>';
     return `<tr class="${seat.subject === payload.viewer ? "me" : ""}${seat.is_ally ? " team-ally" : ""}">
       ${teamCell}
@@ -1529,6 +1542,7 @@ function renderMatch(payload, matchId, host) {
   const teamList = payload.teams || [];
   // 同上：只有异变轮战才分组，乱斗/斗牛按普通列表排。
   const multiTeam = !!payload.multi_team;
+  const ffaMode = !multiTeam && distinctTeams(score).length > 2;
 
   const seatRow = (seat) => {
     const ally = seat.is_ally ?? (seat.team === (payload.ally_team || score[0]?.team));
@@ -1541,8 +1555,8 @@ function renderMatch(payload, matchId, host) {
       ? ` style="--side:${pal.color}" title="第 ${pal.placement || pal.number} 名 · ${pal.colorName}${pal.name}"`
       : "";
     const teamCls = multiTeam ? "side-color multi" : (plainTeam ? "side-color none" : `side-color ${teamClass}`);
-    const badge = seat.party_letter
-      ? (sideGrouped ? `<span class="party-lg" style="background:var(--squad-${"ABCD".indexOf(seat.party_letter) + 1})">${seat.party_letter}队</span>` : "")
+    const badge = seat.party_letter && !multiTeam
+      ? `<span class="party-lg" style="background:var(--squad-${"ABCD".indexOf(seat.party_letter) + 1})">${seat.party_letter}队</span>`
       : "";
     const tag = seat.party_size >= 2 ? `<span class="tag">${seat.party_size} 人组队</span>` : "";
     const face = seat.agent_image
@@ -1644,7 +1658,7 @@ function renderMatch(payload, matchId, host) {
         <div><span>我的表现</span><b>${mySeat.acs || 0} ACS</b></div>
         <div><span>我的 K/D/A</span><b>${mySeat.kda || "—"}</b></div>
       </div>
-      ${multiTeam || !sideGrouped ? "" : `<div class="squads">${squadChips || '<span class="dim">全场单排</span>'}</div>`}
+      ${multiTeam ? "" : `<div class="squads">${squadChips || (ffaMode ? '<span class="dim">自由混战，没有组队</span>' : '<span class="dim">全场单排</span>')}</div>`}
     </div>`;
 
   const boardTable = `
