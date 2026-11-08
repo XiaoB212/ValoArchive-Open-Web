@@ -773,16 +773,22 @@ async function bgWarm(keyword, mode) {
       }
     }
   }
-  if (!socialCache || socialCache.for !== keyword) {
-    const soc = await api.get("/api/player/social", { keyword, limit: 50, mode }).catch(() => null);
-    if (soc && state.keyword === keyword) {
+  const needSoc = !socialCache || socialCache.for !== keyword;
+  const needParty = !state.partyData || state.partyFor !== keyword;
+  if (needSoc || needParty) {
+    // 两件事都要打上游，串行等于把两段等待加起来；并发发出去，谁先回来都不卡另一个。
+    const [soc, party] = await Promise.all([
+      needSoc
+        ? api.get("/api/player/social", { keyword, limit: 50, mode }).catch(() => null)
+        : Promise.resolve(null),
+      needParty ? api.get("/api/party", { keyword, mode }).catch(() => null) : Promise.resolve(null),
+    ]);
+    if (state.keyword !== keyword) return;
+    if (soc) {
       soc.for = keyword;
       socialCache = soc;
     }
-  }
-  if (!state.partyData && state.keyword === keyword) {
-    const party = await api.get("/api/party", { keyword, mode }).catch(() => null);
-    if (party && state.keyword === keyword) {
+    if (party) {
       state.partyData = party;
       state.partyFor = keyword;
     }
