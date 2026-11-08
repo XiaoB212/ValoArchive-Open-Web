@@ -5123,6 +5123,11 @@ body.me-view .home-faq { display: none; }
 .hm-colh { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 0 0 6px; }
 .hm-colh span { font-size: 12px; font-weight: 700; color: #1d3b32; letter-spacing: .02em; }
 .hm-colh em { font-style: normal; font-size: 11px; color: #8a9994; }
+/* 「最近一起组队」标题右侧的「查看全部」 */
+.hm-colh .hm-more { margin-left: auto; background: #fff; border: 1px solid rgba(20, 101, 79, .18);
+  color: #14594a; border-radius: 8px; padding: 3px 9px; font-size: 11px; line-height: 1.35; cursor: pointer; }
+.hm-colh .hm-more:hover { background: #f1f8f5; border-color: rgba(20, 101, 79, .30); }
+.hm-card .hm-cols.single { grid-template-columns: minmax(0, 1fr); }
 .hf { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; align-items: center; gap: 9px;
   padding: 6px 8px; border-radius: 10px; }
 .hf + .hf { margin-top: 2px; }
