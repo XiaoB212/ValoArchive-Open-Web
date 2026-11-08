@@ -754,6 +754,41 @@ async function pcStore(keyword, mode, data, pagePromise) {
   } catch (_) { /* 缓存只是加速，失败不影响页面 */ }
 }
 
+// 后台预热：缓存先画出来，再悄悄核对「有没有新对局」；顺带把好友与组队 / 组队统计拉好，
+// 这样点 tab 不用再等服务端扫描一遍。所有回包都先确认用户还停在这个号上，避免串号。
+async function bgWarm(keyword, mode) {
+  if (!keyword || EXPORT_KIND) return;
+  const hit = pcGet(keyword, mode);
+  if (hit) {
+    const probe = await api.get("/api/player/watch", { keyword, mode }).catch(() => null);
+    if (state.keyword !== keyword || state.source !== mode) return;
+    if (probe) {
+      const newer = String(probe.latest_match || "") !== String(hit.latest || "")
+        || Number(probe.total || 0) !== Number(hit.total || 0);
+      if (newer) {
+        const y = window.scrollY;
+        await loadPlayer(keyword, true).catch(() => {});
+        window.scrollTo(0, y);
+        return;
+      }
+    }
+  }
+  if (!socialCache || socialCache.for !== keyword) {
+    const soc = await api.get("/api/player/social", { keyword, limit: 50, mode }).catch(() => null);
+    if (soc && state.keyword === keyword) {
+      soc.for = keyword;
+      socialCache = soc;
+    }
+  }
+  if (!state.partyData && state.keyword === keyword) {
+    const party = await api.get("/api/party", { keyword, mode }).catch(() => null);
+    if (party && state.keyword === keyword) {
+      state.partyData = party;
+      state.partyFor = keyword;
+    }
+  }
+}
+
 async function loadPlayer(keyword, refresh = false) {
   setBusy(true, "正在解析玩家");
   try {
@@ -783,23 +818,17 @@ async function loadPlayer(keyword, refresh = false) {
   let firstPage = null;
   let data = null;
   if (pcHit) {
-    setBusy(true, "正在核对有没有新对局");
-    const probe = await api.get("/api/player/watch", { keyword, mode: state.source }).catch(() => null);
-    const same = Boolean(probe)
-      && String(probe.latest_match || "") === String(pcHit.latest || "")
-      && Number(probe.total || 0) === Number(pcHit.total || 0);
-    if (same) {
-      fromCache = pcHit;
-      data = pcHit.player;
-      data.meta = Object.assign({}, data.meta || {}, {
-        local: true,
-        local_age: Math.max(0, Math.round((Date.now() - (pcHit.at || Date.now())) / 1000)),
-      });
-      const hist = pcHit.hist;
-      // 第一页历史只在取它的条件（条数/筛选/模式）完全一致时复用，否则单独重取。
-      if (hist && hist.size === state.size && hist.filter === state.filter && hist.gm === state.gm) {
-        firstPage = Promise.resolve(hist.payload);
-      }
+    // 有缓存就直接画，核对放到后台：输入完立刻看到数据，别让人对着「正在核对」等。
+    fromCache = pcHit;
+    data = pcHit.player;
+    data.meta = Object.assign({}, data.meta || {}, {
+      local: true,
+      local_age: Math.max(0, Math.round((Date.now() - (pcHit.at || Date.now())) / 1000)),
+    });
+    const hist = pcHit.hist;
+    // 第一页历史只在取它的条件（条数/筛选/模式）完全一致时复用，否则单独重取。
+    if (hist && hist.size === state.size && hist.filter === state.filter && hist.gm === state.gm) {
+      firstPage = Promise.resolve(hist.payload);
     }
   }
   // 第一页历史和玩家资料互不依赖：同时发，省掉一次完整往返（前端「渲染慢」的主要来源）。
@@ -907,6 +936,7 @@ async function loadPlayer(keyword, refresh = false) {
       // 历史那一页的 meta 会把「本机缓存」盖回「刚刚拉取」，本机命中时再摊回来一次。
       if (fromCache) renderDataMeta(data.meta);
       if (!fromCache) pcStore(keyword, state.source, data, firstPage);
+      if (!refresh) setTimeout(() => { bgWarm(keyword, state.source); }, 350);
     }
     switchTab(EXPORT_KIND || "history");
     if (!EXPORT_KIND) {
@@ -1928,9 +1958,15 @@ async function loadParty() {
 
   clearError();
   bindPartySearch();
+  // 后台已经预热过就直接画，别为了同一份数据再转一圈。
+  if (state.partyData && state.partyFor === state.keyword) {
+    renderParty();
+    return;
+  }
   try {
     const data = await api.get("/api/party", { keyword: state.keyword, mode: state.source });
     state.partyData = data;
+    state.partyFor = state.keyword;
     renderParty();
   } catch (err) {
     showError(`组队加载失败：${err.message}`);
