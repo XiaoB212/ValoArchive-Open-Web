@@ -2891,7 +2891,13 @@ function renderCredChip(health) {
   }
   const labels = bad.map((s) => s.short || s.label).join("、");
   chip.className = `cred-chip ${bad.some((s) => ["expired", "missing"].includes(s.state)) ? "bad" : "warn"}`;
-  chip.textContent = health.admin === false ? "⚠ 上游服务到期" : `⚠ ${labels} 待重扫`;
+  if (health.admin === false) {
+    // 普通用户看到的是「哪块功能用不了」，不出现助手 / WeGame 这类代号。
+    chip.textContent = bad.length > 1 ? `⚠ ${bad.length} 项功能受影响` : `⚠ ${labels}暂时用不了`;
+    chip.title = bad.map((s) => `${s.label}：${s.message || "暂时不可用"}`).join("\n");
+    return;
+  }
+  chip.textContent = `⚠ ${labels} 待重扫`;
   chip.title = bad
     .map((s) => `${s.label}：${s.state === "expiring" ? "快过期" : "已失效"}${s.since_text ? `（${s.since_text} 起）` : ""}${s.last_ok_text ? ` · 最后正常 ${s.last_ok_text}` : ""}\n${s.message || ""}`)
     .join("\n");
@@ -2919,22 +2925,27 @@ function renderCredAlert(health) {
     return;
   }
   const hasExpired = shown.some((s) => s.state === "expired" || s.state === "missing");
+  const forUser = health.admin === false;
   box.className = `cred-alert ${hasExpired ? "bad" : "warn"}`;
+  const title = forUser
+    ? hasExpired ? "有功能暂时用不了" : "有功能快到期了"
+    : hasExpired ? "有登录态已经过期" : "有登录态快过期了";
   box.innerHTML = `
     <div class="ca-head">
-      <strong>${hasExpired ? "有登录态已经过期" : "有登录态快过期了"}</strong>
+      <strong>${title}</strong>
       <button type="button" class="ca-close" title="本次打开页面不再提示">知道了</button>
     </div>
     <ul>${shown
       .map((s) => {
-        const when = [
+        // 给普通用户只说功能影响；内部代号、失效时刻、最后正常时间都留给站长版。
+        const when = forUser ? "" : [
           s.since_text ? `${s.state === "expiring" ? `预计 ${s.since_text} 过期` : `${s.since_text} 起`}` : "",
           s.last_ok_text ? `最后正常 ${s.last_ok_text}` : "",
         ].filter(Boolean).join(" · ");
         return `<li><b>${escapeHtml(s.label)}</b><span>${escapeHtml(s.message)}</span>${when ? `<em>${escapeHtml(when)}</em>` : ""}</li>`;
       })
       .join("")}</ul>
-    ${NO_LOGIN || health.admin === false ? "" : '<p class="ca-foot">重新扫码在 <a href="/valoadmin#login" target="_blank" rel="noopener">登录态</a> 页（需要手机确认）。</p>'}`;
+    ${NO_LOGIN || forUser ? "" : '<p class="ca-foot">重新扫码在 <a href="/valoadmin#login" target="_blank" rel="noopener">登录态</a> 页（需要手机确认）。</p>'}`;
   box.querySelector(".ca-close").addEventListener("click", () => {
     const next = dismissed.concat(shown.map((s) => `${s.key}:${s.state}`));
     sessionStorage.setItem("cred-dismissed", JSON.stringify(next));

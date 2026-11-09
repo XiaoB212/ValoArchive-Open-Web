@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>站点状态 · VALO ARCHIVE</title>
 <link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=4" sizes="any" />
-<link rel="stylesheet" href="/static/style.css?v=19e05b5cf9" />
+<link rel="stylesheet" href="/static/style.css?v=fcd59012e8" />
 <link rel="stylesheet" href="/static/tools.css?v=86d3790d44" />
 <style>
   .st-hero { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 16px;
@@ -13,6 +13,7 @@
   .st-lamp { width: 12px; height: 12px; border-radius: 50%; background: #7a8794; flex: 0 0 auto;
     box-shadow: 0 0 0 4px rgba(122,135,148,.16); }
   .st-lamp.ok { background: #35c07a; box-shadow: 0 0 0 4px rgba(53,192,122,.18); }
+  .st-lamp.warn { background: #e0a33c; box-shadow: 0 0 0 4px rgba(224,163,60,.18); }
   .st-lamp.bad { background: #e2564a; box-shadow: 0 0 0 4px rgba(226,86,74,.18); }
   .st-hero h2 { margin: 0; font-size: 18px; }
   .st-hero .st-msg { color: var(--muted); font-size: 13px; margin-top: 3px; }
@@ -109,14 +110,20 @@
 
   function paint(d) {
     const ok = !!d.ok;
-    $("#lamp").className = "st-lamp " + (ok ? "ok" : "bad");
-    $("#headline").textContent = ok ? "服务正常" : "上游异常";
+    const feats = Array.isArray(d.features) ? d.features : [];
+    // ok 只代表「核心战绩查询」还活着；某几块功能自己挂了就用 features 说出来，
+    // 别整站喊「上游异常」。
+    const partial = ok && feats.length > 0;
+    $("#lamp").className = "st-lamp " + (ok ? (partial ? "warn" : "ok") : "bad");
+    $("#headline").textContent = ok ? (partial ? "部分功能异常" : "服务正常") : "上游异常";
     $("#headmsg").textContent = ok
-      ? "战绩查询、资料库与价格库都在正常工作。"
+      ? (partial
+        ? feats.map((f) => f.message || `${f.label}暂时不可用`).join(" ")
+        : "战绩查询、资料库与价格库都在正常工作。")
       : (d.upstream_message || "上游服务异常，暂时查不到新数据。");
     const q = $("#v-query");
-    q.textContent = ok ? "正常" : "异常";
-    q.parentNode.className = "st-cell" + (ok ? "" : " bad");
+    q.textContent = ok ? (partial ? "部分" : "正常") : "异常";
+    q.parentNode.className = "st-cell" + (ok ? (partial ? " warn" : "") : " bad");
 
     const up = d.now && d.started_at ? d.now - d.started_at : 0;
     $("#v-uptime").textContent = dur(up);
