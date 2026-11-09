@@ -4652,14 +4652,14 @@ footer.shell .legal{text-wrap:pretty;word-break:normal;overflow-wrap:break-word;
    做成一枚细发丝：5px 高、贴近容器底边，轨道几乎不显色，只有滑块是暖灰；
    粗了会显得页面脏，所以触屏也只加到 7px。 */
 .hscroll-hint {
-  position: absolute; height: 5px; border-radius: 999px;
-  background: rgba(60, 67, 71, .07);
+  position: absolute; height: 4px; border-radius: 999px;
+  background: rgba(60, 67, 71, .06);
   display: none; z-index: 6; cursor: grab; touch-action: none;
   transition: background-color .15s ease;
 }
 .hscroll-hint i {
-  position: absolute; left: 0; top: 0; height: 100%; min-width: 18px;
-  border-radius: 999px; background: rgba(60, 67, 71, .26);
+  position: absolute; left: 0; top: 0; height: 100%; min-width: 16px;
+  border-radius: 999px; background: rgba(60, 67, 71, .24);
   transition: background-color .15s ease;
 }
 .hscroll-hint:hover i { background: rgba(60, 67, 71, .34); }
@@ -4667,8 +4667,8 @@ footer.shell .legal{text-wrap:pretty;word-break:normal;overflow-wrap:break-word;
 .hscroll-hint:active i { background: rgba(60, 67, 71, .46); }
 /* 触屏稍微加粗一点，手指还能拖得动 */
 @media (pointer: coarse) {
-  .hscroll-hint { height: 7px; background: rgba(60, 67, 71, .09); }
-  .hscroll-hint i { min-width: 22px; background: rgba(60, 67, 71, .30); }
+  .hscroll-hint { height: 5px; background: rgba(60, 67, 71, .08); }
+  .hscroll-hint i { min-width: 20px; background: rgba(60, 67, 71, .28); }
 }
 /* 有提示条的地方把原生滚动条藏掉，免得两条叠在一起 */
 #wlist, #view-mode, #tabs { scrollbar-width: none; -ms-overflow-style: none; }
@@ -4795,9 +4795,9 @@ footer.shell .legal{text-wrap:pretty;word-break:normal;overflow-wrap:break-word;
   .rdk-w img { width: 28px; height: 16px; }
 }
 
-/* ---- v20：滚动提示条留出位置（12px 内边距刚好放下 5px 细条，不压 chip） ---- */
+/* ---- v20：滚动提示条留出位置（10px 内边距刚好放下 4px 细条，不压 chip） ---- */
 @media (max-width: 900px) {
-  nav.tabs[data-hscroll], #panel-history #view-mode[data-hscroll], #panel-history .view-mode[data-hscroll] { padding-bottom: 12px; }
+  nav.tabs[data-hscroll], #panel-history #view-mode[data-hscroll], #panel-history .view-mode[data-hscroll] { padding-bottom: 10px; }
 }
 
 /* ---- v20：手机上没采集到武器时用箭头表明「谁打谁」，别让中间空着 ---- */

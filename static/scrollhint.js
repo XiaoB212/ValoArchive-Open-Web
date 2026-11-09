@@ -12,7 +12,7 @@
   "use strict";
 
   var BAR = "hscroll-hint";
-  var MIN_THUMB = 18;
+  var MIN_THUMB = 16;
   var states = [];
   var scanQueued = false;
 
@@ -38,7 +38,7 @@
   function ensurePad(el) {
     // 条子画在容器底边内侧，容器没有下内边距时会压住 chip 文字。
     var pad = parseFloat(getComputedStyle(el).paddingBottom) || 0;
-    if (pad < 10 && el.style.paddingBottom === "") el.style.paddingBottom = "12px";
+    if (pad < 8 && el.style.paddingBottom === "") el.style.paddingBottom = "10px";
   }
 
   function position(st) {
@@ -53,7 +53,7 @@
     var r = el.getBoundingClientRect();
     var pr = host.getBoundingClientRect();
     st.bar.style.left = Math.round(r.left - pr.left) + "px";
-    st.bar.style.top = Math.round(r.bottom - pr.top - 8) + "px";
+    st.bar.style.top = Math.round(r.bottom - pr.top - 7) + "px";
     st.bar.style.width = Math.round(r.width) + "px";
     return r.width > 0;
   }
