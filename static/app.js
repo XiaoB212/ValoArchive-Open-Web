@@ -36,13 +36,11 @@ const state = {
   source: "game",
   filter: "all",
   // 对局历史的「查看模式」：按模式分类过滤（服务端按 names.mode_group 归组）
-  gm: (() => {
-    try { return localStorage.getItem("valo.gm") || "all"; } catch (_) { return "all"; }
-  })(),
-  // 选了清单里的具体模式时，记下它的中文名给 chip 用（刷新页面也能显示「其他 · 个人乱斗」）
-  gmLabel: (() => {
-    try { return localStorage.getItem("valo.gmLabel") || ""; } catch (_) { return ""; }
-  })(),
+  // 不跨玩家/跨会话记忆：以前存在 localStorage 里，上次给别的号选的模式会带到下一个号，
+  // 碰巧那个号没有这类对局，首屏就只剩「0 场」，看着像数据丢了（用户 2026-11-09 反馈）。
+  gm: "all",
+  // 选了清单里的具体模式时，记下它的中文名给 chip 用（「其他 · 个人乱斗」）
+  gmLabel: "",
   total: 0,
   rows: [],
   matchId: null,
@@ -833,6 +831,8 @@ async function loadPlayer(keyword, refresh = false) {
 
   clearError();
   $("#suggest").classList.add("hidden");
+  // 换了个号就回到「全部模式」；同一个号的后台刷新（bgWarm）保留用户当前筛选。
+  if (keyword !== state.keyword) resetGm();
   state.keyword = keyword;
   state.page = 1;
   state.matchLoaded = false;
@@ -1170,7 +1170,16 @@ function renderHistory(rows, meta) {
   const ordered = [...rows].sort(
     (a, b) => (Number(b.start_ms || b.ts || 0)) - (Number(a.start_ms || a.ts || 0)),
   );
-  list.innerHTML = ordered.map(rowHtml).join("") || '<p class="dim">这一页没有记录。</p>';
+  // 空列表要分清「这号真没记录」和「现在开着模式筛选」：后者直接给一键回到全部，
+  // 否则用户只会看到一个 0 场、不知道该点哪里（m01118）。
+  let blank = '<p class="dim">这一页没有记录。</p>';
+  if (!ordered.length && (state.gm || "all") !== "all") {
+    const chip = document.querySelector(`#view-mode button[data-gm="${state.gm}"]`);
+    const name = chip ? (chip.dataset.label || chip.textContent || "") : (state.gmLabel || "");
+    blank = `<p class="dim">现在只看「${escapeHtml(name || "所选模式")}」，这个号在这类对局里没有记录。`
+      + '<button type="button" class="chip" data-gm-reset="1">看全部模式</button></p>';
+  }
+  list.innerHTML = ordered.map(rowHtml).join("") || blank;
   const pages = Math.max(1, Math.ceil((meta.total || 0) / meta.size));
   $("#page-label").textContent = meta.has_next ? `${meta.page} / ${pages}+` : `${meta.page} / ${pages}`;
   $("#prev").disabled = meta.page <= 1;
@@ -1208,7 +1217,7 @@ function syncModeOptions(payload) {
   // 新后端只认大类；不认的值回到「全部」，否则会显示成一颗都没选中。
   if (state.gm !== "all" && !/^[mn]:/.test(state.gm) && !groups.some((g) => g.id === state.gm)) {
     state.gm = "all";
-    try { localStorage.setItem("valo.gm", "all"); } catch (_) { /* 隐私模式忽略 */ }
+    state.gmLabel = "";
   }
   const sig = groups.map((g) => `${g.id}:${g.label}`).join("|");
   if (box.dataset && box.dataset.modeSig === sig) {
@@ -1252,14 +1261,19 @@ function syncModeChips() {
 function setGm(value, label) {
   state.gm = value || "all";
   state.gmLabel = /^[mn]:/.test(state.gm) ? (label || state.gmLabel || "") : "";
-  try {
-    localStorage.setItem("valo.gm", state.gm);
-    if (state.gmLabel) localStorage.setItem("valo.gmLabel", state.gmLabel);
-    else localStorage.removeItem("valo.gmLabel");
-  } catch (_) { /* 隐私模式忽略 */ }
   closeGmMenu();
   syncModeChips();
   loadPage(1);
+}
+
+// 换号时把模式筛选退回「全部」：筛选是「给这个号挑一类对局看」，
+// 不该跟着人走（m01118：上一个号选的模式让新号首屏 0 场）。
+function resetGm() {
+  if ((state.gm || "all") === "all" && !state.gmLabel) return false;
+  state.gm = "all";
+  state.gmLabel = "";
+  syncModeChips();
+  return true;
 }
 
 // ---- 「其他」下拉：chips 放不下那么多模式，就收进这张清单（自定义已单独一颗） ----
@@ -4009,6 +4023,13 @@ async function boot() {
   });
   $("#prev").addEventListener("click", () => loadPage(state.page - 1));
   $("#next").addEventListener("click", () => loadPage(state.page + 1));
+  // 空列表里的「看全部模式」：模式筛选留下的 0 场，一键退回全部。
+  $("#history-rows")?.addEventListener("click", (ev) => {
+    const btn = ev.target.closest("[data-gm-reset]");
+    if (!btn) return;
+    ev.preventDefault();
+    setGm("all");
+  });
   $$(".filters .chip").forEach((chip) => chip.addEventListener("click", () => {
     $$(".filters .chip").forEach((c) => c.classList.remove("active"));
     chip.classList.add("active");
