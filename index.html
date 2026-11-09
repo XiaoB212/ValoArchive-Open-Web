@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#0e7c6b" />
 <meta name="site-home" content="https://va.223212.xyz" />
 <meta name="description" content="瓦罗兰档案：非官方《无畏契约》社区项目，支持长历史、单局详情、对位击杀热力图与组队分析。" />
-<link rel="stylesheet" href="/static/style.css?v=3e5332209e" />
+<link rel="stylesheet" href="/static/style.css?v=41edc4a5bd" />
 </head>
 <body>
 <div class="grid-bg" aria-hidden="true"></div>
@@ -225,7 +225,7 @@
 
     <div class="player-grid">
       <div class="player-main">
-        <nav class="tabs" id="tabs">
+        <nav class="tabs" id="tabs" data-hscroll>
           <button data-tab="history" class="active">对局记录</button>
           <button data-tab="match">单局详情</button>
           <button data-tab="social">好友与组队</button>
@@ -245,7 +245,7 @@
               <i class="f-sep" aria-hidden="true"></i>
               <!-- 选项内容以后端 /api/player/history 的 mode_groups 为准，
                    这里只是在首屏那一次请求回来之前的兜底，两边保持一致即可。 -->
-              <div class="view-mode" id="view-mode" title="按模式分类查看对局记录">
+              <div class="view-mode" id="view-mode" data-hscroll title="按模式分类查看对局记录">
                 <button type="button" class="chip active" data-gm="all">全部模式</button>
               </div>
               <select id="gm-select" class="gm-select" aria-label="查看模式">
@@ -355,6 +355,7 @@
           <div class="asset-counts" id="asset-counts"></div>
           <div class="asset-block"><h4>枪械收集 <span class="dim" id="guns-meta"></span></h4><div class="gun-grid" id="asset-guns"></div></div>
           <div class="asset-block"><h4>枪皮</h4><div class="asset-grid" id="asset-skins"></div></div>
+          <div class="asset-block"><h4>枪卡 <span class="dim" id="guncards-meta"></span></h4><div class="gcard-grid" id="asset-guncards"></div></div>
           <div class="asset-block"><h4>卡面 <span class="dim" id="cards-meta"></span></h4><div class="asset-grid small" id="asset-cards"></div></div>
           <div class="asset-block"><h4>喷漆 / 挂饰 <span class="dim" id="sprays-meta"></span></h4><div class="asset-grid small" id="asset-sprays"></div></div>
           <div class="asset-block"><h4>英雄 <span class="dim" id="agents-meta"></span></h4><div class="asset-grid small" id="asset-agents"></div></div>
@@ -399,8 +400,8 @@
   <a class="foot-link" href="/terms">用户协议</a>
 </footer>
 
-<script src="/config.js?v=78787eb4fa"></script>
-<script src="/static/app.js?v=7052361785"></script>
+<script src="/config.js?v=5159ad9f1b"></script>
+<script src="/static/app.js?v=7ba61b32a8"></script>
 <script>
 (function () {
   document.querySelectorAll("#home-try .try").forEach(function (el) {
@@ -540,7 +541,7 @@
 </div>
 
 
-<script src="/static/scrollhint.js?v=7f67f3f0ac" defer></script>
+<script src="/static/scrollhint.js?v=d4cd260a59" defer></script>
 <script src="/static/statusdot.js?v=e4f8a35baa" defer></script>
 </body>
 </html>

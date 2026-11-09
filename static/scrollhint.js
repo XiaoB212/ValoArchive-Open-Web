@@ -12,19 +12,48 @@
   "use strict";
 
   var BAR = "hscroll-hint";
-  var MIN_THUMB = 22;
+  var MIN_THUMB = 28;
   var states = [];
   var scanQueued = false;
 
+  function scrollsOverflow(cs) {
+    // overflow:auto/scroll/hidden 都会裁掉绝对定位的子节点；其中 auto/scroll 还会
+    // 让子节点跟着内容一起滚走。iOS 的 -webkit-overflow-scrolling:touch 更是直接
+    // 把溢出内容提到独立的合成层里，条子会被裁得一点不剩——所以不能挂在这类节点里。
+    return /(auto|scroll|hidden)/.test(cs.overflowX + " " + cs.overflowY) ||
+      cs.webkitOverflowScrolling === "touch";
+  }
+
+  /* 找到能安全承载提示条的祖先：往上跳过所有会滚动/裁剪的容器。 */
+  function hostFor(el) {
+    var node = el.parentElement;
+    var fallback = node;
+    while (node && node !== document.body && node !== document.documentElement) {
+      if (!scrollsOverflow(getComputedStyle(node))) return node;
+      node = node.parentElement;
+    }
+    return fallback || document.body;
+  }
+
+  function ensurePad(el) {
+    // 条子画在容器底边内侧，容器没有下内边距时会压住 chip 文字。
+    var pad = parseFloat(getComputedStyle(el).paddingBottom) || 0;
+    if (pad < 12 && el.style.paddingBottom === "") el.style.paddingBottom = "14px";
+  }
+
   function position(st) {
     var el = st.el;
-    var parent = el.parentElement;
-    if (!parent) return false;
-    if (getComputedStyle(parent).position === "static") parent.style.position = "relative";
+    var host = st.host;
+    if (!host || !host.isConnected) {
+      host = st.host = hostFor(el);
+      if (!host) return false;
+      if (getComputedStyle(host).position === "static") host.style.position = "relative";
+      host.appendChild(st.bar);
+    }
     var r = el.getBoundingClientRect();
-    var pr = parent.getBoundingClientRect();
+    var pr = host.getBoundingClientRect();
     st.bar.style.left = Math.round(r.left - pr.left) + "px";
-    st.bar.style.top = Math.round(r.bottom - pr.top - 10) + "px";
+    st.bar.style.top = Math.round(r.bottom - pr.top - 11) + "px";
     st.bar.style.width = Math.round(r.width) + "px";
     return r.width > 0;
   }
@@ -44,6 +73,7 @@
       return;
     }
     var thumbW = Math.max(MIN_THUMB, Math.round((cw * cw) / sw));
+    ensurePad(el);
     st.bar.style.display = "block";
     st.thumb.style.width = thumbW + "px";
     var travel = Math.max(0, cw - thumbW);
@@ -67,8 +97,10 @@
     bar.setAttribute("aria-hidden", "true");
     var thumb = document.createElement("i");
     bar.appendChild(thumb);
-    el.parentElement.appendChild(bar);
-    var st = { el: el, bar: bar, thumb: thumb, raf: 0 };
+    var host = hostFor(el);
+    if (getComputedStyle(host).position === "static") host.style.position = "relative";
+    host.appendChild(bar);
+    var st = { el: el, bar: bar, thumb: thumb, host: host, raf: 0 };
     states.push(st);
 
     el.addEventListener("scroll", function () { schedule(st); }, { passive: true });

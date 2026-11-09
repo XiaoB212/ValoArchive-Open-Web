@@ -525,6 +525,28 @@ table.board td .tag {
 .asset span { font-family: var(--mono); font-size: 10.5px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .asset em { font-style: normal; font-size: 9.5px; color: var(--dim); line-height: 1.45; }
 
+/* ---------- 枪卡（掌瓦「枪卡™️」收藏）---------- */
+/* 立绘是横版，所以单独一套栅格：桌面 3–4 列，手机 2 列，不要挤成 92px 的小方格。 */
+.gcard-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
+.gcard {
+  background: var(--card); border: 1px solid var(--line); border-radius: 3px;
+  padding: 7px 7px 9px; display: grid; gap: 4px;
+}
+.gcard-art {
+  border-radius: 2px; overflow: hidden; background: var(--paper);
+  aspect-ratio: 16 / 10; display: grid; place-items: center;
+}
+.gcard-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.gcard-name {
+  font-family: var(--mono); font-size: 11px; color: var(--ink); font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.gcard-meta {
+  font-size: 9.5px; color: var(--ink-2); line-height: 1.45;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.gcard-meta.dim { color: var(--dim); }
+
 /* ---------- footer / error ---------- */
 
 footer {
@@ -1259,9 +1281,10 @@ table.board td.who .nm { font-size: 16px; }
   table.board td.who { grid-template-columns: 24px minmax(0, 1fr); }
   table.board img.face { width: 22px; height: 22px; }
   .party-grid { grid-template-columns: 1fr; }
-  .asset-counts { grid-template-columns: repeat(2, 1fr); }
+  .asset-counts { grid-template-columns: repeat(3, 1fr); }
   .asset-grid { grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); }
   .asset-grid.small { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); }
+  .gcard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .gun-grid { grid-template-columns: 1fr; }
   .rail { grid-template-columns: 1fr; }
   .export-btn { order: 2; }
@@ -1444,13 +1467,13 @@ table.board tr.board-sep td {
   transform: rotate(45deg);
   flex: 0 0 auto;
 }
-.asset-grid > *, .gun-card, .person, .mate {
+.asset-grid > *, .gcard, .gun-card, .person, .mate {
   background: var(--card);
   border: 1px solid var(--line);
   box-shadow: var(--shadow-1);
   transition: transform 0.12s ease, box-shadow 0.14s ease, border-color 0.14s ease;
 }
-.asset-grid > *:hover, .gun-card:hover, .person:hover {
+.asset-grid > *:hover, .gcard:hover, .gun-card:hover, .person:hover {
   transform: translateY(-1px);
   border-color: var(--line-strong);
   box-shadow: var(--shadow-2);
@@ -4625,18 +4648,26 @@ footer.shell .legal{text-wrap:pretty;word-break:normal;overflow-wrap:break-word;
    4) 回合走势的击杀明细看不清谁杀谁 → 左「击杀者」/ 中「武器」/ 右「被击杀」
    ================================================================== */
 
-/* ---- 横向滚动提示条（scrollhint.js 生成，挂在容器的父节点上） ---- */
+/* ---- 横向滚动提示条（scrollhint.js 生成，挂在容器最近的「不滚动」祖先上） ---- */
 .hscroll-hint {
-  position: absolute; height: 6px; border-radius: 999px;
-  background: rgba(16, 24, 40, .10);
-  display: none; z-index: 4; cursor: grab; touch-action: none;
+  position: absolute; height: 8px; border-radius: 999px;
+  background: rgba(16, 24, 40, .16);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .38);
+  display: none; z-index: 6; cursor: grab; touch-action: none;
+  transition: background-color .15s ease;
 }
 .hscroll-hint i {
-  position: absolute; left: 0; top: 0; height: 100%; min-width: 22px;
-  border-radius: 999px; background: rgba(16, 24, 40, .42);
+  position: absolute; left: 0; top: 0; height: 100%; min-width: 28px;
+  border-radius: 999px; background: rgba(16, 24, 40, .55);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, .18);
 }
 .hscroll-hint:active { cursor: grabbing; }
-.hscroll-hint:active i { background: rgba(16, 24, 40, .62); }
+.hscroll-hint:active i { background: rgba(16, 24, 40, .75); }
+/* 触屏上条子再粗一点，手指也能直接拖 */
+@media (pointer: coarse) {
+  .hscroll-hint { height: 10px; background: rgba(16, 24, 40, .18); }
+  .hscroll-hint i { min-width: 34px; }
+}
 /* 有提示条的地方把原生滚动条藏掉，免得两条叠在一起 */
 #wlist, #view-mode, #tabs { scrollbar-width: none; -ms-overflow-style: none; }
 #wlist::-webkit-scrollbar, #view-mode::-webkit-scrollbar, #tabs::-webkit-scrollbar { display: none; height: 0; }

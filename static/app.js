@@ -2236,6 +2236,10 @@ async function loadAssets() {
       setBusy(false);
       $("#assets-meta").textContent = "";
       $("#asset-counts").innerHTML = "";
+      const gcBox = $("#asset-guncards");
+      if (gcBox) gcBox.innerHTML = "";
+      const gcMeta = $("#guncards-meta");
+      if (gcMeta) gcMeta.textContent = "";
       const who = state.player || {};
       const hasNum = Boolean(who.app_num);
       const bindBtn = hasNum
@@ -2260,9 +2264,9 @@ async function loadAssets() {
     const vp = Number(String(counts.cost_num || "0").replace(/[^\d.]/g, "")) || 0;
     const rp = Number(String(counts.r_num || "0").replace(/[^\d.]/g, "")) || 0;
     $("#asset-counts").innerHTML = [
-      ["枪皮", counts.skins], ["卡面", counts.cards], ["喷漆", counts.sprays],
-      ["挂饰", counts.charms], ["英雄", `${counts.agents ?? 0}/${counts.agents_total ?? 0}`],
-      ["枪械", counts.guns],
+      ["枪皮", counts.skins], ["枪卡", counts.guncards], ["枪械", counts.guns],
+      ["卡面", counts.cards], ["喷漆", counts.sprays], ["挂饰", counts.charms],
+      ["英雄", `${counts.agents ?? 0}/${counts.agents_total ?? 0}`],
       ["已花费点券", vp.toLocaleString("en-US")], ["已消耗 R 点", rp.toLocaleString("en-US")],
     ].map(([k, v]) => `<div class="count"><div class="k">${k}</div><div class="v">${v ?? 0}</div></div>`).join("");
 
@@ -2879,7 +2883,7 @@ function renderHealth(health) {
 function renderCredChip(health) {
   const chip = $("#cred-chip");
   if (!chip) return;
-  const bad = (health.credential_states || []).filter((s) => s.state !== "ok");
+  const bad = (health.credential_states || []).filter((s) => s.state !== "ok" && s.state !== "error");
   if (!bad.length) {
     chip.classList.add("hidden");
     chip.textContent = "";
@@ -2899,7 +2903,9 @@ function renderCredAlert(health) {
   const box = $("#cred-alert");
   if (!box) return;
   const states = health.credential_states || [];
-  const bad = states.filter((s) => s.state !== "ok" && s.message);
+  // error = 探活接口自己没回话，不等于查不了（助手 2002 就是这种假红），
+// 所以只让 expired / missing / expiring 上红条。
+  const bad = states.filter((s) => s.state !== "ok" && s.state !== "error" && s.message);
   let dismissed = [];
   try {
     dismissed = JSON.parse(sessionStorage.getItem("cred-dismissed") || "[]");
@@ -3385,6 +3391,8 @@ function homeMateRows(extra, freshSet) {
     </div>`;
   }).join("");
 }
+
+
 
 function homeRankDetailHtml(data) {
   const rows = (data.recent && data.recent.rows) || [];
@@ -4693,8 +4701,38 @@ function renderGuns(data) {
     .join("");
 }
 
+function gunCardMeta(item) {
+  const parts = [];
+  if (item.quality) parts.push(`品质 ${item.quality}`);
+  if (item.level) parts.push(`进阶 ${item.level}`);
+  const day = String(item.unlock || "").slice(0, 10);
+  parts.push(/^\d{4}-\d{2}-\d{2}$/.test(day) ? `获取于 ${day}` : "获取时间未记录");
+  return parts.join(" · ");
+}
+
+// 枪卡（掌瓦「枪卡™️」收藏）：只有立绘 + 获取时间，按获取时间新→旧排。
+function renderGunCards(data) {
+  const list = [...(data.guncards || [])].sort(byAccess);
+  const box = $("#asset-guncards");
+  const meta = $("#guncards-meta");
+  if (meta) meta.textContent = list.length ? `共 ${list.length} 张` : "";
+  if (!box) return;
+  box.innerHTML = list.length
+    ? list.map((item) => {
+      const day = String(item.unlock || "").slice(0, 10);
+      const sub = gunCardMeta(item);
+      return `<div class="gcard" title="${escapeHtml(item.desc || sub)}">
+        <div class="gcard-art">${item.icon ? `<img src="${img(item.icon)}" alt="" loading="lazy">` : ""}</div>
+        <div class="gcard-name">${escapeHtml(item.name || "—")}</div>
+        <div class="gcard-meta${/^\d{4}-\d{2}-\d{2}$/.test(day) ? "" : " dim"}">${escapeHtml(sub)}</div>
+      </div>`;
+    }).join("")
+    : '<p class="dim">这个账号没有枪卡。</p>';
+}
+
 function renderAssetGrids(data, card) {
   renderGuns(data);
+  renderGunCards(data);
   // 不截断：卡面/喷漆/挂饰都要能看完（以前每块只给 60 件，看起来像“被吃了”）。
   const cards = [...(data.cards || [])].sort(byAccess);
   const sprays = [...(data.sprays || []), ...(data.charms || [])].sort(byAccess);
