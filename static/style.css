@@ -511,7 +511,7 @@ table.board td .tag {
 
 /* ---------- assets ---------- */
 
-.asset-counts { display: grid; grid-template-columns: repeat(6, 1fr); gap: 9px; margin: 16px 0 4px; }
+.asset-counts { display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); gap: 9px; margin: 16px 0 4px; }
 .count { background: var(--card); border: 1px solid var(--line); border-top: 2px solid var(--gold); border-radius: 3px; padding: 9px 11px; }
 .count .k { font-family: var(--mono); font-size: 9.5px; color: var(--dim); letter-spacing: 0.09em; }
 .count .v { font-size: 20px; font-weight: 700; }

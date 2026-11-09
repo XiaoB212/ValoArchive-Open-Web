@@ -2904,7 +2904,7 @@ function renderCredAlert(health) {
   if (!box) return;
   const states = health.credential_states || [];
   // error = 探活接口自己没回话，不等于查不了（助手 2002 就是这种假红），
-// 所以只让 expired / missing / expiring 上红条。
+  // 所以只让 expired / missing / expiring 上红条。
   const bad = states.filter((s) => s.state !== "ok" && s.state !== "error" && s.message);
   let dismissed = [];
   try {
