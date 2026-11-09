@@ -4741,6 +4741,16 @@ function renderGunCards(data) {
     : '<p class="dim">这个账号没有枪卡。</p>';
 }
 
+// 立绘加载失败时留一块素色底，不显示浏览器的碎图图标（3D 枪卡的图层包曾混进来过）。
+document.addEventListener("error", (event) => {
+  const node = event.target;
+  if (!(node instanceof HTMLImageElement)) return;
+  const art = node.closest(".gcard-art");
+  if (!art) return;
+  art.classList.add("noart");
+  node.remove();
+}, true);
+
 function renderAssetGrids(data, card) {
   renderGuns(data);
   renderGunCards(data);
