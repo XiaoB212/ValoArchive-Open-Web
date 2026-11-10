@@ -4868,7 +4868,8 @@ footer.shell .legal{text-wrap:pretty;word-break:normal;overflow-wrap:break-word;
     border: 1px solid var(--line); background: var(--card); gap: 6px;
   }
   .top .top-inner #svc-dot span { display: inline; font-size: 11.5px; line-height: 1; }
-  .top .top-inner #export-open { grid-area: exp; order: 0; margin-left: 0; justify-self: start; }
+  .top .top-inner .export-group { grid-area: exp; order: 0; margin-left: 0; justify-self: start; display: inline-flex; align-items: center; gap: 6px; }
+  .top .top-inner #export-open { grid-area: auto; order: 0; margin-left: 0; justify-self: start; }
   .top .top-inner .acct-entry { grid-area: acct; order: 0; margin-left: 0; justify-self: end; }
   .top .top-inner .top-tools { grid-area: tools; order: 0; margin-left: 0; width: 100%; }
 }
@@ -5722,7 +5723,7 @@ body.me-view .home-faq { display: none; }
 
 @media (max-width:720px){
   .bell{width:30px;height:30px}
-  .top-tools .bell{margin-right:2px}
+  /* 铃铛和导出在同一个 .export-group 里，天然贴着导出右边 */
   .notice-band-in{font-size:12px;gap:8px}
   .notice-drawer{width:100vw}
 }

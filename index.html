@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#0e7c6b" />
 <meta name="site-home" content="https://va.223212.xyz" />
 <meta name="description" content="瓦罗兰档案：非官方《无畏契约》社区项目，支持长历史、单局详情、对位击杀热力图与组队分析。" />
-<link rel="stylesheet" href="/static/style.css?v=4ee11e28b5" />
+<link rel="stylesheet" href="/static/style.css?v=d4b2b77478" />
 </head>
 <body>
 <div class="grid-bg" aria-hidden="true"></div>
@@ -23,12 +23,14 @@
     </a>
     <div class="health" id="health">连接中…</div>
     <a class="cred-chip hidden" id="cred-chip" href="#" target="_blank" rel="noopener"></a>
-    <button class="export-btn" id="export-open" type="button">导出</button>
-    <nav class="top-tools" aria-label="站点功能">
+    <div class="export-group">
+      <button class="export-btn" id="export-open" type="button">导出</button>
       <button class="bell" id="notice-bell" type="button" title="公告" aria-label="公告" hidden>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.2a5.1 5.1 0 0 0-5.1 5.1v3.4l-1.6 2.6a.7.7 0 0 0 .6 1.1h12.2a.7.7 0 0 0 .6-1.1l-1.6-2.6V9.3A5.1 5.1 0 0 0 12 4.2Z"/><path d="M9.6 18.3a2.6 2.6 0 0 0 4.8 0"/></svg>
         <i class="bell-dot" id="notice-dot" hidden></i>
       </button>
+    </div>
+    <nav class="top-tools" aria-label="站点功能">
       <a class="tool-link" href="/crosshairs" title="准星库：职业选手同款准星">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg><span>准星库</span>
       </a>
