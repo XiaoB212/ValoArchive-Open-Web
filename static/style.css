@@ -5722,3 +5722,49 @@ body.me-view .home-faq { display: none; }
   .notice-band-in{font-size:12px;gap:8px}
   .notice-drawer{width:100vw}
 }
+
+/* ── 资产图鉴目录 ─────────────────────────────────────────────
+   资产页先给六个分类入口，点进去只看这一类；导出时目录收起、全部分类摊平。 */
+.asset-toc {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+  margin: 16px 0 6px;
+}
+.asset-tile {
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  gap: 5px;
+  padding: 12px 14px;
+  text-align: left;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s, transform .15s;
+}
+.asset-tile:hover { border-color: var(--accent); box-shadow: 0 6px 18px rgba(16, 24, 40, .08); transform: translateY(-1px); }
+.asset-tile:active { transform: none; }
+.asset-tile-name { font-size: 14px; font-weight: 600; }
+.asset-tile-num { font-size: 11.5px; color: var(--dim); font-variant-numeric: tabular-nums; }
+.asset-tile-art { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; height: 58px; }
+.asset-tile-art img { width: 100%; height: 58px; object-fit: contain; background: var(--paper-2); border-radius: 6px; }
+.asset-tile-art.is-empty { display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--dim); background: var(--paper-2); border-radius: 6px; }
+.asset-view-head { display: flex; align-items: center; gap: 10px; margin: 14px 0 2px; }
+.asset-back {
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.asset-back:hover { border-color: var(--accent); color: var(--accent); }
+.asset-cat { font-size: 12px; color: var(--dim); }
+@media (max-width: 720px) {
+  .asset-toc { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 12px 0 4px; }
+  .asset-tile { padding: 10px; border-radius: 10px; }
+  .asset-tile-art, .asset-tile-art img { height: 46px; }
+}

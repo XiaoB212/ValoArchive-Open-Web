@@ -33,6 +33,8 @@ const state = {
   // 默认按「获取时间」新→旧：用户要的是先看最近拿到的皮肤，而不是按枪型分类。
   assetSort: "unlock",
   assetOrder: "desc",
+  // 资产页当前打开的是哪个图鉴分类（"" = 目录页）。点分类进去只看这一类。
+  assetCat: "",
   source: "game",
   filter: "all",
   // 对局历史的「查看模式」：按模式分类过滤（服务端按 names.mode_group 归组）
@@ -2234,6 +2236,7 @@ function renderParty() {
 }
 
 async function loadAssets() {
+  state.assetCat = "";
   setBusy(true, "正在读取资产");
   try {
   const __t = $("#asset-skins");
@@ -2250,6 +2253,8 @@ async function loadAssets() {
       setBusy(false);
       $("#assets-meta").textContent = "";
       $("#asset-counts").innerHTML = "";
+      const tocBox = $("#asset-toc");
+      if (tocBox) tocBox.innerHTML = "";
       const gcBox = $("#asset-guncards");
       if (gcBox) gcBox.innerHTML = "";
       const gcMeta = $("#guncards-meta");
@@ -2293,6 +2298,7 @@ async function loadAssets() {
     state.assetData = data;
     renderSkins();
     renderAssetGrids(data, card);
+    renderAssetToc(data);
   } catch (err) {
     showError(`资产加载失败：${err.message}`);
   }
@@ -4957,6 +4963,85 @@ function renderAssetGrids(data, card) {
   // 英雄也顺手显示获取时间（ACLOS 的 unlock_time，「只显示到年月日」）
   $("#asset-agents").innerHTML = agents.map((item) => card(item, unlockLine(item) || item.role || "英雄")).join("");
 }
+
+// ── 图鉴目录：资产页先给分类入口，点进去只看这一类 ─────────────────
+// 导出仍是「一图制」：body.export 时目录收起、所有分类摊平，拍出来还是整张。
+const ASSET_CATS = [
+  { key: "guns", name: "枪械收集", unit: "把", list: (d) => d.guns || [] },
+  { key: "skins", name: "枪皮", unit: "款", list: (d) => d.skins || [] },
+  { key: "guncards", name: "枪卡", unit: "张", list: (d) => d.guncards || [] },
+  { key: "cards", name: "卡面", unit: "张", list: (d) => d.cards || [] },
+  { key: "sprays", name: "喷漆 / 挂饰", unit: "件", list: (d) => [...(d.sprays || []), ...(d.charms || [])] },
+  { key: "agents", name: "英雄", unit: "位", list: (d) => d.agents || [] },
+];
+
+function assetCatCount(cat, data) {
+  const items = cat.list(data).filter((item) => item.owned !== false);
+  const counts = data.counts || {};
+  if (cat.key === "agents") return `${items.length} / ${counts.agents_total || items.length} 位`;
+  if (cat.key === "guns") return `${counts.guns || items.length} 把`;
+  return `${items.length} ${cat.unit}`;
+}
+
+function renderAssetToc(data) {
+  const box = $("#asset-toc");
+  if (!box) return;
+  box.innerHTML = ASSET_CATS.map((cat) => {
+    const items = cat.list(data).filter((item) => item.owned !== false);
+    const art = items.slice(0, 4)
+      .map((item) => (item.icon ? `<img src="${img(item.icon)}" alt="" loading="lazy" />` : ""))
+      .join("");
+    return `<button class="asset-tile" type="button" data-cat="${cat.key}">
+      <span class="asset-tile-name">${cat.name}</span>
+      <span class="asset-tile-num">${assetCatCount(cat, data)}</span>
+      <span class="asset-tile-art${art ? "" : " is-empty"}">${art || "<i>暂无</i>"}</span>
+    </button>`;
+  }).join("");
+  assetApplyCat();
+}
+
+function assetApplyCat() {
+  const toc = $("#asset-toc");
+  const view = $("#asset-view");
+  if (!toc || !view) return;
+  const exporting = document.body.classList.contains("export");
+  const cat = exporting ? "" : state.assetCat || "";
+  toc.hidden = Boolean(cat) || exporting;
+  // 导出时 cat 被强制成 ""，这里不能顺手把整块藏掉，否则截图里只剩统计数字。
+  view.hidden = !cat && !exporting;
+  $$("#asset-view .asset-block").forEach((block) => {
+    block.hidden = Boolean(cat) && block.dataset.cat !== cat;
+  });
+  const meta = ASSET_CATS.find((c) => c.key === cat);
+  const label = $("#asset-cat");
+  if (label) label.textContent = meta ? meta.name : "";
+  const counts = $("#asset-counts");
+  if (counts) counts.hidden = Boolean(cat);
+  // 排序按钮只作用于枪皮，别的分类里留着只会误导。
+  const filters = document.querySelector("#panel-assets .panel-head .filters");
+  if (filters) filters.hidden = cat !== "skins";
+}
+
+function openAssetCat(key) {
+  if (!ASSET_CATS.some((cat) => cat.key === key)) return;
+  state.assetCat = key;
+  assetApplyCat();
+  const panel = $("#panel-assets");
+  if (panel) panel.scrollIntoView({ block: "start", behavior: "smooth" });
+}
+
+function closeAssetCat() {
+  state.assetCat = "";
+  assetApplyCat();
+  const panel = $("#panel-assets");
+  if (panel) panel.scrollIntoView({ block: "start", behavior: "smooth" });
+}
+
+$("#asset-toc")?.addEventListener("click", (ev) => {
+  const tile = ev.target.closest(".asset-tile");
+  if (tile) openAssetCat(tile.dataset.cat);
+});
+$("#asset-back")?.addEventListener("click", closeAssetCat);
 
 /* 左上角站名 = 回到首页：已经在大首页时只滚回顶部，不整页重载 */
 document.addEventListener("click", (event) => {

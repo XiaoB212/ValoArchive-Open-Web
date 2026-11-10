@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#0e7c6b" />
 <meta name="site-home" content="https://va.223212.xyz" />
 <meta name="description" content="瓦罗兰档案：非官方《无畏契约》社区项目，支持长历史、单局详情、对位击杀热力图与组队分析。" />
-<link rel="stylesheet" href="/static/style.css?v=eda648eab4" />
+<link rel="stylesheet" href="/static/style.css?v=45cdf05b44" />
 </head>
 <body>
 <div class="grid-bg" aria-hidden="true"></div>
@@ -375,12 +375,19 @@
             <span class="dim" id="assets-meta"></span>
           </div>
           <div class="asset-counts" id="asset-counts"></div>
-          <div class="asset-block"><h4>枪械收集 <span class="dim" id="guns-meta"></span></h4><div class="gun-grid" id="asset-guns"></div></div>
-          <div class="asset-block"><h4>枪皮</h4><div class="asset-grid" id="asset-skins"></div></div>
-          <div class="asset-block"><h4>枪卡 <span class="dim" id="guncards-meta"></span></h4><div class="gcard-grid" id="asset-guncards"></div></div>
-          <div class="asset-block"><h4>卡面 <span class="dim" id="cards-meta"></span></h4><div class="asset-grid small" id="asset-cards"></div></div>
-          <div class="asset-block"><h4>喷漆 / 挂饰 <span class="dim" id="sprays-meta"></span></h4><div class="asset-grid small" id="asset-sprays"></div></div>
-          <div class="asset-block"><h4>英雄 <span class="dim" id="agents-meta"></span></h4><div class="asset-grid small" id="asset-agents"></div></div>
+          <div class="asset-toc" id="asset-toc"></div>
+          <div class="asset-view" id="asset-view">
+            <div class="asset-view-head">
+              <button class="asset-back" id="asset-back" type="button">← 全部图鉴</button>
+              <span class="asset-cat" id="asset-cat"></span>
+            </div>
+          <div class="asset-block" data-cat="guns"><h4>枪械收集 <span class="dim" id="guns-meta"></span></h4><div class="gun-grid" id="asset-guns"></div></div>
+          <div class="asset-block" data-cat="skins"><h4>枪皮</h4><div class="asset-grid" id="asset-skins"></div></div>
+          <div class="asset-block" data-cat="guncards"><h4>枪卡 <span class="dim" id="guncards-meta"></span></h4><div class="gcard-grid" id="asset-guncards"></div></div>
+          <div class="asset-block" data-cat="cards"><h4>卡面 <span class="dim" id="cards-meta"></span></h4><div class="asset-grid small" id="asset-cards"></div></div>
+          <div class="asset-block" data-cat="sprays"><h4>喷漆 / 挂饰 <span class="dim" id="sprays-meta"></span></h4><div class="asset-grid small" id="asset-sprays"></div></div>
+          <div class="asset-block" data-cat="agents"><h4>英雄 <span class="dim" id="agents-meta"></span></h4><div class="asset-grid small" id="asset-agents"></div></div>
+        </div>
         </div>
       </div>
 
@@ -423,7 +430,7 @@
 </footer>
 
 <script src="/config.js?v=5159ad9f1b"></script>
-<script src="/static/app.js?v=8b586f4bbb"></script>
+<script src="/static/app.js?v=15c79831fb"></script>
 <script>
 (function () {
   document.querySelectorAll("#home-try .try").forEach(function (el) {
