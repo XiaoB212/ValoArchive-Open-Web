@@ -4980,15 +4980,21 @@ const ASSET_CATS = [
   { key: "agents", name: "英雄", unit: "位", list: (d) => d.agents || [] },
 ];
 
-// 老响应里可能没有 owned 字段（那是「全部 30 个英雄」的旧口径），用解锁时间兜底判断。
+// 只有英雄的 owned 是布尔（已解锁/未解锁）。老响应里可能没有这个字段（旧口径返回全部 30 个），
+// 这时用解锁时间兜底。别的类目（枪械的 owned 是已收集款数、枪卡可能没有时间）不能套这条规则。
 function isOwned(item) {
   if (item.owned === true) return true;
   if (item.owned === false) return false;
   return Boolean(item.unlock);
 }
 
+function catItems(cat, data) {
+  const list = cat.list(data);
+  return cat.key === "agents" ? list.filter(isOwned) : list;
+}
+
 function assetCatCount(cat, data) {
-  const items = cat.list(data).filter(isOwned);
+  const items = catItems(cat, data);
   const counts = data.counts || {};
   // 目录里只写「他有多少」，别写成 26/30 让人以为图鉴里有 30 个。
   if (cat.key === "agents") return `${items.length} 位`;
@@ -5000,7 +5006,7 @@ function renderAssetToc(data) {
   const box = $("#asset-toc");
   if (!box) return;
   box.innerHTML = ASSET_CATS.map((cat) => {
-    const items = cat.list(data).filter(isOwned);
+    const items = catItems(cat, data);
     const art = items.slice(0, 4)
       .map((item) => (item.icon ? `<img src="${img(item.icon)}" alt="" loading="lazy" />` : ""))
       .join("");
