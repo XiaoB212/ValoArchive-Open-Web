@@ -425,6 +425,12 @@
       var qq = String(d.group_qq || "").trim();
       var link = String(d.group_link || "").trim();
       var note = String(d.note || "").trim() || "加群购买订阅服务";
+      // 手机上 QQ 的深链能直接弹群名片；桌面浏览器里这个协议没反应，所以只在手机端用。
+      var mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || "");
+      var deep = qq && mobile
+        ? "mqqapi://card/show_pslcard?src_type=internal&version=1&uin=" + encodeURIComponent(qq) + "&card_type=group&source=qrcode"
+        : "";
+      var joinHref = link || deep;
       if (!qq && !link) { if (box) box.hidden = true; if (reg) reg.hidden = true; return; }
       if (reg) {
         reg.hidden = false;
@@ -442,7 +448,11 @@
           };
         } else { rc.hidden = true; }
         var rj = q("reg-group-join");
-        if (link) { rj.hidden = false; rj.href = link; } else { rj.hidden = true; }
+        if (joinHref) {
+          rj.hidden = false;
+          rj.href = joinHref;
+          rj.textContent = link ? "直接加群" : "在 QQ 里打开";
+        } else { rj.hidden = true; }
       }
       if (!box) return;
       box.hidden = false;
@@ -464,8 +474,9 @@
         copy.hidden = true;
       }
       var join = q("contact-join");
-      if (link) {
-        join.href = link;
+      if (joinHref) {
+        join.href = joinHref;
+        join.textContent = link ? "直接加群" : "在 QQ 里打开";
         join.hidden = false;
       } else {
         join.hidden = true;
