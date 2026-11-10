@@ -4954,17 +4954,20 @@ function renderAssetGrids(data, card) {
   renderGunCards(data);
   // 不截断：卡面/喷漆/挂饰都要能看完（以前每块只给 60 件，看起来像“被吃了”）。
   const cards = [...(data.cards || [])].sort(byAccess);
-  const sprays = [...(data.sprays || []), ...(data.charms || [])].sort(byAccess);
+  const sprays = [...(data.sprays || [])].sort(byAccess);
+  const charms = [...(data.charms || [])].sort(byAccess);
   // 英雄只显示已解锁的（上游会把 30 个全返回来，未解锁的 lock_status=1）
   const agents = [...(data.agents || [])].filter(isOwned).sort(byAccess);
   const owned = (list) => list.filter(isOwned).length;
   const meta = (box, text) => { const el = $(box); if (el) el.textContent = text; };
   meta("#cards-meta", `共 ${cards.length} 件`);
   meta("#sprays-meta", `共 ${sprays.length} 件`);
+  meta("#charms-meta", `共 ${charms.length} 件`);
   const agentsTotal = Number((data.counts || {}).agents_total) || agents.length;
   meta("#agents-meta", `已解锁 ${agents.length} / ${agentsTotal} 位`);
   $("#asset-cards").innerHTML = cards.map((item) => card(item, unlockLine(item))).join("");
   $("#asset-sprays").innerHTML = sprays.map((item) => card(item, unlockLine(item))).join("");
+  $("#asset-charms").innerHTML = charms.map((item) => card(item, unlockLine(item))).join("");
   // 英雄也顺手显示获取时间（ACLOS 的 unlock_time，「只显示到年月日」）
   $("#asset-agents").innerHTML = agents.map((item) => card(item, unlockLine(item) || item.role || "英雄")).join("");
 }
@@ -4976,7 +4979,8 @@ const ASSET_CATS = [
   { key: "skins", name: "枪皮", unit: "款", list: (d) => d.skins || [] },
   { key: "guncards", name: "枪卡", unit: "张", list: (d) => d.guncards || [] },
   { key: "cards", name: "卡面", unit: "张", list: (d) => d.cards || [] },
-  { key: "sprays", name: "喷漆 / 挂饰", unit: "件", list: (d) => [...(d.sprays || []), ...(d.charms || [])] },
+  { key: "sprays", name: "喷漆", unit: "件", list: (d) => d.sprays || [] },
+  { key: "charms", name: "挂饰", unit: "件", list: (d) => d.charms || [] },
   { key: "agents", name: "英雄", unit: "位", list: (d) => d.agents || [] },
 ];
 
