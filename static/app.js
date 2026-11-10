@@ -1357,6 +1357,7 @@ async function loadPage(page, refresh = false, prefetched = null) {
     state.coverage = data.note || "";
     renderDataMeta(data.meta);
     renderHistory(data.rows, data);
+    if (data.stats_pending) scheduleStatsRefresh(page);
   } catch (err) {
     showError(`翻页失败：${err.message}`);
     // 无头截图看不到 toast，只会看到一张空图。把失败落进列表本体，
@@ -1365,6 +1366,31 @@ async function loadPage(page, refresh = false, prefetched = null) {
     if (box) box.innerHTML = `<p class="empty">翻页失败：${escapeHtml(err.message)}</p>`;
     if (EXPORT_KIND) document.body.dataset.exportNote = `翻页失败：${err.message}`;
   }
+}
+
+// 服务端把「老场次缺统计」的补拉放到后台了，页面先快出来；它说还有，
+// 就隔一会儿自己再拉一次同一页，数字补上但不重画骨架、不跳滚动位置。
+function scheduleStatsRefresh(page, attempt) {
+  clearTimeout(scheduleStatsRefresh._t);
+  const round = attempt || 0;
+  if (round >= 3) return;
+  scheduleStatsRefresh._t = setTimeout(async () => {
+    if (!state.keyword || state.page !== page) return;
+    const keyword = state.keyword;
+    const gm = state.gm;
+    const filter = state.filter;
+    try {
+      const data = await api.get("/api/player/history", {
+        keyword, page, size: state.size, mode: state.source, filter, gm, refresh: true,
+      });
+      if (keyword !== state.keyword || page !== state.page) return;
+      renderDataMeta(data.meta);
+      renderHistory(data.rows, data);
+      if (data.stats_pending) scheduleStatsRefresh(page, round + 1);
+    } catch (_) {
+      // 补不上就算了，列表里原本的数字还在
+    }
+  }, 1500);
 }
 
 // 单局详情有两种打开方式，用户在「对局记录」工具栏里自己选（存 localStorage）：
@@ -1447,8 +1473,16 @@ async function toggleQuick(matchId, rowEl) {
       host.scrollIntoView({ block: "center", behavior: "smooth" });
     }
   } catch (err) {
-    host.remove();
-    showError(`详情加载失败：${err.message}`);
+    // 就地报错：之前是直接删掉这一块再弹顶栏提示，用户在下面看不到发生了什么
+    host.innerHTML = `<div class="iq-error">这场的详情没取到：${escapeHtml(err.message || "上游没返回")}
+      <button type="button" class="chip" data-quick-retry="1">再试一次</button></div>`;
+    const retry = host.querySelector("[data-quick-retry]");
+    if (retry) {
+      retry.onclick = () => {
+        host.remove();
+        toggleQuick(matchId, rowEl);
+      };
+    }
   }
 }
 
@@ -1588,21 +1622,27 @@ function renderQuickMatch(payload, matchId, host) {
 }
 
 async function showMatchTab(matchId) {
+  // 先切到「单局详情」页再取数据：骨架就在用户眼前。以前是取完才切，
+  // 用户在列表下面点一场，屏幕上什么都不动（顶栏那个小转圈他也看不见），
+  // 就以为卡住了。注意 #match-body 要在切页之后重新取，切页会重建面板。
+  switchTab("match");
+  const body = $("#match-body");
+  if (!document.body.classList.contains("export")) {
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }
   setBusy(true, "正在读取单局");
+  clearError();
+  if (body) body.innerHTML = skeleton(3, "正在读取单局");
   try {
-    const body = $("#match-body");
-    if (body) body.innerHTML = skeleton(0);
-    clearError();
-    try {
-      const data = await api.get("/api/match", { keyword: state.keyword, match_id: matchId, mode: state.source });
-      renderMatch(data, matchId);
-      switchTab("match");
-      const panel = $("#panel-match");
-      if (panel && !document.body.classList.contains("export")) {
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      }
-    } catch (err) {
-      showError(`详情加载失败：${err.message}`);
+    const data = await api.get("/api/match", { keyword: state.keyword, match_id: matchId, mode: state.source });
+    renderMatch(data, matchId);
+  } catch (err) {
+    // 失败也留在这一页里说清楚，并给一个不用回头找的重试入口
+    if (body) {
+      body.innerHTML = `<div class="empty">这场的详情没取到：${escapeHtml(err.message || "上游没返回")}
+        <br /><button type="button" class="chip" id="match-retry">再试一次</button></div>`;
+      const retry = $("#match-retry");
+      if (retry) retry.onclick = () => showMatchTab(matchId);
     }
   } finally {
     setBusy(false);
