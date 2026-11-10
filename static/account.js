@@ -430,7 +430,7 @@
       var deep = qq && mobile
         ? "mqqapi://card/show_pslcard?src_type=internal&version=1&uin=" + encodeURIComponent(qq) + "&card_type=group&source=qrcode"
         : "";
-      var joinHref = mobile ? (deep || link) : (link || deep);
+      var joinHref = mobile ? (deep || link) : link;
       if (!qq && !link) { if (box) box.hidden = true; if (reg) reg.hidden = true; return; }
       if (reg) {
         reg.hidden = false;
