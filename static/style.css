@@ -620,7 +620,11 @@ body.export .filters,
 body.export .panel-head,
 body.export footer,
 body.export .error,
-body.export .export-btn { display: none !important; }
+body.export .export-btn,
+body.export .bell,
+body.export .notice-band,
+body.export .notice-mask,
+body.export .notice-drawer { display: none !important; }
 body.export .shell { max-width: 1180px; padding: 22px 26px; }
 body.export .player-grid { grid-template-columns: 1fr; }
 body.export .row { width: 100%; }
@@ -5750,6 +5754,16 @@ body.me-view .home-faq { display: none; }
 .asset-tile-art { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; height: 58px; }
 .asset-tile-art img { width: 100%; height: 58px; object-fit: contain; background: var(--paper-2); border-radius: 6px; }
 .asset-tile-art.is-empty { display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--dim); background: var(--paper-2); border-radius: 6px; }
+.asset-tile-art { position: relative; }
+.asset-tile-more {
+  position: absolute; right: 4px; bottom: 4px;
+  padding: 1px 6px; border-radius: 999px;
+  font-size: 10.5px; font-variant-numeric: tabular-nums;
+  color: #fff; background: rgba(16, 24, 40, .55);
+  backdrop-filter: blur(2px);
+}
+.asset-tile-open { font-size: 11px; color: var(--accent); letter-spacing: .02em; }
+.asset-tile:hover .asset-tile-open { text-decoration: underline; }
 .asset-view-head { display: flex; align-items: center; gap: 10px; margin: 14px 0 2px; }
 .asset-back {
   border: 1px solid var(--line);

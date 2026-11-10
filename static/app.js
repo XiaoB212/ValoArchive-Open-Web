@@ -3911,7 +3911,9 @@ function noticeRender() {
   const unread = live.filter((item) => noticeStateOf(item) === "" && !noticeSeenAlready(item));
   const bell = $("#notice-bell");
   const dot = $("#notice-dot");
-  if (bell) bell.hidden = !live.length;
+  // 铃铛常驻：0 条公告时也留着入口（点开是「暂时没有公告」），
+  // 否则后台还没发过公告的时候，用户根本不知道有这个功能。
+  if (bell) bell.hidden = false;
   if (dot) dot.hidden = !unread.length;
 
   const band = $("#notice-band");
@@ -4952,12 +4954,14 @@ function renderAssetGrids(data, card) {
   // 不截断：卡面/喷漆/挂饰都要能看完（以前每块只给 60 件，看起来像“被吃了”）。
   const cards = [...(data.cards || [])].sort(byAccess);
   const sprays = [...(data.sprays || []), ...(data.charms || [])].sort(byAccess);
-  const agents = [...(data.agents || [])].sort(byAccess);
+  // 英雄只显示已解锁的（上游会把 30 个全返回来，未解锁的 lock_status=1）
+  const agents = [...(data.agents || [])].filter((item) => item.owned !== false).sort(byAccess);
   const owned = (list) => list.filter((item) => item.owned !== false).length;
   const meta = (box, text) => { const el = $(box); if (el) el.textContent = text; };
   meta("#cards-meta", `共 ${cards.length} 件`);
   meta("#sprays-meta", `共 ${sprays.length} 件`);
-  meta("#agents-meta", `共 ${agents.length} 位`);
+  const agentsTotal = Number((data.counts || {}).agents_total) || agents.length;
+  meta("#agents-meta", `已解锁 ${agents.length} / ${agentsTotal} 位`);
   $("#asset-cards").innerHTML = cards.map((item) => card(item, unlockLine(item))).join("");
   $("#asset-sprays").innerHTML = sprays.map((item) => card(item, unlockLine(item))).join("");
   // 英雄也顺手显示获取时间（ACLOS 的 unlock_time，「只显示到年月日」）
@@ -4991,10 +4995,13 @@ function renderAssetToc(data) {
     const art = items.slice(0, 4)
       .map((item) => (item.icon ? `<img src="${img(item.icon)}" alt="" loading="lazy" />` : ""))
       .join("");
-    return `<button class="asset-tile" type="button" data-cat="${cat.key}">
+    const rest = items.length - Math.min(4, items.length);
+    const more = rest > 0 ? `<span class="asset-tile-more">+${rest}</span>` : "";
+    return `<button class="asset-tile" type="button" data-cat="${cat.key}" aria-label="${cat.name}：${assetCatCount(cat, data)}，点开看全部">
       <span class="asset-tile-name">${cat.name}</span>
       <span class="asset-tile-num">${assetCatCount(cat, data)}</span>
-      <span class="asset-tile-art${art ? "" : " is-empty"}">${art || "<i>暂无</i>"}</span>
+      <span class="asset-tile-art${art ? "" : " is-empty"}">${art || "<i>暂无</i>"}${more}</span>
+      <span class="asset-tile-open">点开看全部 →</span>
     </button>`;
   }).join("");
   assetApplyCat();
