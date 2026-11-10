@@ -49,7 +49,10 @@
     invite_required: "现在只能凭邀请码注册，找会员要一个。",
     invite_not_found: "邀请码不存在，检查一下字符。",
     invite_used: "这个邀请码已经被人用过了。",
-    invite_revoked: "这个邀请码已被作废。"
+    invite_revoked: "这个邀请码已被作废。",
+    invite_legacy: "这是旧的一次性邀请码，已经停用——让对方把账号页上 HY- 开头的新码发你。",
+    invite_needs_member: "现在只能用会员的 HY- 邀请码注册；PT- 开头的码只算拉人，不能当准入码。",
+    invite_used_up: "这个码已经拉满 10 人，得等对方开通会员后才会重新可用。"
   };
 
   function reasonOf(data) {
@@ -97,28 +100,40 @@
 
     var heroT = q("hero-title"), heroS = q("hero-sub");
     if (heroT) heroT.textContent = "你好，" + ((me.nick || me.qq || "").toString().trim() || "指挥官");
-    if (heroS) heroS.textContent = m.active
-      ? "会员有效中，到期 " + fmt(m.expires_at) + "；全部历史、单局详情与导出都解锁了。"
-      : "已登录：免费额度每天重置，会员开通后能看全部历史、单局详情与导出。";
+    if (heroS) heroS.textContent = m.unlimited
+      ? "会员有效中，到期 " + fmt(m.member_until) + "；全部历史、单局详情与导出都解锁了。"
+      : (m.active
+        ? "特约订阅有效中：只能查首页钉住的那个人，到期 " + fmt(m.expires_at) + "。"
+        : "已登录：免费额度每天重置，会员开通后能看全部历史、单局详情与导出。");
     q("i-qq").textContent = me.qq || "—";
     q("i-nick").textContent = me.nick || "—";
     var dispName = (me.nick || me.qq || "我的账号").toString().trim();
     q("i-name").textContent = dispName;
     q("i-av").textContent = dispName.slice(0, 1).toUpperCase();
-    q("i-sub").textContent = m.active
-      ? (m.scope ? "特约订阅 · 只看 " + m.scope : (m.scoped ? "特约订阅 · 还没绑定人" : "会员")) + " · 剩余 " + m.days_left + " 天"
-      : (m.known ? "会员已过期，续期后立刻恢复" : "普通用户 · 免费额度每天重置");
+    var slots = Number(m.slots || 0);
+    q("i-sub").textContent = m.unlimited
+      ? "会员" + (slots > 0 ? " + 特约 " + slots + " 个位" : "") + " · 还剩 " + m.member_days_left + " 天"
+      : (m.active
+        ? "特约订阅" + (m.scope ? " · 只看 " + m.scope : (m.scoped ? " · 还没绑定人" : "")) + " · 还剩 " + m.days_left + " 天"
+        : (m.known ? "会员已过期，续期后立刻恢复" : "普通用户 · 免费额度每天重置"));
     q("d-qq").value = me.qq || "";
     q("i-enter").onclick = null;
 
     if (m.active) {
       q("i-status").innerHTML = '<span class="ac-badge on">有效</span>';
-      q("i-expires").textContent = fmt(m.expires_at) + "（还剩 " + m.days_left + " 天）";
-      q("i-tip").textContent = m.scope
-        ? "这是「只看 " + m.scope + "」的特约订阅：查别人会被挡下，需要升级成普通会员。绑错人可以解绑一次，解绑后要核销新的特约授权码才能再绑一个。"
-        : (m.scoped
-          ? "你解绑了订阅人：现在查不了任何人，核销一个新的特约授权码就能重新绑一个（还会再获得一次解绑机会）。"
-          : "到期后查询会暂停，续期立刻恢复。");
+      q("i-expires").textContent = m.unlimited
+        ? fmt(m.member_until) + "（会员还剩 " + m.member_days_left + " 天）"
+          + (slots > 0 ? "；另有 " + slots + " 个特约位，特约码只加位置，不延长会员" : "")
+        : fmt(m.expires_at) + "（还剩 " + m.days_left + " 天）";
+      q("i-tip").textContent = m.unlimited
+        ? (slots > 0
+          ? "你是普通会员，另外还有 " + slots + " 个特约位（只增加「我的订阅」能钉几个人，不延长会员天数）。"
+          : "到期后查询会暂停，续期立刻恢复。")
+        : (m.scope
+          ? "这是「只看 " + m.scope + "」的特约订阅：查别人会被挡下，需要升级成普通会员。绑错人可以解绑一次，解绑后要核销新的特约授权码才能再绑一个。"
+          : (m.scoped
+            ? "你解绑了订阅人：现在查不了任何人，核销一个新的特约授权码就能重新绑一个（还会再获得一次解绑机会）。"
+            : "到期后查询会暂停，续期立刻恢复。"));
       var unb = q("b-unbind");
       if (unb) {
         unb.hidden = !m.can_unbind;
@@ -154,7 +169,8 @@
       q("i-enter").textContent = "用授权码激活";
       q("i-enter").href = "#";
       q("i-enter").onclick = function (ev) { ev.preventDefault(); q("d-code").focus(); };
-      loadInvites(false);
+      // 一码制：普通账号也有自己的 PT- 码（最多拉 10 人），不再是会员专属。
+      loadInvites(true);
     }
 
     // 浏览器里还带着另一个 QQ 的卡密会员时：后台按账号 QQ 查是「普通」，用户却在别处
@@ -199,22 +215,25 @@
       var resp = await fetch("/api/auth/invites", { credentials: "same-origin" });
       var data = await resp.json().catch(function () { return {}; });
       if (!resp.ok) { q("inv-code").textContent = "读取失败"; return; }
-      var list = data.invites || [];
-      var open = null;
-      for (var i = 0; i < list.length; i++) {
-        if (!list[i].used_by && !list[i].revoked) { open = list[i]; break; }
-      }
-      if (!open) {
-        q("inv-code").textContent = "已用完，找站长再要";
-        q("inv-note").textContent = "邀请码由站长发放。";
+      var code = data.code || "";
+      var used = Number(data.uses || 0);
+      var limit = Number(data.limit || 0);
+      var isMember = !!data.member;
+      if (!code) {
+        q("inv-code").textContent = "读取失败";
+        q("inv-note").textContent = "刷新页面试试。";
         q("inv-copy").disabled = true;
         return;
       }
-      q("inv-code").textContent = open.code;
-      q("inv-note").textContent = "邀请链接：" + location.origin + "/account?invite=" + open.code;
-      q("inv-copy").disabled = false;
+      q("inv-code").textContent = code;
+      var head = isMember
+        ? "会员邀请码，不限次数。"
+        : (limit ? "已拉 " + used + " / " + limit + " 人" : "已拉 " + used + " 人") + "。";
+      if (!data.usable) head += "这个码已经拉满了：开通会员后重新可用。";
+      q("inv-note").textContent = head + "每有效 1 人 +" + (data.per_invite_days || 3) + " 天，累计上限 " + (data.total_cap_days || 0) + " 天。邀请链接：" + location.origin + "/account?invite=" + code;
+      q("inv-copy").disabled = !data.usable;
       q("inv-copy").onclick = async function () {
-        var link = location.origin + "/account?invite=" + open.code;
+        var link = location.origin + "/account?invite=" + code;
         try {
           await navigator.clipboard.writeText(link);
           q("inv-note").textContent = "已复制：" + link;

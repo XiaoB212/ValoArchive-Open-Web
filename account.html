@@ -238,7 +238,7 @@
             <!-- 默认是免费注册，这个框不出现；只有「必须邀请码」或被后台关掉开放注册时才显示。 -->
             <div class="ac-row one" id="r-invite-row" hidden>
               <label>邀请码
-                <input id="r-invite" placeholder="输入邀请码，例如 K7M2QX9P" maxlength="12" />
+                <input id="r-invite" placeholder="输入邀请码，例如 HY-AB12CD" maxlength="12" />
               </label>
             </div>
             <div class="ac-agree">
@@ -308,7 +308,7 @@
           <p class="ac-tip" id="i-tip"></p>
           <div id="inv-box" class="ac-invite" hidden>
             <h2>我的邀请码</h2>
-            <p class="ac-tip">你是会员，可以邀请朋友注册。一个码只能注册一个人，把链接发给他就行。</p>
+            <p class="ac-tip">一个人一个码：会员 <b>HY-</b> 开头、不限次数；普通人 <b>PT-</b> 开头、最多 10 人（拉满失效，开通会员后重新可用）。同一张链接可以发给多个人。</p>
             <div class="code" id="inv-code">—</div>
             <div class="ac-actions">
               <button class="ac-btn ghost" id="inv-copy" type="button">复制邀请链接</button>
@@ -371,12 +371,12 @@
               <tr><td>能查谁</td><td>任何人</td><td>任何人</td><td>只有绑定的那一位</td></tr>
               <tr><td>对局历史</td><td>最近 <span id="lim-history">10</span> 场</td><td>全部，可筛选翻页</td><td>全部</td></tr>
               <tr><td>单局详情</td><td>每天 <span id="lim-detail">3</span> 场</td><td>不限次数</td><td>不限次数</td></tr>
-              <tr><td>我的订阅（进站直接看关注的人）</td><td class="ac-no">—</td><td class="ac-yes">1 个人</td><td class="ac-yes">按份买，每份 1 个</td></tr>
+              <tr><td>我的订阅（进站直接看关注的人）</td><td class="ac-no">—</td><td class="ac-yes">1 个人</td><td class="ac-yes">按份买，每份 +1 个</td></tr>
               <tr><td>导出 / 分享</td><td class="ac-no">—</td><td class="ac-yes">✓</td><td class="ac-yes">✓</td></tr>
               <tr><td>准星库 / 点位库</td><td class="ac-yes">✓</td><td class="ac-yes">✓</td><td class="ac-yes">✓</td></tr>
             </tbody>
           </table>
-          <p class="ac-tip" id="lim-note">免费额度按自然日重置；会员到期后自动回到普通用户，续期立刻恢复。特约订阅只查首页钉住的那个人，钉谁由你在首页「我的订阅」里自己选；会员自带 1 个位置，特约码每份再加 1 个。</p>
+          <p class="ac-tip" id="lim-note">免费额度按自然日重置；会员到期后自动回到普通用户，续期立刻恢复。特约订阅只查首页钉住的那个人，钉谁由你在首页「我的订阅」里自己选；会员自带 1 个位置，特约码每份再加 1 个。<b>特约码只加「我的订阅」的位置，不延长会员天数</b>——要延长会员，续会员的码。</p>
         </section>
         <section class="ac-panel" id="price-panel">
           <h2>价目表</h2>
@@ -392,14 +392,14 @@
             </div>
           </div>
           <div class="price-sec">
-            <p class="price-t">特约订阅 <em>只查绑定的那一个人，可解绑换人</em></p>
+            <p class="price-t">特约订阅 <em>只查绑定的那一个人，可解绑换人；只加位置，不延长会员</em></p>
             <div class="price-grid">
               <div class="price-card"><b><span>¥</span>2.49</b><i>5 天</i><u>日均 ¥0.50</u></div>
               <div class="price-card on"><span class="price-rec">推荐</span><b><span>¥</span>9.99</b><i>45 天</i><u>日均 ¥0.22</u></div>
               <div class="price-card"><b><span>¥</span>18.90</b><i>90 天</i><u>日均 ¥0.21</u></div>
             </div>
           </div>
-          <p class="price-buy"><b>怎么选：</b>只查自己 → 特约 45 天 ¥9.99；要查队友、对手 → 会员 30 天 ¥9.99；长期用 → 会员 90 天，日均最低 ¥0.28。特约每多买一份，就多 1 个「我的订阅」位置。</p>
+          <p class="price-buy"><b>怎么选：</b>只查自己 → 特约 45 天 ¥9.99；要查队友、对手 → 会员 30 天 ¥9.99；长期用 → 会员 90 天，日均最低 ¥0.28。特约每多买一份，就多 1 个「我的订阅」位置，但不会延长会员天数。</p>
         </section>
         <section class="ac-panel" id="cache-panel">
           <h2>本机缓存</h2>
@@ -417,7 +417,7 @@
     </div>
   </main>
 
-  <script src="/static/account.js?v=9d49f06705"></script>
+  <script src="/static/account.js?v=88edcd4982"></script>
 <script src="/static/statusdot.js?v=e4f8a35baa" defer></script>
 </body>
 </html>
