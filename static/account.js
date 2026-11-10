@@ -226,9 +226,10 @@
         return;
       }
       q("inv-code").textContent = code;
+      var people = Number(data.max_people || limit || 0);
       var head = isMember
-        ? "会员邀请码，不限次数。"
-        : (limit ? "已拉 " + used + " / " + limit + " 人" : "已拉 " + used + " 人") + "。";
+        ? "会员邀请码，不限次数（名额 " + people + " 人，已拉 " + used + " 人）。"
+        : (people ? "已拉 " + used + " / " + people + " 人" : "已拉 " + used + " 人") + "。";
       if (!data.usable) head += "这个码已经拉满了：开通会员后重新可用。";
       var ladder = Array.isArray(data.ladder) ? data.ladder.slice(0, 6) : [];
       var curve = ladder.length ? "第 1、2、3… 个人分别 +" + ladder.join("、") + "… 天（越往后越多）" : "";
