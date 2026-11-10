@@ -230,7 +230,9 @@
         ? "会员邀请码，不限次数。"
         : (limit ? "已拉 " + used + " / " + limit + " 人" : "已拉 " + used + " 人") + "。";
       if (!data.usable) head += "这个码已经拉满了：开通会员后重新可用。";
-      q("inv-note").textContent = head + "每有效 1 人 +" + (data.per_invite_days || 3) + " 天，累计上限 " + (data.total_cap_days || 0) + " 天。邀请链接：" + location.origin + "/account?invite=" + code;
+      var ladder = Array.isArray(data.ladder) ? data.ladder.slice(0, 6) : [];
+      var curve = ladder.length ? "第 1、2、3… 个人分别 +" + ladder.join("、") + "… 天（越往后越多）" : "";
+      q("inv-note").textContent = head + curve + "已得 " + (data.earned_days || 0) + " 天，累计上限 " + (data.total_cap_days || 0) + " 天。邀请链接：" + location.origin + "/account?invite=" + code;
       q("inv-copy").disabled = !data.usable;
       q("inv-copy").onclick = async function () {
         var link = location.origin + "/account?invite=" + code;
