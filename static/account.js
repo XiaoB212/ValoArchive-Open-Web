@@ -430,7 +430,7 @@
       var deep = qq && mobile
         ? "mqqapi://card/show_pslcard?src_type=internal&version=1&uin=" + encodeURIComponent(qq) + "&card_type=group&source=qrcode"
         : "";
-      var joinHref = link || deep;
+      var joinHref = mobile ? (deep || link) : (link || deep);
       if (!qq && !link) { if (box) box.hidden = true; if (reg) reg.hidden = true; return; }
       if (reg) {
         reg.hidden = false;
@@ -451,7 +451,7 @@
         if (joinHref) {
           rj.hidden = false;
           rj.href = joinHref;
-          rj.textContent = link ? "直接加群" : "一键加群";
+          rj.textContent = "一键加群";
         } else { rj.hidden = true; }
       }
       if (!box) return;
@@ -476,7 +476,7 @@
       var join = q("contact-join");
       if (joinHref) {
         join.href = joinHref;
-        join.textContent = link ? "直接加群" : "一键加群";
+        join.textContent = "一键加群";
         join.hidden = false;
       } else {
         join.hidden = true;
