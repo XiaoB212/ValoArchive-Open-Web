@@ -451,7 +451,7 @@
         if (joinHref) {
           rj.hidden = false;
           rj.href = joinHref;
-          rj.textContent = link ? "直接加群" : "在 QQ 里打开";
+          rj.textContent = link ? "直接加群" : "一键加群";
         } else { rj.hidden = true; }
       }
       if (!box) return;
@@ -476,7 +476,7 @@
       var join = q("contact-join");
       if (joinHref) {
         join.href = joinHref;
-        join.textContent = link ? "直接加群" : "在 QQ 里打开";
+        join.textContent = link ? "直接加群" : "一键加群";
         join.hidden = false;
       } else {
         join.hidden = true;
