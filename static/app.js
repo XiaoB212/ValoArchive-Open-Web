@@ -2246,7 +2246,8 @@ async function loadAssets() {
   try {
     const frags = [];
     $("#assets-meta").textContent = "加载中…";
-    const data = await api.get("/api/player/assets", { keyword: state.keyword, mode: state.source });
+    // v=5：换过资产口径（英雄只算已解锁的），带个版本参数免得中间层把旧响应再喂回来。
+    const data = await api.get("/api/player/assets", { keyword: state.keyword, mode: state.source, v: 5 });
     if (data.unavailable) {
       // 掌瓦没收录这个账号 → 拿不到他本人的 scene，ACLOS 只会回请求者自己的资产。
       // 后端现在会直接标记 unavailable，这里给提示，不要画成别人的图。
@@ -4955,8 +4956,8 @@ function renderAssetGrids(data, card) {
   const cards = [...(data.cards || [])].sort(byAccess);
   const sprays = [...(data.sprays || []), ...(data.charms || [])].sort(byAccess);
   // 英雄只显示已解锁的（上游会把 30 个全返回来，未解锁的 lock_status=1）
-  const agents = [...(data.agents || [])].filter((item) => item.owned !== false).sort(byAccess);
-  const owned = (list) => list.filter((item) => item.owned !== false).length;
+  const agents = [...(data.agents || [])].filter(isOwned).sort(byAccess);
+  const owned = (list) => list.filter(isOwned).length;
   const meta = (box, text) => { const el = $(box); if (el) el.textContent = text; };
   meta("#cards-meta", `共 ${cards.length} 件`);
   meta("#sprays-meta", `共 ${sprays.length} 件`);
@@ -4979,8 +4980,15 @@ const ASSET_CATS = [
   { key: "agents", name: "英雄", unit: "位", list: (d) => d.agents || [] },
 ];
 
+// 老响应里可能没有 owned 字段（那是「全部 30 个英雄」的旧口径），用解锁时间兜底判断。
+function isOwned(item) {
+  if (item.owned === true) return true;
+  if (item.owned === false) return false;
+  return Boolean(item.unlock);
+}
+
 function assetCatCount(cat, data) {
-  const items = cat.list(data).filter((item) => item.owned !== false);
+  const items = cat.list(data).filter(isOwned);
   const counts = data.counts || {};
   // 目录里只写「他有多少」，别写成 26/30 让人以为图鉴里有 30 个。
   if (cat.key === "agents") return `${items.length} 位`;
@@ -4992,7 +5000,7 @@ function renderAssetToc(data) {
   const box = $("#asset-toc");
   if (!box) return;
   box.innerHTML = ASSET_CATS.map((cat) => {
-    const items = cat.list(data).filter((item) => item.owned !== false);
+    const items = cat.list(data).filter(isOwned);
     const art = items.slice(0, 4)
       .map((item) => (item.icon ? `<img src="${img(item.icon)}" alt="" loading="lazy" />` : ""))
       .join("");
