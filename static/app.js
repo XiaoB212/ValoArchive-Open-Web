@@ -4982,7 +4982,8 @@ const ASSET_CATS = [
 function assetCatCount(cat, data) {
   const items = cat.list(data).filter((item) => item.owned !== false);
   const counts = data.counts || {};
-  if (cat.key === "agents") return `${items.length} / ${counts.agents_total || items.length} 位`;
+  // 目录里只写「他有多少」，别写成 26/30 让人以为图鉴里有 30 个。
+  if (cat.key === "agents") return `${items.length} 位`;
   if (cat.key === "guns") return `${counts.guns || items.length} 把`;
   return `${items.length} ${cat.unit}`;
 }
@@ -5029,19 +5030,28 @@ function assetApplyCat() {
   if (filters) filters.hidden = cat !== "skins";
 }
 
+// 滚到某个元素顶部，给吸顶的顶栏留出高度（手机上点开图鉴要能看见它真的开了）
+function scrollUnderHeader(el) {
+  if (!el) return;
+  const head = document.querySelector("header.top");
+  const bar = head && getComputedStyle(head).position === "sticky" ? head.getBoundingClientRect().height : 0;
+  const y = el.getBoundingClientRect().top + window.scrollY - (bar || 0) - 6;
+  // 用即时滚动：手机上「平滑滚动」偶尔被列表的触控滚动打断，表现就是点了没反应。
+  window.scrollTo(0, Math.max(0, y));
+}
+
 function openAssetCat(key) {
   if (!ASSET_CATS.some((cat) => cat.key === key)) return;
   state.assetCat = key;
   assetApplyCat();
-  const panel = $("#panel-assets");
-  if (panel) panel.scrollIntoView({ block: "start", behavior: "smooth" });
+  // 目录点开某一类后，把「← 全部图鉴」那条标题滚到眼前，否则手机上看着像没反应。
+  scrollUnderHeader($("#asset-view"));
 }
 
 function closeAssetCat() {
   state.assetCat = "";
   assetApplyCat();
-  const panel = $("#panel-assets");
-  if (panel) panel.scrollIntoView({ block: "start", behavior: "smooth" });
+  scrollUnderHeader($("#asset-toc"));
 }
 
 $("#asset-toc")?.addEventListener("click", (ev) => {
