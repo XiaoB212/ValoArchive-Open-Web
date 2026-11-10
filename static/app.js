@@ -3827,8 +3827,176 @@ function initHomeMe() {
   homeReload();
 }
 
+// ---------------------------------------------------------------- 公告
+// 全体公告分两类：site（常驻，打开就摆着）/ event（事项，到期自己消失）。
+// 「知道了」只收起顶部条、条目仍留在列表里；「不再提示」从列表里也拿掉。
+// 登录用户记在服务端（换设备不会又弹），没登录就记在本机；内容重推（rev+1）会再出现一次。
+const NOTICE_ACK = "valo.notice.ack";
+const NOTICE_DISMISS = "valo.notice.dismiss";
+const NOTICE_SEEN = "valo.notice.seen";
+let noticeItems = [];
+
+function noticeSeen(kindKey) {
+  try {
+    return JSON.parse(localStorage.getItem(kindKey) || "{}") || {};
+  } catch (err) {
+    return {};
+  }
+}
+
+function noticeSeenSet(kindKey, id, rev) {
+  const box = noticeSeen(kindKey);
+  box[String(id)] = Math.max(Number(box[String(id)] || 0), Number(rev) || 1);
+  try {
+    localStorage.setItem(kindKey, JSON.stringify(box));
+  } catch (err) {
+    /* 隐私模式下 localStorage 会抛异常，忽略即可 */
+  }
+}
+
+function noticeStateOf(item) {
+  if (item.ack) return "ack";
+  if (item.dismissed) return "dismiss";
+  const rev = Number(item.rev || 1);
+  if (Number(noticeSeen(NOTICE_ACK)[String(item.id)] || 0) >= rev) return "ack";
+  if (Number(noticeSeen(NOTICE_DISMISS)[String(item.id)] || 0) >= rev) return "dismiss";
+  return "";
+}
+
+// 打开过一次公告抽屉就算「看过了」：顶部条和红点收起来，但列表里还留着，
+// 等用户自己点「知道了」或「不再提示」。
+function noticeSeenAlready(item) {
+  return Number(noticeSeen(NOTICE_SEEN)[String(item.id)] || 0) >= Number(item.rev || 1);
+}
+
+async function markNotice(item, action) {
+  let stored = false;
+  try {
+    const res = await fetch(`/api/notices/${item.id}/${action}`, { method: "POST" });
+    if (res.ok) {
+      const data = await res.json().catch(() => ({}));
+      stored = !!data.stored;
+    }
+  } catch (err) {
+    stored = false;
+  }
+  if (!stored) noticeSeenSet(action === "ack" ? NOTICE_ACK : NOTICE_DISMISS, item.id, item.rev);
+  if (action === "ack") item.ack = true;
+  else item.dismissed = true;
+  noticeRender();
+}
+
+function noticeOpen(open) {
+  const drawer = $("#notice-drawer");
+  const mask = $("#notice-mask");
+  if (!drawer || !mask) return;
+  drawer.hidden = !open;
+  mask.hidden = !open;
+  if (open) {
+    noticeItems.forEach((item) => {
+      if (noticeStateOf(item) === "") noticeSeenSet(NOTICE_SEEN, item.id, item.rev);
+    });
+    noticeRender();
+  }
+}
+
+function noticeRender() {
+  const live = noticeItems.filter((item) => noticeStateOf(item) !== "dismiss");
+  const unread = live.filter((item) => noticeStateOf(item) === "" && !noticeSeenAlready(item));
+  const bell = $("#notice-bell");
+  const dot = $("#notice-dot");
+  if (bell) bell.hidden = !live.length;
+  if (dot) dot.hidden = !unread.length;
+
+  const band = $("#notice-band");
+  const first = unread[0];
+  if (band) {
+    band.hidden = !first;
+    if (first) {
+      const tag = $("#notice-band-tag");
+      const text = $("#notice-band-text");
+      const link = $("#notice-band-link");
+      if (tag) tag.textContent = first.kind === "site" ? "公告" : "通知";
+      if (text) {
+        const brief = String(first.body || "").split("\n")[0].trim();
+        text.textContent = brief ? `${first.title} · ${brief}` : first.title;
+      }
+      if (link) {
+        if (first.link_url) {
+          link.hidden = false;
+          link.href = first.link_url;
+          link.textContent = first.link_text || "查看";
+        } else {
+          link.hidden = true;
+        }
+      }
+    }
+  }
+
+  const list = $("#notice-list");
+  if (!list) return;
+  if (!live.length) {
+    list.innerHTML = '<p class="notice-empty">暂时没有公告</p>';
+    return;
+  }
+  list.innerHTML = live.map((item) => {
+    const st = noticeStateOf(item);
+    const when = new Date(Number(item.updated_at || item.start_at || 0) * 1000);
+    const date = when.getTime() > 0 ? `${when.getMonth() + 1}-${String(when.getDate()).padStart(2, "0")}` : "";
+    const link = item.link_url
+      ? `<a class="notice-link" href="${escapeHtml(item.link_url)}">${escapeHtml(item.link_text || "查看详情")} →</a>`
+      : "";
+    const body = item.body ? `<p>${escapeHtml(item.body)}</p>` : "";
+    const ackBtn = st === "ack"
+      ? '<button type="button" data-act="ack" class="is-done">已读</button>'
+      : '<button type="button" data-act="ack">知道了</button>';
+    return `<article class="notice-item${st === "ack" ? " is-ack" : ""}" data-id="${item.id}">
+      <div class="notice-item-h"><b>${escapeHtml(item.title)}</b><time>${date}</time></div>
+      ${body}${link}
+      <div class="notice-acts">${ackBtn}<button type="button" data-act="dismiss">不再提示</button></div>
+    </article>`;
+  }).join("");
+}
+
+async function loadNotices() {
+  let data = null;
+  try {
+    data = await api.get("/api/notices");
+  } catch (err) {
+    return;
+  }
+  noticeItems = (data && data.items) || [];
+  noticeRender();
+}
+
+function initNotices() {
+  const bell = $("#notice-bell");
+  if (!bell) return;  // 分享页/导出页没有公告入口，直接跳过
+  bell.addEventListener("click", () => noticeOpen(true));
+  $("#notice-close")?.addEventListener("click", () => noticeOpen(false));
+  $("#notice-mask")?.addEventListener("click", () => noticeOpen(false));
+  $("#notice-band-x")?.addEventListener("click", () => {
+    const first = noticeItems.find((item) => noticeStateOf(item) === "" && !noticeSeenAlready(item));
+    if (first) markNotice(first, "ack");
+    else noticeRender();
+  });
+  $("#notice-list")?.addEventListener("click", (event) => {
+    const btn = event.target.closest("[data-act]");
+    if (!btn) return;
+    const item = noticeItems.find((it) => String(it.id) === btn.closest(".notice-item")?.dataset.id);
+    if (!item || btn.classList.contains("is-done")) return;
+    markNotice(item, btn.dataset.act);
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") noticeOpen(false);
+  });
+  loadNotices();
+  setInterval(loadNotices, 300000);
+}
+
 async function boot() {
   await refreshHealth();
+  initNotices();
   loadPlan().then(initHomeMe);
   setInterval(() => refreshHealth(true).catch(() => {}), 90000);
 

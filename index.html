@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#0e7c6b" />
 <meta name="site-home" content="https://va.223212.xyz" />
 <meta name="description" content="瓦罗兰档案：非官方《无畏契约》社区项目，支持长历史、单局详情、对位击杀热力图与组队分析。" />
-<link rel="stylesheet" href="/static/style.css?v=8a24183da3" />
+<link rel="stylesheet" href="/static/style.css?v=eda648eab4" />
 </head>
 <body>
 <div class="grid-bg" aria-hidden="true"></div>
@@ -25,6 +25,10 @@
     <a class="cred-chip hidden" id="cred-chip" href="#" target="_blank" rel="noopener"></a>
     <button class="export-btn" id="export-open" type="button">导出</button>
     <nav class="top-tools" aria-label="站点功能">
+      <button class="bell" id="notice-bell" type="button" title="公告" aria-label="公告" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.2a5.1 5.1 0 0 0-5.1 5.1v3.4l-1.6 2.6a.7.7 0 0 0 .6 1.1h12.2a.7.7 0 0 0 .6-1.1l-1.6-2.6V9.3A5.1 5.1 0 0 0 12 4.2Z"/><path d="M9.6 18.3a2.6 2.6 0 0 0 4.8 0"/></svg>
+        <i class="bell-dot" id="notice-dot" hidden></i>
+      </button>
       <a class="tool-link" href="/crosshairs" title="准星库：职业选手同款准星">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg><span>准星库</span>
       </a>
@@ -50,6 +54,24 @@
     </a>
   </div>
 </header>
+
+<div class="notice-band" id="notice-band" hidden>
+  <div class="shell notice-band-in">
+    <span class="notice-tag" id="notice-band-tag">公告</span>
+    <span class="notice-band-text" id="notice-band-text"></span>
+    <a class="notice-band-link" id="notice-band-link" hidden>查看</a>
+    <button class="notice-x" id="notice-band-x" type="button" aria-label="知道了">×</button>
+  </div>
+</div>
+
+<div class="notice-mask" id="notice-mask" hidden></div>
+<aside class="notice-drawer" id="notice-drawer" hidden aria-label="公告">
+  <div class="notice-head">
+    <b>公告</b>
+    <button class="notice-x" id="notice-close" type="button" aria-label="关闭">×</button>
+  </div>
+  <div class="notice-list" id="notice-list"></div>
+</aside>
 
   <div class="search-band">
     <div class="shell">
@@ -401,7 +423,7 @@
 </footer>
 
 <script src="/config.js?v=5159ad9f1b"></script>
-<script src="/static/app.js?v=225ea37287"></script>
+<script src="/static/app.js?v=8b586f4bbb"></script>
 <script>
 (function () {
   document.querySelectorAll("#home-try .try").forEach(function (el) {
