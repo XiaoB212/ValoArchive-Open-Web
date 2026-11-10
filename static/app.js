@@ -2246,8 +2246,8 @@ async function loadAssets() {
   try {
     const frags = [];
     $("#assets-meta").textContent = "加载中…";
-    // v=5：换过资产口径（英雄只算已解锁的），带个版本参数免得中间层把旧响应再喂回来。
-    const data = await api.get("/api/player/assets", { keyword: state.keyword, mode: state.source, v: 5 });
+    // v=6：换过资产口径（英雄只算已解锁的、枪械补了图标），带版本参数免得中间层把旧响应喂回来。
+    const data = await api.get("/api/player/assets", { keyword: state.keyword, mode: state.source, v: 6 });
     if (data.unavailable) {
       // 掌瓦没收录这个账号 → 拿不到他本人的 scene，ACLOS 只会回请求者自己的资产。
       // 后端现在会直接标记 unavailable，这里给提示，不要画成别人的图。
