@@ -3016,10 +3016,200 @@ async function loadPlaymates(force = false) {
   }
 }
 
+const CI = { keyword: "", scope: "all", view: "overview", sort: "games", data: null, loaded: "" };
+
+const ciFmt = (v, digits = 0) => {
+  if (v === null || v === undefined || v === "") return "—";
+  const n = Number(v);
+  if (!Number.isFinite(n)) return "—";
+  return digits ? n.toFixed(digits) : String(Math.round(n));
+};
+
+const ciPct = (v) => (v === null || v === undefined ? "—" : `${ciFmt(v, 1)}%`);
+
+/** 从汇总数字里挑几句能对着图看的话，不推断没数据支撑的东西。 */
+function ciVerdict(t) {
+  const tags = [];
+  const fb = Number(t.first_blood_per_game) || 0;
+  if (fb >= 1.2) tags.push("开团先锋");
+  else if (fb >= 0.9) tags.push("敢开团");
+  if ((Number(t.kda) || 0) >= 1.3) tags.push("换命稳健");
+  if ((Number(t.head_shot_rate) || 0) >= 22) tags.push("枪法在线");
+  if ((Number(t.adr) || 0) >= 140) tags.push("持续输出");
+  const wr = t.win_rate;
+  let tail = "胜率还没统计";
+  if (wr !== null && wr !== undefined) {
+    if (wr >= 55) tail = "胜率站在赢的一边";
+    else if (wr >= 50) tail = "胜负基本五五开";
+    else if (wr >= 45) tail = "离五五开只差一点";
+    else tail = "胜率还有提升空间";
+  }
+  const head = tags.length ? tags[0] : "先把对局打起来";
+  const bullets = [];
+  if (fb) bullets.push(`场均首杀 ${ciFmt(fb, 2)} 次，开局的第一枪多半由他开。`);
+  if (t.kda) bullets.push(`KDA ${ciFmt(t.kda, 2)}，场均 ${ciFmt(t.kills_per_game, 1)} 杀、${ciFmt(t.acs, 1)} 评分。`);
+  if (t.adr) bullets.push(`场均伤害 ${ciFmt(t.adr, 1)}，爆头率 ${ciPct(t.head_shot_rate)}。`);
+  if (t.five_kills || t.perfect_rounds) {
+    bullets.push(`生涯 ${ciFmt(t.five_kills)} 次五杀、${ciFmt(t.perfect_rounds)} 个无死亡回合。`);
+  }
+  return {
+    line: `${head}，${tail}`,
+    tags,
+    bullets,
+  };
+}
+
+function ciTotals(t) {
+  const cells = [
+    [ciFmt(t.games), "对局数"],
+    [ciPct(t.win_rate), "胜率"],
+    [ciFmt(t.kda, 2), "KDA"],
+    [ciFmt(t.acs, 1), "平均评分 ACS"],
+    [ciFmt(t.kills_per_game, 1), "场均击杀"],
+    [ciFmt(t.adr, 1), "平均伤害 ADR"],
+    [ciFmt(t.first_blood_per_game, 2), "场均首杀"],
+    [ciFmt(t.hours, 1), "总时长（小时）"],
+    [ciPct(t.head_shot_rate), "爆头率"],
+    [ciFmt(t.five_kills), "五杀"],
+  ];
+  return `<div class="ci-grid">${cells
+    .map(([v, k]) => `<div class="ci-cell"><b>${v}</b><span>${k}</span></div>`)
+    .join("")}</div>`;
+}
+
+function ciBar(ratio, extra = "") {
+  const w = Math.max(0, Math.min(100, Number(ratio) || 0));
+  return `<div class="ci-bar${extra}"><i style="width:${w.toFixed(1)}%"></i></div>`;
+}
+
+function ciSortRows(rows, keys) {
+  const key = keys[CI.sort] || keys.games;
+  return [...rows].sort((a, b) => {
+    const av = a[key];
+    const bv = b[key];
+    const an = av === null || av === undefined ? -1 : Number(av);
+    const bn = bv === null || bv === undefined ? -1 : Number(bv);
+    if (bn !== an) return bn - an;
+    return String(a.name || "").localeCompare(String(b.name || ""), "zh");
+  });
+}
+
+function ciAgents(data) {
+  const rows = ciSortRows(data.agents || [], { games: "games", win_rate: "win_rate", kda: "kda", acs: "acs" });
+  if (!rows.length) return '<p class="dim ci-empty">上游没给英雄维度的数据。</p>';
+  return `<div class="ci-list">${rows
+    .map(
+      (r) => `<article class="ci-card">
+        <img class="ci-thumb" src="${escapeHtml(img(r.icon))}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+        <div class="ci-main">
+          <div class="ci-head"><b>${escapeHtml(r.name || "")}</b><span>${ciPct(r.win_rate)}</span></div>
+          ${ciBar(r.win_rate)}
+          <p class="ci-meta">对局 ${ciFmt(r.games)} · KDA ${ciFmt(r.kda, 2)} · 平均评分 ${ciFmt(r.acs, 1)} · 场均伤害 ${ciFmt(r.adr, 1)}${r.seconds ? ` · 时长 ${ciFmt(r.seconds / 3600, 1)} 小时` : ""}</p>
+        </div>
+      </article>`
+    )
+    .join("")}</div>`;
+}
+
+function ciMaps(data) {
+  const rows = ciSortRows(data.maps || [], { games: "games", win_rate: "win_rate", kda: "kda", acs: "acs" });
+  if (!rows.length) return '<p class="dim ci-empty">上游没给地图维度的数据。</p>';
+  return `<div class="ci-list">${rows
+    .map(
+      (r) => `<article class="ci-card">
+        <img class="ci-thumb wide" src="${escapeHtml(img(r.cover))}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+        <div class="ci-main">
+          <div class="ci-head"><b>${escapeHtml(r.name || "")}</b><span>${ciPct(r.win_rate)}</span></div>
+          ${ciBar(r.win_rate)}
+          <p class="ci-meta">${ciFmt(r.games)} 场 ${ciFmt(r.wins)} 胜 ${ciFmt(r.loses)} 负 · KDA ${ciFmt(r.kda, 2)} · 平均评分 ${ciFmt(r.acs, 1)} · 场均伤害 ${ciFmt(r.adr, 1)}</p>
+        </div>
+      </article>`
+    )
+    .join("")}</div>`;
+}
+
+function ciWeapons(data) {
+  const rows = data.weapons || [];
+  if (!rows.length) return '<p class="dim ci-empty">上游没给武器维度的数据。</p>';
+  const top = rows.reduce((m, r) => Math.max(m, Number(r.kills) || 0), 0) || 1;
+  const list = ciSortRows(rows, { games: "kills", win_rate: "head_shot_rate", kda: "kills_per_round", acs: "damage" });
+  return `<div class="ci-list">${list
+    .map(
+      (r) => `<article class="ci-card">
+        <img class="ci-thumb gun" src="${escapeHtml(img(r.icon))}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+        <div class="ci-main">
+          <div class="ci-head"><b>${escapeHtml(r.name || "")}</b><span>击杀 ${ciFmt(r.kills)}</span></div>
+          ${ciBar((Number(r.kills) || 0) / top * 100)}
+          <p class="ci-meta">平均每回合 ${ciFmt(r.kills_per_round, 2)} 杀 · 场均伤害 ${ciFmt(r.damage, 1)} · 头部命中比例 ${ciPct(r.head_shot_rate)}</p>
+        </div>
+      </article>`
+    )
+    .join("")}</div>`;
+}
+
+function renderCareer() {
+  const data = CI.data;
+  const body = $("#ci-body");
+  if (!body) return;
+  if (!data) return;
+  const t = data.totals || {};
+  const sub = $("#ci-sub");
+  if (sub) sub.textContent = `${data.scope_name || ""} · 官方累计`;
+  if (CI.view === "agents") body.innerHTML = ciAgents(data);
+  else if (CI.view === "maps") body.innerHTML = ciMaps(data);
+  else if (CI.view === "weapons") body.innerHTML = ciWeapons(data);
+  else {
+    const v = ciVerdict(t);
+    body.innerHTML = `<section class="ci-verdict">
+        <h4>${escapeHtml(v.line)}</h4>
+        ${v.tags.length ? `<div class="ci-tags">${v.tags.map((x) => `<span>${escapeHtml(x)}</span>`).join("")}</div>` : ""}
+        ${v.bullets.length ? `<ul>${v.bullets.map((x) => `<li>${escapeHtml(x)}</li>`).join("")}</ul>` : ""}
+      </section>
+      ${ciTotals(t)}`;
+  }
+  const foot = $("#ci-foot");
+  if (foot) {
+    foot.innerHTML = `${escapeHtml(data.note || "")}<br>数据来源：腾讯端瓦（WeGame）官方服务直连 · 玩家 ${escapeHtml(state.keyword || "")}`;
+  }
+}
+
+async function loadCareer(force = false) {
+  if (!state.keyword) return;
+  const body = $("#ci-body");
+  const key = `${state.keyword}|${CI.scope}`;
+  if (!force && CI.data && CI.loaded === key) {
+    renderCareer();
+    return;
+  }
+  if (body) body.innerHTML = '<p class="dim ci-empty">正在向官方要生涯统计…</p>';
+  try {
+    const data = await api.get("/api/player/insight", { keyword: state.keyword, mode: state.source, scope: CI.scope });
+    if (!data.ok) {
+      CI.data = null;
+      CI.loaded = "";
+      if (body) body.innerHTML = `<p class="dim ci-empty">${escapeHtml(data.reason || "官方没给这份数据。")}</p>`;
+      const sub = $("#ci-sub");
+      if (sub) sub.textContent = "";
+      const foot = $("#ci-foot");
+      if (foot) foot.innerHTML = "";
+      return;
+    }
+    CI.data = data;
+    CI.loaded = key;
+    renderCareer();
+  } catch (err) {
+    CI.data = null;
+    CI.loaded = "";
+    if (body) {
+      body.innerHTML = `<p class="dim ci-empty">没拉到生涯统计：${escapeHtml(err && err.message ? err.message : "稍后再试")} <button type="button" class="chip" data-ci-retry="1">再试一次</button></p>`;
+    }
+  }
+}
+
 function switchTab(name) {
   state.tab = name;
   $$("#tabs button").forEach((b) => b.classList.toggle("active", b.dataset.tab === name));
-  ["history", "match", "party", "playmates", "assets", "social", "season"].forEach((key) => {
+  ["history", "match", "party", "playmates", "assets", "social", "season", "career"].forEach((key) => {
     $(`#panel-${key}`).classList.toggle("hidden", key !== name);
   });
   if (name === "party") loadParty();
@@ -3027,6 +3217,7 @@ function switchTab(name) {
   if (name === "assets") loadAssets();
   if (name === "social") loadSocial();
   if (name === "season") loadSeason();
+  if (name === "career") loadCareer();
   if (name === "match" && !state.matchId && !state.matchLoaded && state.rows.length) {
     loadMatch(state.rows[0].match_id);
   }
@@ -4854,6 +5045,38 @@ async function boot() {
       loadPlayer(name);
     });
   }
+  /* 生涯统计：子 tab、模式、排序 */
+  const ciTabs = $("#ci-tabs");
+  if (ciTabs) {
+    ciTabs.addEventListener("click", (ev) => {
+      const btn = ev.target.closest("button[data-ci]");
+      if (!btn) return;
+      $$("#ci-tabs button[data-ci]").forEach((b) => b.classList.toggle("active", b === btn));
+      CI.view = btn.dataset.ci;
+      renderCareer();
+    });
+  }
+  const ciScope = $("#ci-scope");
+  if (ciScope) {
+    ciScope.addEventListener("change", () => {
+      CI.scope = ciScope.value;
+      loadCareer(true);
+    });
+  }
+  const ciSort = $("#ci-sort");
+  if (ciSort) {
+    ciSort.addEventListener("change", () => {
+      CI.sort = ciSort.value;
+      renderCareer();
+    });
+  }
+  const ciBody = $("#ci-body");
+  if (ciBody) {
+    ciBody.addEventListener("click", (ev) => {
+      if (ev.target.closest("[data-ci-retry]")) loadCareer(true);
+    });
+  }
+
   $$(".social-counts .chip[data-group]").forEach((chip) => chip.addEventListener("click", () => {
     $$(".social-counts .chip[data-group]").forEach((c) => c.classList.remove("active"));
     chip.classList.add("active");
