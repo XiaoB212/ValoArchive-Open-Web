@@ -3245,6 +3245,8 @@ function pmInit(data) {
   const sel = $("#pm-season");
   if (!sel) return;
   const list = data.seasons || [];
+  // 上游只给最近几幕的同玩记录，单看一幕容易以为「就打了这么点」，
+  // 所以第一项是「近 3 幕合计」，后端把留存的几幕加在一起。
   sel.innerHTML = list
     .map((s) => `<option value="${escapeHtml(s.id)}"${s.id === (data.season && data.season.id) ? " selected" : ""}>${escapeHtml(s.name || "未知赛季")}</option>`)
     .join("");
@@ -3309,7 +3311,10 @@ function renderPlaymates() {
   if (!data || !list) return;
   const rows = pmRows();
   const sub = $("#pm-sub");
-  if (sub) sub.textContent = data.season && data.season.name ? data.season.name : "";
+  if (sub) {
+    const merged = data.season && data.season.merged;
+    sub.textContent = (data.season && data.season.name ? data.season.name : "") + (merged ? " · 官方只保留这几幕，更早的已经查不到了" : "");
+  }
   const count = $("#pm-count");
   if (count) {
     count.textContent = `官方返回 ${data.total || 0} 名 · 有同玩 ${data.active || 0} 名`;
