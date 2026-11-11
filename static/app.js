@@ -1021,24 +1021,39 @@ async function suggest(keyword) {
   if (!name) return;
   box.classList.remove("hidden");
   box.innerHTML = "";
-  try {
-    const data = await api.get("/api/search", { q: name });
-    const items = (data.items || []).slice(0, 6);
-    if (!items.length) { box.classList.add("hidden"); return; }
-    box.innerHTML = `<p>没找到「${escapeHtml(keyword)}」，是不是其中一位？</p>` + items
+  // 两个来源一起问：掌瓦昵称索引（官方那套）经常因为对方关了「游戏 ID 可被搜索」
+  // 而空空如也，但我们自己的 rolenames 索引里往往还留着他——他只要和谁同场过一次，
+  // PD 详情里就有 subject。所以本地这份不能只当备胎，要跟官方结果并列显示。
+  const [official, local] = await Promise.allSettled([
+    api.get("/api/search", { q: name }),
+    api.get("/api/search/local", { q: name }),
+  ]);
+  const items = official.status === "fulfilled" ? (official.value.items || []).slice(0, 6) : [];
+  const ours = (local.status === "fulfilled" ? local.value.items || [] : [])
+    .filter((item) => item.name)
+    .slice(0, 6);
+  if (!items.length && !ours.length) { box.classList.add("hidden"); return; }
+  box.innerHTML = `<p>没找到「${escapeHtml(keyword)}」，是不是其中一位？</p>`
+    + items
       .map((item) => `<button type="button" data-uid="${escapeHtml(item.uuid)}" data-name="${escapeHtml(item.name)}">`
         + `${escapeHtml(item.name)}<em>${item.app_num ? `掌瓦 ${escapeHtml(item.app_num)}` : ""}</em></button>`)
+      .join("")
+    + ours
+      .map((item) => `<button type="button" data-local="${escapeHtml(item.name)}">`
+        + `${escapeHtml(item.name)}<em>本地索引</em></button>`)
       .join("");
-    $$("#suggest button").forEach((btn) => btn.addEventListener("click", () => {
-      box.classList.add("hidden");
-      // 以前直接拿 btn.textContent 回填，那是「名字 + 掌瓦号」粘在一起（彩虹精005346494），
-      // 回填进去下次搜索必然查不到；这里用 data-name 只填掌瓦昵称。
-      $("#search-input").value = btn.dataset.name || "";
-      loadPlayer(`uid:${btn.dataset.uid}`);
-    }));
-  } catch (_) {
-    box.innerHTML = "";
-  }
+  $$("#suggest button").forEach((btn) => btn.addEventListener("click", () => {
+    box.classList.add("hidden");
+    // 以前直接拿 btn.textContent 回填，那是「名字 + 掌瓦号」粘在一起（彩虹精005346494），
+    // 回填进去下次搜索必然查不到；这里用 data-name 只填掌瓦昵称。
+    $("#search-input").value = btn.dataset.name || btn.dataset.local || "";
+    if (btn.dataset.local) {
+      // 本地候选本来就是完整的「名字#编号」，直接按游戏 ID 解析，命中名字索引。
+      loadPlayer(btn.dataset.local);
+      return;
+    }
+    loadPlayer(`uid:${btn.dataset.uid}`);
+  }));
 }
 
 function shortDate(text) {
