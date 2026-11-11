@@ -458,6 +458,81 @@ function fitTip(tip) {
   }
 }
 
+/** 把「多久以前」说成人话：状态只按对局推断，页面上不能写「在线」（见 server/valo/activity.py）。 */
+function actAgo(ms) {
+  const diff = Math.max(0, Date.now() - Number(ms || 0));
+  const minutes = Math.round(diff / 60000);
+  if (minutes < 1) return "刚刚";
+  if (minutes < 60) return `${minutes} 分钟前`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} 小时前`;
+  return `${Math.round(hours / 24)} 天前`;
+}
+
+function renderActivity(data) {
+  const box = $("#activity");
+  const pill = $("#p-presence");
+  if (!box) return;
+  const stateName = (data && data.state) || "unknown";
+  if (pill) {
+    if (!data || !data.ok || stateName === "unknown") {
+      pill.classList.add("hidden");
+      pill.textContent = "";
+    } else {
+      const recent = stateName === "recent";
+      pill.className = `presence-pill ${recent ? "on" : "off"}`;
+      pill.innerHTML = `<i></i>${escapeHtml(data.label || "")}${data.detail ? ` · ${escapeHtml(data.detail.replace(/^最后一场\s*/, ""))}` : ""}`;
+      pill.title = `${data.detail || ""}\n${data.note || ""}`;
+    }
+  }
+  if (!data || !data.ok) {
+    box.hidden = true;
+    box.innerHTML = "";
+    return;
+  }
+  box.hidden = false;
+  const today = data.today || {};
+  const week = data.week || {};
+  const rr = today.rr;
+  const spans = (data.sessions || []).slice(0, 4).map((item) => {
+    const rrText = item.rr === null || item.rr === undefined ? "" : ` · RR ${item.rr > 0 ? "+" : ""}${item.rr}`;
+    return `<span class="act-span" title="${escapeHtml(item.range || "")}">${escapeHtml(item.range || "")}<i>${item.games} 场 · ${escapeHtml(item.duration || "")} · ${item.wins} 胜${rrText}</i></span>`;
+  }).join("");
+  box.innerHTML = `
+    <div class="act-head">
+      <span class="act-state ${stateName}"><i></i>${escapeHtml(data.label || "")}</span>
+      <span class="act-detail">${escapeHtml(data.detail || "")}</span>
+      <span class="act-week">近 7 天 ${week.days || 0} 天 · ${week.games || 0} 局 · ${escapeHtml(week.duration || "0 分")}</span>
+    </div>
+    <div class="act-grid">
+      <div><i>今天对局</i><b>${today.games || 0}</b></div>
+      <div><i>今天在玩</i><b>${escapeHtml(today.duration || "0 分")}</b></div>
+      <div><i>今天 RR</i><b>${rr === null || rr === undefined ? "—" : `${rr > 0 ? "+" : ""}${rr}`}</b></div>
+      <div><i>最后一段</i><b>${escapeHtml((data.sessions && data.sessions[0] && data.sessions[0].range) || "—")}</b></div>
+    </div>
+    ${spans ? `<div class="act-spans">${spans}</div>` : ""}
+    <p class="act-note">${escapeHtml(data.note || "")}</p>`;
+}
+
+async function loadActivity() {
+  const box = $("#activity");
+  if (box) {
+    box.hidden = false;
+    box.innerHTML = '<p class="dim act-loading">正在看最近的活动…</p>';
+  }
+  try {
+    const data = await api.get("/api/player/activity", { keyword: state.keyword, mode: state.source });
+    renderActivity(data);
+  } catch (err) {
+    if (box) {
+      box.hidden = true;
+      box.innerHTML = "";
+    }
+    const pill = $("#p-presence");
+    if (pill) pill.classList.add("hidden");
+  }
+}
+
 function renderSummary(summary) {
   const box = $("#summary");
   if (!box) return;
@@ -954,6 +1029,7 @@ async function loadPlayer(keyword, refresh = false) {
     if (data.summary) renderSummary(data.summary);
     else if (summaryBox) summaryBox.innerHTML = '<p class="dim">暂无总结数据。</p>';
     renderRank(data.rank);
+    loadActivity();
     startWatch();
     state.rows = data.recent;
     if (EXPORT_SORT) {
@@ -2267,7 +2343,11 @@ function renderParty() {
       const letter = escapeHtml((m.name || "?").slice(0, 1));
       const av = m.avatar ? `<img class="mate-av" src="${img(m.avatar)}" alt="" loading="lazy" onerror="this.remove()" />` : "";
       // data-name 必须是完整的「昵称#编号」：只回填前缀的话，筛选条件会丢掉编号
-      return `<button type="button" class="mate" data-name="${escapeHtml(String(m.name || ""))}" title="${escapeHtml(String(m.name || ""))}"><span class="av${m.avatar ? " has" : ""}">${letter}${av}</span><span class="mate-name">${escapeHtml(m.name)}</span><b>${m.n} 场</b>${(m.last || m.last_text) ? `<em class="mate-when">最近 ${m.last ? fullDate(m.last) : m.last_text}</em>` : ""}</button>`;
+      const agents = (m.agents || [])
+        .filter((a) => a && a.icon)
+        .map((a) => `<img class="mate-agent" src="${img(a.icon)}" alt="${escapeHtml(a.name)}" title="${escapeHtml(a.name)} · ${a.n} 场" loading="lazy" onerror="this.remove()" />`)
+        .join("");
+      return `<button type="button" class="mate" data-name="${escapeHtml(String(m.name || ""))}" title="${escapeHtml(String(m.name || ""))}"><span class="av${m.avatar ? " has" : ""}">${letter}${av}</span><span class="mate-name">${escapeHtml(m.name)}</span>${agents ? `<span class="mate-agents">${agents}</span>` : ""}<b>${m.n} 场</b>${(m.last || m.last_text) ? `<em class="mate-when">最近 ${m.last ? fullDate(m.last) : m.last_text}</em>` : ""}</button>`;
     })
     .join("") || '<p class="dim">队友统计的详情暂时没取到，稍后再试。</p>';
   $$("#party-mates .mate").forEach((el) => {
