@@ -2,10 +2,10 @@
    米白纸面 / 细线卡片 / 深墨字 / 自有强调色「深玉青」。 */
 
 :root {
-  --squad-1: #0a5a4e;
-  --squad-2: #1b4079;
-  --squad-3: #6f3c07;
-  --squad-4: #53236b;
+  --squad-1: #0d6b5c;
+  --squad-2: #1d4f96;
+  --squad-3: #9a5a0a;
+  --squad-4: #7a2f83;
   --squad-1-ink: #ffffff;
   --squad-2-ink: #ffffff;
   --squad-3-ink: #ffffff;
@@ -662,11 +662,24 @@ body.export .row:hover { transform: none; box-shadow: none; border-color: var(--
 .suggest button:hover { border-color: var(--accent); background: var(--accent-soft); }
 .suggest button em { font-style: normal; font-family: var(--mono); font-size: 10px; color: var(--dim); }
 
-/* 记分板两套：≤900px 用卡片行（点开看这局数据），≥901px 用十列表格。 */
-.board-wrap { display: none; }
+/* 记分板两套：≤900px 用卡片行（点开看这局数据），≥901px 用十列表格。
+   注意只藏「单局详情里那张十列表」（.desk-only），别用 .board-wrap 整体藏——
+   手机上其它表格也会被 wrapBoards() 套上 .board-wrap，一起藏掉就全没了。 */
+.desk-only { display: none; }
 @media (min-width: 901px) {
   .mb-board { display: none; }
-  .board-wrap { display: block; }
+  /* 和上面的地图卡用同一套白卡：以前表格直接浮在纸面底色上，
+     跟白色头像卡贴着看会有一道「差一点点」的缝，很别扭。 */
+  .desk-only {
+    display: block;
+    margin-top: 12px;
+    padding: 4px 16px 10px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: 0 1px 2px rgba(23, 25, 27, .04);
+  }
+  .desk-only table.board th { border-bottom-color: var(--line); }
 }
 
 /* ---------- search mode toggle ---------- */
@@ -674,27 +687,6 @@ body.export .row:hover { transform: none; box-shadow: none; border-color: var(--
 /* 注意：这个 .mode 原本是顶栏「游戏ID/掌瓦ID」开关的样式，
    历史记录行里也有一个同名 <div class="mode">，不加 .search 前缀就会给它套上白色方框。
    2026-11-11 起模式开关去掉，改成静态的「自动识别」提示，样式沿用同一块边框。 */
-.search .mode-tip {
-  display: inline-flex;
-  align-items: center;
-  flex: 0 0 auto;
-  padding: 7px 12px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--paper-2);
-  color: var(--dim);
-  font-size: 12px;
-  line-height: 1;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-  cursor: help;
-  user-select: none;
-}
-
-/* 手机上一行只放得下输入框：提示语已经写在 placeholder 里，标签就藏掉。 */
-@media (max-width: 720px) {
-  .search .mode-tip { display: none; }
-}
 .search .mode {
   display: inline-flex;
   border: 1px solid var(--line);
@@ -5512,10 +5504,10 @@ body.me-view .home-faq { display: none; }
     --win: #4fc79e;
     --loss: #e37a72;
     --gold: #d3a851;
-    --squad-1: #1d6f5f;
-    --squad-2: #2d5a94;
-    --squad-3: #8a5a1c;
-    --squad-4: #6f3f8a;
+    --squad-1: #14a08f;
+    --squad-2: #3f7ecb;
+    --squad-3: #c98a2b;
+    --squad-4: #a45fb4;
     --squad-1-ink: #ffffff;
     --squad-2-ink: #ffffff;
     --squad-3-ink: #ffffff;
@@ -6197,3 +6189,31 @@ body.me-view .home-faq { display: none; }
 /* 「换成 名字#编号」：按名字搜到人时给一个精确搜索入口，点一下就不会再撞同名 */
 #p-guess { cursor: pointer; }
 #p-guess:hover { color: var(--fg, #e8e6e3); border-color: currentColor; }
+
+/* ── 同名候选（裸名字搜出来有好几个人时） ───────────────────────── */
+.alts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 2px;
+}
+.alts-tip { font-size: 12.5px; color: var(--muted); }
+.alts button {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.alts button:hover { border-color: var(--accent); background: var(--accent-soft); }
+.alts button:disabled { opacity: .65; cursor: progress; }
+.alts button b { font-weight: 600; }
+.alts button i { font-style: normal; font-size: 11.5px; color: var(--muted); }
+.alts button em { font-style: normal; font-family: var(--mono); font-size: 10.5px; color: var(--dim); }

@@ -1008,6 +1008,7 @@ async function loadPlayer(keyword, refresh = false) {
         guessBox.classList.add("hidden");
       }
     }
+    renderAlts(state.keyword, p.label);
     // 属地：掌瓦资料里的「最后登录 IP 属地」；对局机房分布放到「对局历史总结」里
     const srvBox = $("#p-server");
     if (srvBox) {
@@ -1105,6 +1106,51 @@ async function loadPlayer(keyword, refresh = false) {
   } finally {
     setBusy(false);
   }
+}
+
+// 裸名字搜出来常常是「好几个同名的人」，/api/player 只交回其中一个。
+// 这里给一个「看看候选」的入口，点了才去取（取候选要逐个读档案，别拖慢正常查询）。
+async function renderAlts(keyword, currentLabel) {
+  const host = $("#p-alts");
+  if (!host) return;
+  host.classList.add("hidden");
+  host.innerHTML = "";
+  const kw = String(keyword || "").trim();
+  if (!kw || kw.includes("#") || kw.length === 36) return;
+  const ask = document.createElement("button");
+  ask.type = "button";
+  ask.textContent = "同名的还有谁？看看候选";
+  ask.addEventListener("click", async () => {
+    ask.disabled = true;
+    ask.textContent = "在找同名的…";
+    try {
+      const data = await api.get(`/api/candidates?keyword=${encodeURIComponent(kw)}`);
+      const items = (data.items || []).filter((it) => it && it.label && it.label !== currentLabel);
+      host.innerHTML = "";
+      if (!items.length) {
+        host.innerHTML = '<span class="alts-tip">没有搜到别的同名玩家。</span>';
+      } else {
+        host.innerHTML = `<span class="alts-tip">同名的还有 ${items.length} 位，点一下看是谁：</span>`;
+        items.forEach((it) => {
+          const b = document.createElement("button");
+          b.type = "button";
+          b.innerHTML = `<b>${escapeHtml(it.label)}</b>${it.tier ? `<i>${escapeHtml(it.tier)}</i>` : ""}${it.app_num ? `<em>${escapeHtml(it.app_num)}</em>` : ""}`;
+          b.addEventListener("click", () => {
+            const box = $("#search-input");
+            if (box) box.value = it.label;
+            loadPlayer(it.label);
+          });
+          host.appendChild(b);
+        });
+      }
+      host.classList.remove("hidden");
+    } catch (err) {
+      host.innerHTML = '<span class="alts-tip">候选没拿到，可能上游正忙，过一会儿再点。</span>';
+      host.classList.remove("hidden");
+    }
+  });
+  host.appendChild(ask);
+  host.classList.remove("hidden");
 }
 
 async function suggest(keyword, localOnly = false) {
@@ -1632,6 +1678,13 @@ function teamPalette(teamId, teams) {
 }
 
 // 多人分队模式（异变轮战是 8 队各 2 人）不能按红蓝两方排，得按 teamId 分组。
+// 小队 A/B/C/D 各一种颜色。以前直接 "ABCD".indexOf(letter)+1，拿到小写或空值
+// 时是 0/undefined，徽标就成了透明底——看起来「四个队都是同一个颜色」。
+function squadVar(letter) {
+  const i = "ABCD".indexOf(String(letter || "").trim().toUpperCase());
+  return Math.max(1, Math.min(4, i + 1));
+}
+
 function distinctTeams(score) {
   return [...new Set((score || []).map((seat) => String(seat.team || "")).filter(Boolean))];
 }
@@ -1680,7 +1733,7 @@ function renderQuickMatch(payload, matchId, host) {
       : '<span class="iq-tier blank"></span>';
     // 死斗这类自由混战没有「两方」，但同一小队的人仍要能看出来，所以只按 multiTeam 排除。
     const squadBadge = seat.party_letter
-      ? (multiTeam ? "" : `<span class="party-lg" style="background:var(--squad-${"ABCD".indexOf(seat.party_letter) + 1})">${seat.party_letter}队</span>`)
+      ? (multiTeam ? "" : `<span class="party-lg" style="background:var(--squad-${squadVar(seat.party_letter)})">${seat.party_letter}队</span>`)
       : Number(seat.party_size) >= 2
         ? (multiTeam ? "" : `<span class="party-lg solo">${seat.party_size}人</span>`)
         : '<span class="party-lg blank"></span>';
@@ -1975,7 +2028,7 @@ function renderMatch(payload, matchId, host) {
       : "";
     const teamCls = multiTeam ? "side-color multi" : (plainTeam ? "side-color none" : `side-color ${teamClass}`);
     const badge = seat.party_letter && !multiTeam
-      ? `<span class="party-lg" style="background:var(--squad-${"ABCD".indexOf(seat.party_letter) + 1})">${seat.party_letter}队</span>`
+      ? `<span class="party-lg" style="background:var(--squad-${squadVar(seat.party_letter)})">${seat.party_letter}队</span>`
       : "";
     const tag = seat.party_size >= 2 ? `<span class="tag">${seat.party_size} 人组队</span>` : "";
     const face = seat.agent_image
@@ -2031,7 +2084,7 @@ function renderMatch(payload, matchId, host) {
           return head + seats.map(deskRow).join("");
         })
         .join("");
-  const deskBoard = `<div class="board-wrap">
+  const deskBoard = `<div class="board-wrap desk-only">
       <table class="board">
         <thead><tr>
           <th>阵营</th><th>玩家</th><th>英雄</th><th>段位</th><th>ACS</th><th>回合均伤</th><th>爆头率</th><th>首杀</th><th>K/D/A</th><th>评分</th>
