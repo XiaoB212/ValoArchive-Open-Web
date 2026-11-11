@@ -1151,7 +1151,8 @@ async function renderAlts(keyword, currentLabel) {
       const items = (data.items || []).filter((it) => it && it.label && it.label !== currentLabel);
       host.innerHTML = "";
       if (!items.length) {
-        host.innerHTML = '<span class="alts-tip">没有搜到别的同名玩家。</span>';
+        const why = data && data.message ? data.message : "没有搜到别的同名玩家。";
+        host.innerHTML = `<span class="alts-tip">${escapeHtml(why)}</span>`;
       } else {
         host.innerHTML = `<span class="alts-tip">同名的还有 ${items.length} 位，点一下看是谁：</span>`;
         items.forEach((it) => {
