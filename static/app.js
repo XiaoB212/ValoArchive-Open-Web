@@ -3209,8 +3209,10 @@ async function loadCareer(force = false) {
 function switchTab(name) {
   state.tab = name;
   $$("#tabs button").forEach((b) => b.classList.toggle("active", b.dataset.tab === name));
+  // 公开站的 index.html 少几个面板（只保留能看的），缺哪个就跳过，别让整排 tab 跟着失效。
   ["history", "match", "party", "playmates", "assets", "social", "season", "career"].forEach((key) => {
-    $(`#panel-${key}`).classList.toggle("hidden", key !== name);
+    const panel = $(`#panel-${key}`);
+    if (panel) panel.classList.toggle("hidden", key !== name);
   });
   if (name === "party") loadParty();
   if (name === "playmates") loadPlaymates();

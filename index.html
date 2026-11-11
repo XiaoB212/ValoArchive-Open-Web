@@ -254,7 +254,9 @@
           <button data-tab="match">单局详情</button>
           <button data-tab="social">好友与组队</button>
           <button data-tab="party">组队</button>
+          <button data-tab="playmates">同玩</button>
           <button data-tab="season">赛季总览</button>
+          <button data-tab="career">生涯统计</button>
           <button data-tab="assets">资产</button>
         </nav>
 
@@ -336,6 +338,37 @@
           <div class="rows" id="party-rows"></div>
         </div>
 
+        <div class="panel hidden" id="panel-playmates">
+          <div class="panel-head">
+            <h3>同玩统计</h3>
+            <span class="panel-sub" id="pm-sub"></span>
+          </div>
+          <p class="coverage" id="pm-lead">
+            所选赛季的官方同玩统计：含所有模式（接口不接收模式），场次为官方返回的同玩场次，不等于本地看到的对局数。
+          </p>
+          <div class="pm-controls">
+            <select id="pm-season" class="gm-select" aria-label="赛季"></select>
+            <span class="dim" id="pm-count"></span>
+          </div>
+          <section class="pm-facts" id="pm-facts"></section>
+          <div class="pm-tools">
+            <input id="pm-filter" type="search" autocomplete="off" placeholder="搜索同玩玩家昵称" />
+            <div class="pm-chips">
+              <button type="button" class="chip active" data-pm-min="0">全部</button>
+              <button type="button" class="chip" data-pm-min="2">同玩≥2</button>
+              <button type="button" class="chip" data-pm-min="5">同玩≥5</button>
+              <button type="button" class="chip" data-pm-min="10">同玩≥10</button>
+            </div>
+          </div>
+          <div class="pm-list" id="pm-list"></div>
+          <p class="coverage pm-foot">
+            排序按同玩对局数从高到低；缺失字段排在最后，以「—」展示，真实 0 单独保留。<br />
+            名单表示官方返回的同玩统计，不据此认定好友关系、同次组排或组队人数。<br />
+            开黑时长使用官方 time_up_time（秒）；竞技分使用 battle_score；同玩平均 ACS 使用 acs；段位是该赛季结束时的段位。<br />
+            数据来源：腾讯 WeGame 官方服务直连 · 同玩统计
+          </p>
+        </div>
+
         <div class="panel hidden" id="panel-season">
           <div class="panel-head">
             <h3>赛季总览</h3>
@@ -359,6 +392,34 @@
             <div><h4>常用英雄</h4><div id="season-agents" class="mini-list"></div></div>
             <div><h4>地图表现</h4><div id="season-maps" class="mini-list"></div></div>
           </div>
+        </div>
+
+        <div class="panel hidden" id="panel-career">
+          <div class="panel-head">
+            <h3>生涯统计</h3>
+            <span class="filters">
+              <select id="ci-scope" title="按模式取生涯">
+                <option value="all">全部模式</option>
+                <option value="competitive">竞技模式</option>
+                <option value="unrated">非排位</option>
+              </select>
+              <select id="ci-sort" title="英雄/地图/武器的排序">
+                <option value="games">按场次</option>
+                <option value="win_rate">按胜率</option>
+                <option value="kda">按 KDA</option>
+                <option value="acs">按 ACS</option>
+              </select>
+            </span>
+            <span class="panel-sub" id="ci-sub"></span>
+          </div>
+          <div class="ci-tabs" id="ci-tabs">
+            <button type="button" class="active" data-ci="overview">总览</button>
+            <button type="button" data-ci="agents">英雄</button>
+            <button type="button" data-ci="maps">地图</button>
+            <button type="button" data-ci="weapons">武器</button>
+          </div>
+          <div id="ci-body" class="ci-body"></div>
+          <p class="ci-foot" id="ci-foot"></p>
         </div>
 
         <div class="panel hidden" id="panel-assets">
@@ -433,7 +494,7 @@
 </footer>
 
 <script src="/config.js?v=5159ad9f1b"></script>
-<script src="/static/app.js?v=558f6797e3"></script>
+<script src="/static/app.js?v=77792db1db"></script>
 <script>
 (function () {
   document.querySelectorAll("#home-try .try").forEach(function (el) {
