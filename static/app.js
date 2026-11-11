@@ -1856,7 +1856,7 @@ function renderMatch(payload, matchId, host) {
       <em>队均 ${avg ? avg.toFixed(1) : "—"}${unit}</em>
     </div>`;
   };
-  const seatCard = (seat) => {
+  const seatCard = (seat, enemySide = false) => {
     const idx = boardSeats.length;
     boardSeats.push(seat);
     const ally = seat.is_ally ?? (seat.team === (payload.ally_team || score[0]?.team));
@@ -1896,7 +1896,7 @@ function renderMatch(payload, matchId, host) {
         ${full ? `<button type="button" class="mb-query" data-query="${escapeHtml(full)}">看这名玩家的主页 →</button>` : '<span class="dim">这局没取到他的游戏 ID</span>'}
       </div>
     </div>`;
-    return `<div class="mb-row${seat.subject === payload.viewer ? " me" : ""}${ally ? " ally" : ""}" data-i="${idx}">
+    return `<div class="mb-row${seat.subject === payload.viewer ? " me" : ""}${ally ? " ally" : ""}${enemySide ? " enemy" : ""}" data-i="${idx}">
       <button type="button" class="mb-main" aria-expanded="false">
         ${face}
         <span class="mb-id">
@@ -1956,7 +1956,7 @@ function renderMatch(payload, matchId, host) {
               });
           if (!seats.length) return "";
           const head = `<div class="mb-sep ${group.cls}"><b>${group.label}</b><span>${group.rounds === null ? "" : `${group.rounds ?? "—"} 回合 · `}${seats.length} 人</span></div>`;
-          return head + seats.map(seatCard).join("");
+          return head + seats.map((s) => seatCard(s, group.ally === false)).join("");
         })
         .join("");
 

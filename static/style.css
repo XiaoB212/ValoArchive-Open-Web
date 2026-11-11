@@ -6032,7 +6032,11 @@ body.me-view .home-faq { display: none; }
 }
 .mb-head { display: none; }
 .mb-row + .mb-row { border-top: 1px solid var(--line); }
-.mb-row.me { background: color-mix(in srgb, var(--accent) 5%, transparent); }
+/* 自己那一行回到老记分板的底色：color-mix 5% 在白底上几乎看不出来。 */
+.mb-row.me { background: var(--accent-soft); }
+/* 对方那组压暗一点，和我方拉开层次（老记分板是整行灰字）。 */
+.mb-row.enemy .mb-name, .mb-row.enemy .mb-kda, .mb-row.enemy .mb-score b { color: var(--muted); }
+.mb-row.enemy .mb-face { opacity: .85; }
 .mb-main {
   display: grid;
   grid-template-columns: 38px minmax(0, 1fr) auto auto 12px;
@@ -6065,7 +6069,15 @@ body.me-view .home-faq { display: none; }
 .mb-meta { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--muted); }
 .mb-tier { width: 14px; height: 14px; object-fit: contain; }
 .mb-meta i { font-style: normal; }
-.mb-party { font-style: normal; padding: 1px 5px; border-radius: 3px; background: var(--paper-2); }
+/* 「三排 / 双排」要能一眼看见：原来是 paper-2 底 + 继承的灰字，等于没有。 */
+.mb-party {
+  font-style: normal;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 600;
+  color: var(--accent-ink);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
 .mb-mvp { font-style: normal; font-size: 10.5px; padding: 1px 5px; border-radius: 3px; color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
 .mb-agent { font-style: normal; }
 .mb-score { display: grid; justify-items: end; line-height: 1.15; }
@@ -6093,12 +6105,21 @@ body.me-view .home-faq { display: none; }
   padding: 7px 12px;
   font-size: 12px;
   color: var(--muted);
-  background: var(--paper-2);
+  background: var(--paper);
   border-top: 1px solid var(--line);
 }
 .mb-board > .mb-sep:first-child { border-top: 0; }
 .mb-sep b { color: var(--fg); font-weight: 600; }
 .mb-sep-id { display: inline-flex; align-items: center; gap: 6px; }
+/* 阵营/队伍的颜色要留住：以前两张小表靠绿/红分组头一眼分敌我，改卡片之后
+   全变成同一种灰，读起来要自己数人头。 */
+.mb-sep.team-ally b { color: var(--win); }
+.mb-sep.team-enemy b { color: var(--loss); }
+.mb-sep.team-multi {
+  background: color-mix(in srgb, var(--team-color, var(--accent)) 7%, var(--paper));
+  box-shadow: inset 3px 0 0 var(--team-color, var(--accent));
+}
+.mb-sep.team-multi b { color: var(--fg); }
 .mb-detail { padding: 4px 12px 12px 60px; }
 .mb-metrics { display: grid; gap: 7px; }
 .mb-metric {
