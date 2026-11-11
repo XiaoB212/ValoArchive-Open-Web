@@ -495,18 +495,18 @@ function renderActivity(data) {
   const week = data.week || {};
   const rr = today.rr;
   const spans = (data.sessions || []).slice(0, 4).map((item) => {
-    const rrText = item.rr === null || item.rr === undefined ? "" : ` · RR ${item.rr > 0 ? "+" : ""}${item.rr}`;
+    // RR 是 0 的那些段不写，一行里全是「RR 0」反而看不清哪段真的上了分
+    const rrText = item.rr ? ` · RR ${item.rr > 0 ? "+" : ""}${item.rr}` : "";
     return `<span class="act-span" title="${escapeHtml(item.range || "")}">${escapeHtml(item.range || "")}<i>${item.games} 场 · ${escapeHtml(item.duration || "")} · ${item.wins} 胜${rrText}</i></span>`;
   }).join("");
   box.innerHTML = `
     <div class="act-head">
-      <span class="act-state ${stateName}"><i></i>${escapeHtml(data.label || "")}</span>
-      <span class="act-detail">${escapeHtml(data.detail || "")}</span>
+      <b>最近在玩</b>
       <span class="act-week">近 7 天 ${week.days || 0} 天 · ${week.games || 0} 局 · ${escapeHtml(week.duration || "0 分")}</span>
     </div>
     <div class="act-grid">
       <div><i>今天对局</i><b>${today.games || 0}</b></div>
-      <div><i>今天在玩</i><b>${escapeHtml(today.duration || "0 分")}</b></div>
+      <div><i>今天累计</i><b>${escapeHtml(today.duration || "0 分")}</b></div>
       <div><i>今天 RR</i><b>${rr === null || rr === undefined ? "—" : `${rr > 0 ? "+" : ""}${rr}`}</b></div>
       <div><i>最后一段</i><b>${escapeHtml((data.sessions && data.sessions[0] && data.sessions[0].range) || "—")}</b></div>
     </div>

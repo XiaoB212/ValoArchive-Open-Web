@@ -6007,7 +6007,13 @@ body.me-view .home-faq { display: none; }
 .act-note { margin: 10px 0 0; font-size: 11.5px; color: var(--dim); line-height: 1.5; }
 .act-loading { margin: 0; font-size: 12px; }
 
-.party-mates .mate-agents { display: flex; gap: 2px; flex: 0 0 auto; }
+/* 队友卡片：名字是主信息，一行拿不下就整串换行；常用英雄紧跟名字后面，
+   场次和最近时间靠右，别让三个小头像把名字挤成两行。 */
+.party-mates .mate { flex-wrap: wrap; row-gap: 2px; }
+.party-mates .mate .mate-name { flex: 1 1 auto; min-width: 0; }
+.party-mates .mate-agents { display: flex; gap: 2px; flex: 0 0 auto; align-items: center; }
+.party-mates .mate b { flex: 0 0 auto; }
+.party-mates .mate .mate-when { flex: 1 0 100%; text-align: right; }
 .party-mates .mate-agent { width: 19px; height: 19px; border-radius: 3px; object-fit: cover; background: var(--paper-2); }
 
 @media (max-width: 720px) {
