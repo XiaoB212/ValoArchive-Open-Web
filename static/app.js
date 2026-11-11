@@ -3016,7 +3016,7 @@ async function loadPlaymates(force = false) {
   }
 }
 
-const CI = { keyword: "", scope: "all", view: "overview", sort: "games", data: null, loaded: "" };
+const CI = { keyword: "", scope: "all", season: "", view: "overview", sort: "games", data: null, loaded: "" };
 
 const ciFmt = (v, digits = 0) => {
   if (v === null || v === undefined || v === "") return "—";
@@ -3050,13 +3050,31 @@ function ciVerdict(t) {
   if (t.kda) bullets.push(`KDA ${ciFmt(t.kda, 2)}，场均 ${ciFmt(t.kills_per_game, 1)} 杀、${ciFmt(t.acs, 1)} 评分。`);
   if (t.adr) bullets.push(`场均伤害 ${ciFmt(t.adr, 1)}，爆头率 ${ciPct(t.head_shot_rate)}。`);
   if (t.five_kills || t.perfect_rounds) {
-    bullets.push(`生涯 ${ciFmt(t.five_kills)} 次五杀、${ciFmt(t.perfect_rounds)} 个无死亡回合。`);
+    const span = CI.data && CI.data.season_name ? `这一幕` : "生涯";
+    bullets.push(`${span} ${ciFmt(t.five_kills)} 次五杀、${ciFmt(t.perfect_rounds)} 个无死亡回合。`);
   }
   return {
     line: `${head}，${tail}`,
     tags,
     bullets,
   };
+}
+
+function ciFillSeasons(list) {
+  const sel = $("#ci-season");
+  if (!sel) return;
+  const rows = Array.isArray(list) ? list : [];
+  if (!rows.length) {
+    // 赛季表拉不到（或上游抽风）：只留「生涯累计」，不要把下拉留成空白。
+    sel.innerHTML = '<option value="">生涯累计</option>';
+    sel.value = "";
+    return;
+  }
+  const opts = ['<option value="">生涯累计</option>']
+    .concat(rows.map((r) => `<option value="${escapeHtml(r.id || "")}">${escapeHtml(r.name || "")}</option>`));
+  sel.innerHTML = opts.join("");
+  const ids = rows.map((r) => r.id);
+  sel.value = ids.indexOf(CI.season) >= 0 ? CI.season : "";
 }
 
 function ciTotals(t) {
@@ -3153,11 +3171,17 @@ function renderCareer() {
   if (!body) return;
   if (!data) return;
   const t = data.totals || {};
+  const span = data.season_name || "生涯累计";
   const sub = $("#ci-sub");
-  if (sub) sub.textContent = `${data.scope_name || ""} · 官方累计`;
-  if (CI.view === "agents") body.innerHTML = ciAgents(data);
+  if (sub) sub.textContent = `${span} · ${data.scope_name || ""} · 官方口径`;
+  // 上游只有「汇总」和「地图」认幕；英雄/武器永远是生涯累计，选中某一幕时必须说清楚，
+  // 否则同一屏里刚看完「这一幕 2 场」的人会以为英雄也是这一幕的。
+  const scopeNote = data.season
+    ? '<p class="dim ci-empty">英雄与武器上游不分幕，下面是生涯累计——上面选的幕只影响总览和地图。</p>'
+    : "";
+  if (CI.view === "agents") body.innerHTML = scopeNote + ciAgents(data);
   else if (CI.view === "maps") body.innerHTML = ciMaps(data);
-  else if (CI.view === "weapons") body.innerHTML = ciWeapons(data);
+  else if (CI.view === "weapons") body.innerHTML = scopeNote + ciWeapons(data);
   else {
     const v = ciVerdict(t);
     body.innerHTML = `<section class="ci-verdict">
@@ -3176,14 +3200,19 @@ function renderCareer() {
 async function loadCareer(force = false) {
   if (!state.keyword) return;
   const body = $("#ci-body");
-  const key = `${state.keyword}|${CI.scope}`;
+  const key = `${state.keyword}|${CI.scope}|${CI.season}`;
   if (!force && CI.data && CI.loaded === key) {
     renderCareer();
     return;
   }
   if (body) body.innerHTML = '<p class="dim ci-empty">正在向官方要生涯统计…</p>';
   try {
-    const data = await api.get("/api/player/insight", { keyword: state.keyword, mode: state.source, scope: CI.scope });
+    const data = await api.get("/api/player/insight", {
+      keyword: state.keyword,
+      mode: state.source,
+      scope: CI.scope,
+      season: CI.season,
+    });
     if (!data.ok) {
       CI.data = null;
       CI.loaded = "";
@@ -3196,6 +3225,7 @@ async function loadCareer(force = false) {
     }
     CI.data = data;
     CI.loaded = key;
+    ciFillSeasons(data.seasons);
     renderCareer();
   } catch (err) {
     CI.data = null;
@@ -5056,6 +5086,13 @@ async function boot() {
       $$("#ci-tabs button[data-ci]").forEach((b) => b.classList.toggle("active", b === btn));
       CI.view = btn.dataset.ci;
       renderCareer();
+    });
+  }
+  const ciSeason = $("#ci-season");
+  if (ciSeason) {
+    ciSeason.addEventListener("change", () => {
+      CI.season = ciSeason.value;
+      loadCareer(true);
     });
   }
   const ciScope = $("#ci-scope");

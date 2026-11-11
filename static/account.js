@@ -101,7 +101,9 @@
     var heroT = q("hero-title"), heroS = q("hero-sub");
     if (heroT) heroT.textContent = "你好，" + ((me.nick || me.qq || "").toString().trim() || "指挥官");
     if (heroS) heroS.textContent = m.unlimited
-      ? "会员有效中，到期 " + fmt(m.member_until) + "；全部历史、单局详情与导出都解锁了。"
+      ? (m.member_hours_left > 0
+        ? "体验会员有效中，还剩 " + m.member_hours_left + " 小时；这段时间里全部历史、单局详情与导出都解锁了。"
+        : "会员有效中，到期 " + fmt(m.member_until) + "；全部历史、单局详情与导出都解锁了。")
       : (m.active
         ? "特约订阅有效中：只能查首页钉住的那个人，到期 " + fmt(m.expires_at) + "。"
         : "已登录：免费额度每天重置，会员开通后能看全部历史、单局详情与导出。");
@@ -111,18 +113,31 @@
     q("i-name").textContent = dispName;
     q("i-av").textContent = dispName.slice(0, 1).toUpperCase();
     var slots = Number(m.slots || 0);
+    var leftTxt = m.member_hours_left > 0
+      ? m.member_hours_left + " 小时"   // 体验卡：几小时的东西不能按天显示
+      : (m.member_days_left || 0) + " 天";
     q("i-sub").textContent = m.unlimited
-      ? "会员" + (slots > 0 ? " + 特约 " + slots + " 个位" : "") + " · 还剩 " + m.member_days_left + " 天"
+      ? "会员" + (slots > 0 ? " + 特约 " + slots + " 个位" : "") + " · 还剩 " + leftTxt
       : (m.active
         ? "特约订阅" + (m.scope ? " · 只看 " + m.scope : (m.scoped ? " · 还没绑定人" : "")) + " · 还剩 " + m.days_left + " 天"
         : (m.known ? "会员已过期，续期后立刻恢复" : "普通用户 · 免费额度每天重置"));
     q("d-qq").value = me.qq || "";
     q("i-enter").onclick = null;
+    // 体验卡次数：非会员但有剩余次数时，在状态行里补一句（比「免费额度」更具体）。
+    if (!m.unlimited) {
+      fetch("/api/trials/me", { credentials: "same-origin" }).then(function (r) { return r.json(); })
+        .then(function (t) {
+          if (!t || !(t.queries_left > 0)) return;
+          var tip = q("i-tip");
+          if (tip) tip.textContent = "体验卡还剩 " + t.queries_left + " 次查询，查完自动落回每日免费额度。";
+          q("i-sub").textContent = "体验卡 · 还剩 " + t.queries_left + " 次查询";
+        }).catch(function () {});
+    }
 
     if (m.active) {
       q("i-status").innerHTML = '<span class="ac-badge on">有效</span>';
       q("i-expires").textContent = m.unlimited
-        ? fmt(m.member_until) + "（会员还剩 " + m.member_days_left + " 天）"
+        ? fmt(m.member_until) + "（会员还剩 " + leftTxt + "）"
           + (slots > 0 ? "；另有 " + slots + " 个特约位，特约码只加位置，不延长会员" : "")
         : fmt(m.expires_at) + "（还剩 " + m.days_left + " 天）";
       q("i-tip").textContent = m.unlimited
@@ -367,6 +382,29 @@
     await load();
   });
 
+  async function redeemTrial(code, out, btn) {
+    btn.disabled = true;
+    say(out, "正在核销体验券…");
+    try {
+      var r = await post("/api/trials/redeem", { code: code });
+      if (!r.ok) {
+        var msg = (r.data && (r.data.message || (r.data.detail || {}).message)) || "核销失败，检查一下券码。";
+        say(out, msg, "err");
+        return;
+      }
+      var d = r.data || {};
+      say(out, "✅ " + (d.message || "体验券已生效") +
+        (d.queries_left ? "，现在还剩 " + d.queries_left + " 次查询。" : "") +
+        (d.hours_left ? "，会员还剩 " + d.hours_left + " 小时。" : ""), "ok");
+      q("d-code").value = "";
+      await load();
+    } catch (err) {
+      say(out, "网络错误，稍后再试。", "err");
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
   // ---------------------------------------------------------- 核销
   q("f-redeem").addEventListener("submit", async function (ev) {
     ev.preventDefault();
@@ -375,6 +413,9 @@
     var code = q("d-code").value.trim();
     var qq = q("d-qq").value.trim();
     if (!code || !qq) { say(out, "授权码和 QQ 号都要填。", "err"); return; }
+    // 一个框收两种码：VALO- 是授权码（会员天数），TRY- 是体验券（几小时 / 几次查询）。
+    // 用户不用记两个入口，按前缀分流就够了。
+    if (/^TRY-/i.test(code)) { await redeemTrial(code, out, btn); return; }
     btn.disabled = true;
     say(out, "正在核销…");
     try {
