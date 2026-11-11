@@ -662,6 +662,13 @@ body.export .row:hover { transform: none; box-shadow: none; border-color: var(--
 .suggest button:hover { border-color: var(--accent); background: var(--accent-soft); }
 .suggest button em { font-style: normal; font-family: var(--mono); font-size: 10px; color: var(--dim); }
 
+/* 记分板两套：≤900px 用卡片行（点开看这局数据），≥901px 用十列表格。 */
+.board-wrap { display: none; }
+@media (min-width: 901px) {
+  .mb-board { display: none; }
+  .board-wrap { display: block; }
+}
+
 /* ---------- search mode toggle ---------- */
 
 /* 注意：这个 .mode 原本是顶栏「游戏ID/掌瓦ID」开关的样式，
@@ -670,16 +677,18 @@ body.export .row:hover { transform: none; box-shadow: none; border-color: var(--
 .search .mode-tip {
   display: inline-flex;
   align-items: center;
-  height: 100%;
-  padding: 0 10px;
-  border: 1px solid var(--line);
-  border-radius: 2px;
-  background: var(--card);
-  color: var(--muted);
+  flex: 0 0 auto;
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--paper-2);
+  color: var(--dim);
   font-size: 12px;
+  line-height: 1;
   letter-spacing: 0.02em;
   white-space: nowrap;
   cursor: help;
+  user-select: none;
 }
 
 /* 手机上一行只放得下输入框：提示语已经写在 placeholder 里，标签就藏掉。 */

@@ -1960,6 +1960,86 @@ function renderMatch(payload, matchId, host) {
         })
         .join("");
 
+  // 桌面端：保留原来的十列记分板。
+  // 卡片行是为手机做的（点开才展开这局数据），但桌面上把十列砍成五列是退步，
+  // 用户明确说「不如之前好看」。两个都渲染，用 CSS 按宽度切换：
+  // ≤900px 卡片行，≥901px 十列表格。
+  const deskRow = (seat) => {
+    const ally = seat.is_ally ?? (seat.team === (payload.ally_team || score[0]?.team));
+    const teamClass = ally ? "team-ally" : "team-enemy";
+    const pal = teamPalette(seat.team, teamList);
+    const plainTeam = !multiTeam && distinctTeams(score).length > 2;
+    const side = multiTeam ? `${pal.number || "?"}` : plainTeam ? "" : (String(seat.team || "").toLowerCase() === "red" ? "红" : "蓝");
+    const sideStyle = multiTeam
+      ? ` style="--side:${pal.color}" title="第 ${pal.placement || pal.number} 名 · ${pal.label || pal.colorName + pal.name}"`
+      : "";
+    const teamCls = multiTeam ? "side-color multi" : (plainTeam ? "side-color none" : `side-color ${teamClass}`);
+    const badge = seat.party_letter && !multiTeam
+      ? `<span class="party-lg" style="background:var(--squad-${"ABCD".indexOf(seat.party_letter) + 1})">${seat.party_letter}队</span>`
+      : "";
+    const tag = seat.party_size >= 2 ? `<span class="tag">${seat.party_size} 人组队</span>` : "";
+    const face = seat.agent_image
+      ? `<img class="face${multiTeam ? " team-tint" : ""}"${multiTeam ? ` style="--team-color:${pal.color}"` : ""} src="${img(seat.agent_image)}" alt="" loading="lazy" />`
+      : "";
+    return `<tr class="${seat.subject === payload.viewer ? "me" : ""} ${teamClass}">
+      <td class="side" data-label="阵营"><i class="${teamCls}"${sideStyle}>${side}</i></td>
+      <td class="who" data-label="玩家"><div class="seat">${face || '<span class="face blank"></span>'}<div class="seat-txt"><span class="nm${seat.display_name || seat.user_name ? "" : " nm-unknown"}">${escapeHtml(seat.display_name || seat.user_name || "未知玩家")}${seat.subject === payload.viewer ? '<em class="you">你</em>' : ""}</span><span class="who-tags">${badge}${tag}${multiBadges(seat.multis, "board")}</span></div></div></td>
+      <td class="c-agent" data-label="英雄">${escapeHtml(seat.used_agent?.name || "—")}</td>
+      <td class="tier" data-label="段位">${seat.tier_icon ? `<img src="${img(seat.tier_icon)}" alt="" title="${escapeHtml(seat.tier_name || "")}${seat.tier_source === "current" ? "（当前段位）" : ""}" loading="lazy" /><span>${escapeHtml(seat.tier_name || "")}</span>` : escapeHtml(seat.tier_name || "—")}</td>
+      <td class="c-acs" data-label="ACS">${seat.acs || 0}</td>
+      <td class="c-dpr" data-label="回合均伤">${seat.damage_per_round || 0}</td>
+      <td class="c-hs" data-label="爆头率">${seat.headshot_rate || 0}%</td>
+      <td class="c-fb" data-label="首杀">${seat.first_blood || 0}</td>
+      <td class="c-kda" data-label="K/D/A">${seat.kda || "0/0/0"}</td>
+      <td class="c-score" data-label="评分">${seat.score || 0}</td>
+    </tr>`;
+  };
+  const deskSection = (teamId) => {
+    const seats = score
+      .filter((seat) => String(seat.team || "") === teamId)
+      .sort((a, b) => (Number(b.score) || 0) - (Number(a.score) || 0));
+    if (!seats.length) return "";
+    const pal = teamPalette(teamId, teamList);
+    const info = teamList.find((t) => String(t.team_id || "") === teamId) || {};
+    const ally = seats.some((seat) => seat.is_ally);
+    const meta = [
+      pal.placement ? `第 ${pal.placement} 名` : "",
+      `${seats.length} 人`,
+      Number(info.kills) ? `击杀 ${info.kills}` : "",
+      Number(info.deaths) ? `阵亡 ${info.deaths}` : "",
+    ].filter(Boolean).join(" · ");
+    const tags = [
+      info.won ? '<em class="team-tag first">本场第一</em>' : "",
+      ally ? '<em class="team-tag you">你在这队</em>' : "",
+    ].join("");
+    const head = `<tr class="board-sep team-multi${ally ? " team-ally" : ""}" style="--team-color:${pal.color}">
+      <td colspan="10"><div class="team-hd"><span class="team-id"><i class="team-dot"></i><b>${escapeHtml(pal.label || pal.name || `队伍 ${pal.number || "?"}`)}</b>${tags}</span><span class="team-meta">${escapeHtml(meta)}</span></div></td></tr>`;
+    return head + seats.map(deskRow).join("");
+  };
+  const deskRows = multiTeam
+    ? [...teamIds].sort((a, b) => teamNumber(a, teamList) - teamNumber(b, teamList)).map(deskSection).join("")
+    : (sideGrouped ? groups : [{ ally: null, label: "全场", rounds: null, cls: "" }])
+        .map((group) => {
+          const seats = group.ally === null
+            ? score
+            : score.filter((seat) => {
+                const ally = seat.is_ally ?? (seat.team === (payload.ally_team || score[0]?.team));
+                return Boolean(ally) === group.ally;
+              });
+          if (!seats.length) return "";
+          const head = `<tr class="board-sep ${group.cls}"><td colspan="10"><b>${group.label}</b><span>${group.rounds === null ? "" : `${group.rounds ?? "—"} 回合 · `}${seats.length} 人</span></td></tr>`;
+          return head + seats.map(deskRow).join("");
+        })
+        .join("");
+  const deskBoard = `<div class="board-wrap">
+      <table class="board">
+        <thead><tr>
+          <th>阵营</th><th>玩家</th><th>英雄</th><th>段位</th><th>ACS</th><th>回合均伤</th><th>爆头率</th><th>首杀</th><th>K/D/A</th><th>评分</th>
+        </tr></thead>
+        <tbody>${deskRows || '<tr><td colspan="10" class="dim">没有记分板数据。</td></tr>'}</tbody>
+      </table>
+    </div>`;
+
   state.matchPayload = payload;
   const mySeat = score.find((seat) => seat.subject === payload.viewer) || {};
   const roundInfo = payload.rounds || {};
@@ -2023,7 +2103,7 @@ function renderMatch(payload, matchId, host) {
   root.innerHTML = `
     ${inlineHead}
     ${tabs}
-    <div class="match-pane" data-pane="board">${hero}<div class="mb-board"><div class="mb-head"><span></span><span>玩家</span><span>表现分</span><span>K/D/A</span><span class="mb-head-cols"><i>均伤</i><i>爆头</i><i>首杀</i></span><span></span></div>${rows || '<p class="dim">没有记分板数据。</p>'}</div>${nameNote}</div>
+    <div class="match-pane" data-pane="board">${hero}${deskBoard}<div class="mb-board"><div class="mb-head"><span></span><span>玩家</span><span>表现分</span><span>K/D/A</span><span class="mb-head-cols"><i>均伤</i><i>爆头</i><i>首杀</i></span><span></span></div>${rows || '<p class="dim">没有记分板数据。</p>'}</div>${nameNote}</div>
     ${hasRounds ? `<div class="match-pane hidden" data-pane="rounds">${roundMarkup(roundInfo)}</div>` : ""}
     ${hasMatrix ? `<div class="match-pane hidden" data-pane="kills">${killMatrixMarkup(payload)}</div>` : ""}`;
   bindMatchTabs(root);
