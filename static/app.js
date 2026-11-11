@@ -494,15 +494,29 @@ function renderActivity(data) {
   const today = data.today || {};
   const week = data.week || {};
   const rr = today.rr;
-  const spans = (data.sessions || []).slice(0, 4).map((item) => {
-    // RR 是 0 的那些段不写，一行里全是「RR 0」反而看不清哪段真的上了分
+  // 用户要的是「每次上线时间」：每段直接写清什么时候上线、什么时候下线，
+  // 再把场次/时长/比分挂在后面。只写一个 12:07 – 12:22 的区间太含糊。
+  const actTime = (ms) => {
+    const n = Number(ms);
+    if (!n) return "";
+    const d = new Date(n);
+    const p2 = (v) => String(v).padStart(2, "0");
+    return `${p2(d.getMonth() + 1)}-${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}`;
+  };
+  const sess = data.sessions || [];
+  const list = sess.slice(0, 6).map((item) => {
     const rrText = item.rr ? ` · RR ${item.rr > 0 ? "+" : ""}${item.rr}` : "";
-    return `<span class="act-span" title="${escapeHtml(item.range || "")}">${escapeHtml(item.range || "")}<i>${item.games} 场 · ${escapeHtml(item.duration || "")} · ${item.wins} 胜${rrText}</i></span>`;
+    const on = actTime(item.start_at) || (item.range || "").split(" – ")[0];
+    const off = actTime(item.end_at) || (item.range || "").split(" – ")[1] || "";
+    return `<div class="act-item">
+      <span class="act-when"><b>${escapeHtml(on)}</b> 上线${off ? ` → <b>${escapeHtml(off)}</b> 下线` : ""}</span>
+      <span class="act-what">${item.games} 场 · ${item.wins} 胜 · ${escapeHtml(item.duration || "")}${rrText}</span>
+    </div>`;
   }).join("");
   box.innerHTML = `
     <div class="act-head">
       <b>最近在玩</b>
-      <span class="act-week">近 7 天 ${week.days || 0} 天 · ${week.games || 0} 局 · ${escapeHtml(week.duration || "0 分")}</span>
+      <span class="act-week">近 7 天 ${week.days || 0} 天 · ${week.games || 0} 局 · ${escapeHtml(week.duration || "0 分")}${sess.length ? ` · ${sess.length} 次上线` : ""}</span>
     </div>
     <div class="act-grid">
       <div><i>今天对局</i><b>${today.games || 0}</b></div>
@@ -510,7 +524,7 @@ function renderActivity(data) {
       <div><i>今天 RR</i><b>${rr === null || rr === undefined ? "—" : `${rr > 0 ? "+" : ""}${rr}`}</b></div>
       <div><i>最后一段</i><b>${escapeHtml((data.sessions && data.sessions[0] && data.sessions[0].range) || "—")}</b></div>
     </div>
-    ${spans ? `<div class="act-spans">${spans}</div>` : ""}
+    ${list ? `<div class="act-list">${list}</div>` : ""}
     <p class="act-note">${escapeHtml(data.note || "")}</p>`;
 }
 
@@ -910,6 +924,15 @@ async function loadPlayer(keyword, refresh = false) {
   $("#suggest").classList.add("hidden");
   // 换了个号就回到「全部模式」；同一个号的后台刷新（bgWarm）保留用户当前筛选。
   if (keyword !== state.keyword) resetGm();
+  // 换了人：生涯面板属于上一个号，先清空并把在途的 insight 请求作废，
+  // 否则旧玩家那份 5–10 秒的响应晚到，会把新玩家的面板刷成上一个人的数字。
+  if (keyword !== state.keyword) {
+    ciSeq += 1;
+    CI.data = null;
+    CI.loaded = "";
+    const ciB = $("#ci-body");
+    if (ciB) ciB.innerHTML = '<p class="dim ci-empty">正在向官方要生涯统计…</p>';
+  }
   state.keyword = keyword;
   state.page = 1;
   state.matchLoaded = false;
@@ -3331,6 +3354,9 @@ async function loadPlaymates(force = false) {
 }
 
 const CI = { keyword: "", scope: "all", season: "", view: "overview", sort: "games", data: null, loaded: "" };
+// 切人/切幕时上一次的 insight 请求可能还在路上（冷查询 5–10 秒），
+// 它晚到就会把新玩家已经画好的面板覆盖成上一个人的数据。用序号作废过期响应。
+let ciSeq = 0;
 
 const ciFmt = (v, digits = 0) => {
   if (v === null || v === undefined || v === "") return "—";
@@ -3475,10 +3501,16 @@ function ciWeapons(data) {
   if (!rows.length) return '<p class="dim ci-empty">上游没给武器维度的数据。</p>';
   const top = rows.reduce((m, r) => Math.max(m, Number(r.kills) || 0), 0) || 1;
   const list = ciSortRows(rows, { games: "kills", win_rate: "head_shot_rate", kda: "kills_per_round", acs: "damage" });
+  // 官方偶尔给一个我们美术表里没有的 GUID（技能或新武器），后端已经改名成
+  // 「未识别武器 ①」，这里别再画一个空的枪械图标占位。
+  const unknown = Number(data.weapon_unknown) || rows.filter((r) => r.unknown).length;
+  const note = unknown
+    ? `<p class="dim ci-empty">有 ${unknown} 项官方只给了编号，看不出是技能还是新武器，先记成「未识别武器」。</p>`
+    : "";
   return `<div class="ci-list">${list
     .map(
       (r) => `<article class="ci-card">
-        <img class="ci-thumb gun" src="${escapeHtml(img(r.icon))}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+        ${r.unknown ? "" : `<img class="ci-thumb gun" src="${escapeHtml(img(r.icon))}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`}
         <div class="ci-main">
           <div class="ci-head"><b>${escapeHtml(r.name || "")}</b><span>击杀 ${ciFmt(r.kills)}</span></div>
           ${ciBar((Number(r.kills) || 0) / top * 100)}
@@ -3486,7 +3518,7 @@ function ciWeapons(data) {
         </div>
       </article>`
     )
-    .join("")}</div>`;
+    .join("")}</div>${note}`;
 }
 
 function renderCareer() {
@@ -3525,6 +3557,7 @@ async function loadCareer(force = false) {
   if (!state.keyword) return;
   const body = $("#ci-body");
   const key = `${state.keyword}|${CI.scope}|${CI.season}`;
+  const seq = ++ciSeq;
   if (!force && CI.data && CI.loaded === key) {
     renderCareer();
     return;
@@ -3537,6 +3570,7 @@ async function loadCareer(force = false) {
       scope: CI.scope,
       season: CI.season,
     });
+    if (seq !== ciSeq) return;
     if (!data.ok) {
       CI.data = null;
       CI.loaded = "";
@@ -3552,6 +3586,7 @@ async function loadCareer(force = false) {
     ciFillSeasons(data.seasons);
     renderCareer();
   } catch (err) {
+    if (seq !== ciSeq) return;
     CI.data = null;
     CI.loaded = "";
     if (body) {
