@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#0e7c6b" />
 <meta name="site-home" content="https://va.223212.xyz" />
 <meta name="description" content="瓦罗兰档案：非官方《无畏契约》社区项目，支持长历史、单局详情、对位击杀热力图与组队分析。" />
-<link rel="stylesheet" href="/static/style.css?v=b7e590be5f" />
+<link rel="stylesheet" href="/static/style.css?v=9d003a49d0" />
 </head>
 <body>
 <div class="grid-bg" aria-hidden="true"></div>
@@ -78,9 +78,9 @@
   <div class="search-band">
     <div class="shell">
       <div class="search-row">
-      <span class="mode-tip" title="游戏名#编号 / 9 位掌瓦号 / 固定ID 都能直接粘进来，自动识别">自动识别</span>
+      <span class="mode-tip" title="游戏名#编号 / 掌瓦号 / 固定ID 都能直接粘进来，自动识别">自动识别</span>
       <form class="search" id="search-form" autocomplete="off">
-        <input id="search-input" name="valo-keyword" placeholder="游戏名#编号 / 9 位掌瓦号 / 固定ID，粘进来就能查"
+        <input id="search-input" name="valo-keyword" placeholder="游戏名#编号 / 掌瓦号（数字或自定义）/ 固定ID，粘进来就能查"
                autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
         <span class="busy hidden" id="busy"><i class="spinner"></i><span id="busy-text">载入中</span></span>
         <button type="submit" id="search-btn">检索</button>
@@ -114,7 +114,7 @@
       <div class="home-try" id="home-try">
         <span class="try-label">试试</span>
         <button type="button" class="try" data-ph="游戏名#编号，如 示例玩家#12345">游戏 ID</button>
-        <button type="button" class="try" data-ph="9 位掌瓦号，如 038000000">掌瓦号</button>
+        <button type="button" class="try" data-ph="掌瓦号，如 038000000 或 LoveMM">掌瓦号</button>
         <button type="button" class="try" data-ph="固定 ID（改名也能查，概览页可复制）">固定 ID</button>
       </div>
     </div>
@@ -343,6 +343,7 @@
             <select id="pm-season" class="gm-select" aria-label="赛季"></select>
             <span class="dim" id="pm-count"></span>
           </div>
+          <section class="pm-breakdown" id="pm-breakdown"></section>
           <section class="pm-facts" id="pm-facts"></section>
           <div class="pm-tools">
             <input id="pm-filter" type="search" autocomplete="off" placeholder="搜索同玩玩家昵称" />
@@ -357,7 +358,6 @@
           <p class="coverage pm-foot">
             排序按同玩对局数从高到低；缺失字段排在最后，以「—」展示，真实 0 单独保留。<br />
             名单表示官方返回的同玩统计，不据此认定好友关系、同次组排或组队人数。<br />
-            开黑时长使用官方 time_up_time（秒）；竞技分使用 battle_score；同玩平均 ACS 使用 acs；段位是该赛季结束时的段位。<br />
             数据来源：腾讯 WeGame 官方服务直连 · 同玩统计
           </p>
         </div>
@@ -487,7 +487,7 @@
 </footer>
 
 <script src="/config.js?v=5159ad9f1b"></script>
-<script src="/static/app.js?v=96ec3c88ad"></script>
+<script src="/static/app.js?v=34d462958f"></script>
 <script>
 (function () {
   document.querySelectorAll("#home-try .try").forEach(function (el) {
@@ -497,7 +497,7 @@
       var input = document.getElementById("search-input");
       if (input) {
         input.value = el.dataset.kw || "";
-        input.placeholder = el.dataset.ph || "游戏名#编号 / 9 位掌瓦号 / 固定ID，粘进来就能查";
+        input.placeholder = el.dataset.ph || "游戏名#编号 / 掌瓦号（数字或自定义）/ 固定ID，粘进来就能查";
         input.focus();
       }
     });

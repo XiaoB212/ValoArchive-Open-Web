@@ -6292,3 +6292,30 @@ body.me-view .home-faq { display: none; }
 @media (max-width: 720px) {
   .pm-bd { min-width: 168px; padding: 8px 10px; }
 }
+
+/* 同玩卡片：数值（比如「257.4 小时」）不许被挤成两行 */
+.pm-stats b { white-space: nowrap; }
+@media (max-width: 720px) {
+  /* 三列在手机上太窄，两列刚好；数值不被折断 */
+  .pm-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 10px; }
+  .pm-stats b { font-size: 15.5px; }
+}
+
+/* 手机：概览卡里的编号区（游戏名#编号 / 掌瓦号 / 固定ID）
+   固定ID 是一整串 UUID，之前被挤到卡片右边界外看不见。手机上一律占满一行，
+   放不下就用省略号，点一下照样能复制。 */
+@media (max-width: 720px) {
+  #player .id-card .id-meta { width: 100%; gap: 5px; }
+  #player .id-card .id-meta > * { max-width: 100%; }
+  #player .id-card #p-name { overflow-wrap: anywhere; }
+  #player .id-card .id-meta #p-fixed {
+    flex: 1 1 100%;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 10px;
+    letter-spacing: .02em;
+  }
+  #player .id-card .id-meta #p-appnum { font-size: 10.5px; }
+}

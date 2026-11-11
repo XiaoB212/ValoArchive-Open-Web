@@ -125,7 +125,7 @@ const $$ = (sel) => [...document.querySelectorAll(sel)];
 
 // 2026-11-11 起一个框收三种写法（游戏ID / 掌瓦号 / 固定ID），前端不再让用户选模式，
 // 后端 resolve(mode="auto") 按写法自己判别。文案只留一句，三种写法都写进去。
-const SEARCH_PLACEHOLDER = "游戏名#编号 / 9 位掌瓦号 / 固定ID，粘进来就能查";
+const SEARCH_PLACEHOLDER = "游戏名#编号 / 掌瓦号（数字或自定义）/ 固定ID，粘进来就能查";
 const placeholderFor = () => SEARCH_PLACEHOLDER;
 
 let loginGateShown = false;
@@ -1014,7 +1014,7 @@ async function loadPlayer(keyword, refresh = false) {
         const btn = appBox.querySelector("#bind-btn");
         if (btn) btn.onclick = () => bindAppNum(p);
       }
-      appBox.title = p.app_num ? "掌瓦号（查询用的账号 ID）" : "掌瓦按昵称建索引，反查不到时可以手动填一次 9 位掌瓦号";
+      appBox.title = p.app_num ? "掌瓦号（查询用的账号 ID）" : "掌瓦按昵称建索引，反查不到时可以手动填一次他的掌瓦号（数字或自定义都行）";
     }
     // 只给了名字时，这次是按名字猜的：给一个「换成带编号的精确搜索」的快捷方式
     const guessBox = $("#p-guess");
@@ -2660,7 +2660,7 @@ async function loadAssets() {
       $("#asset-skins").innerHTML = `<p class="empty">${escapeHtml(data.reason || "这个账号的资产暂时查不到")}</p>
         <p class="empty">${hasNum
           ? "掌瓦那边没有这个账号的档案（号存在，但没绑过端游 / 资料卡是空的），所以拿不到他本人的资产。"
-          : "掌瓦的搜索索引是按掌瓦昵称建的，所以只凭游戏ID查不到他的掌瓦号。知道他的 9 位掌瓦号的话，填一次就能查了；以后这个ID都会记住。"}</p>
+          : "掌瓦的搜索索引是按掌瓦昵称建的，所以只凭游戏ID查不到他的掌瓦号。知道他的掌瓦号（数字或自定义字母都行）的话，填一次就能查了；以后这个ID都会记住。"}</p>
         ${bindBtn}`;
       const bind = $("#assets-bind");
       if (bind) {
