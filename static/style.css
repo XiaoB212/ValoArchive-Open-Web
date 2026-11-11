@@ -665,7 +665,27 @@ body.export .row:hover { transform: none; box-shadow: none; border-color: var(--
 /* ---------- search mode toggle ---------- */
 
 /* 注意：这个 .mode 原本是顶栏「游戏ID/掌瓦ID」开关的样式，
-   历史记录行里也有一个同名 <div class="mode">，不加 .search 前缀就会给它套上白色方框。 */
+   历史记录行里也有一个同名 <div class="mode">，不加 .search 前缀就会给它套上白色方框。
+   2026-11-11 起模式开关去掉，改成静态的「自动识别」提示，样式沿用同一块边框。 */
+.search .mode-tip {
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: var(--card);
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  cursor: help;
+}
+
+/* 手机上一行只放得下输入框：提示语已经写在 placeholder 里，标签就藏掉。 */
+@media (max-width: 720px) {
+  .search .mode-tip { display: none; }
+}
 .search .mode {
   display: inline-flex;
   border: 1px solid var(--line);
@@ -5784,4 +5804,90 @@ body.me-view .home-faq { display: none; }
   .asset-toc { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 12px 0 4px; }
   .asset-tile { padding: 10px; border-radius: 10px; }
   .asset-tile-art, .asset-tile-art img { height: 46px; }
+}
+
+/* ---------- 同玩统计（官方赛季名单） ---------- */
+/* 卡片形态照官方 H5 的「同玩」页：上面一行昵称+段位，下面 3 列 × 2 行数字。 */
+.pm-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 10px 0 12px; }
+.pm-facts {
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--card);
+  padding: 12px 14px;
+}
+.pm-facts h4 { margin: 0 0 4px; font-size: 13px; letter-spacing: 0.04em; }
+.pm-fact {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+}
+.pm-facts h4 + .pm-fact { border-top: 0; }
+.pm-fact > span { color: var(--muted); }
+.pm-link {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--accent-ink);
+  font: inherit;
+  cursor: pointer;
+}
+.pm-link em { font-style: normal; font-family: var(--mono); font-size: 11px; color: var(--dim); }
+.pm-link:hover { text-decoration: underline; }
+.pm-none { color: var(--dim); font-weight: 400; }
+.pm-tools { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 14px 0 10px; }
+.pm-tools input {
+  flex: 1 1 200px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: var(--card);
+  font: inherit;
+}
+.pm-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.pm-list { display: grid; gap: 10px; }
+.pm-card {
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--card);
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.pm-card:hover { border-color: var(--accent); }
+.pm-head { display: flex; align-items: center; gap: 10px; }
+.pm-av {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+.pm-id { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pm-id b { font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pm-id span { font-size: 11.5px; color: var(--muted); }
+.pm-go { margin-left: auto; color: var(--dim); }
+.pm-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 8px; margin-top: 10px; }
+.pm-stats div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pm-stats b { font-size: 17px; font-family: var(--mono); font-weight: 500; }
+.pm-stats b i { font-style: normal; font-family: inherit; font-size: 11px; color: var(--muted); margin-left: 3px; }
+.pm-stats span { font-size: 11px; color: var(--muted); }
+.pm-empty { padding: 14px 0; }
+.pm-foot { margin-top: 16px; line-height: 1.75; }
+
+@media (max-width: 720px) {
+  .pm-stats b { font-size: 15px; }
+  .pm-tools input { flex: 1 1 100%; }
+  .pm-card { padding: 10px 12px; }
 }

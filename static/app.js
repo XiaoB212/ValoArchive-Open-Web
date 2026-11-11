@@ -35,7 +35,8 @@ const state = {
   assetOrder: "desc",
   // 资产页当前打开的是哪个图鉴分类（"" = 目录页）。点分类进去只看这一类。
   assetCat: "",
-  source: "game",
+  // "auto" = 后端按写法自动判别（游戏ID必带 #、掌瓦号是纯数字、固定ID是 UUID）
+  source: "auto",
   filter: "all",
   // 对局历史的「查看模式」：按模式分类过滤（服务端按 names.mode_group 归组）
   // 不跨玩家/跨会话记忆：以前存在 localStorage 里，上次给别的号选的模式会带到下一个号，
@@ -122,11 +123,10 @@ const EXPORT_DATE_FROM = _QUERY.get("from") || "";
 const EXPORT_DATE_TO = _QUERY.get("to") || "";
 const $$ = (sel) => [...document.querySelectorAll(sel)];
 
-const placeholderFor = (src) => src === "mval"
-  ? "掌瓦号（9 位数字）或掌瓦昵称"
-  : src === "uid"
-    ? "固定ID（改名后也能查到），如 00000000-0000-0000-0000-000000000000"
-    : "游戏昵称#编号，如 示例玩家#12345";
+// 2026-11-11 起一个框收三种写法（游戏ID / 掌瓦号 / 固定ID），前端不再让用户选模式，
+// 后端 resolve(mode="auto") 按写法自己判别。文案只留一句，三种写法都写进去。
+const SEARCH_PLACEHOLDER = "游戏名#编号 / 9 位掌瓦号 / 固定ID，粘进来就能查";
+const placeholderFor = () => SEARCH_PLACEHOLDER;
 
 let loginGateShown = false;
 let lastUserAction = 0;
@@ -2877,13 +2877,138 @@ function renderSeason(data) {
   if (sub) sub.textContent = trend ? trend.sub : "";
 }
 
+/* ---------------- 同玩统计（官方赛季名单） ---------------- */
+// 数据源是 WeGame 的赛季同玩榜，一个赛季一次请求就整张表回来，
+// 所以这里不需要分页：本地只管筛选和排序，切赛季才重新拉。
+const PM = { keyword: "", season: "", loadedSeason: "", data: null, min: 0, q: "" };
+
+const pmNum = (v, digits = 0) => {
+  if (v === null || v === undefined || v === "") return "—";
+  const n = Number(v);
+  if (!Number.isFinite(n)) return "—";
+  return digits ? n.toFixed(digits) : String(Math.round(n));
+};
+
+function pmInit(data) {
+  const sel = $("#pm-season");
+  if (!sel) return;
+  const list = data.seasons || [];
+  sel.innerHTML = list
+    .map((s) => `<option value="${escapeHtml(s.id)}"${s.id === (data.season && data.season.id) ? " selected" : ""}>${escapeHtml(s.name || "未知赛季")}</option>`)
+    .join("");
+  sel.disabled = list.length < 2;
+}
+
+function pmFacts(data) {
+  const box = $("#pm-facts");
+  if (!box) return;
+  const h = data.highlights || {};
+  const rows = [
+    ["共同竞技得分最高", h.best_score, (v) => pmNum(v), ""],
+    ["同玩平均 ACS 最高", h.best_acs, (v) => pmNum(v, 2), ""],
+    ["同玩时长最长", h.longest, (v) => `${pmNum(v / 3600, 1)} 小时`, ""],
+    ["共同竞技得分最低", h.lowest_score, (v) => pmNum(v), ""],
+    ["同玩平均 ACS 最低", h.lowest_acs, (v) => pmNum(v, 2), ""],
+  ];
+  const body = rows
+    .map(([label, item, fmt]) => {
+      if (!item) return `<div class="pm-fact"><span>${label}</span><b class="pm-none">—</b></div>`;
+      return `<div class="pm-fact"><span>${label}</span><button type="button" class="pm-link" data-name="${escapeHtml(item.name)}">${escapeHtml(item.name || "")}<em>${escapeHtml(fmt(item.value))}</em></button></div>`;
+    })
+    .join("");
+  box.innerHTML = `<h4>官方字段趣闻</h4>${body}`;
+}
+
+function pmRows() {
+  const all = (PM.data && PM.data.rows) || [];
+  const q = PM.q.trim().toLowerCase();
+  return all.filter((r) => {
+    if (PM.min && (r.games || 0) < PM.min) return false;
+    if (q && !String(r.name || "").toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+
+function pmCard(r) {
+  const time = r.games ? `${pmNum(r.hours, 2)}小时` : "—";
+  const cells = [
+    [pmNum(r.games), "同玩对局数"],
+    [pmNum(r.wins), "同玩胜场"],
+    [r.win_rate === null || r.win_rate === undefined ? "—" : `${pmNum(r.win_rate, 1)}%`, "同玩胜率"],
+    [pmNum(r.score), "共同竞技得分"],
+    [pmNum(r.acs, 2), "同玩平均 ACS"],
+    [`${time}<i>· ${pmNum(r.seconds)}秒</i>`, "同玩时长"],
+  ];
+  return `<article class="pm-card" data-name="${escapeHtml(r.name)}">
+    <div class="pm-head">
+      <span class="pm-av">${escapeHtml(String(r.name || "?").slice(0, 1))}</span>
+      <div class="pm-id"><b>${escapeHtml(r.name || "")}</b><span>${escapeHtml(r.tier_name || "未定级")}</span></div>
+      <span class="pm-go">›</span>
+    </div>
+    <div class="pm-stats">${cells
+      .map(([v, k]) => `<div><b>${v}</b><span>${k}</span></div>`)
+      .join("")}</div>
+  </article>`;
+}
+
+function renderPlaymates() {
+  const data = PM.data;
+  const list = $("#pm-list");
+  if (!data || !list) return;
+  const rows = pmRows();
+  const sub = $("#pm-sub");
+  if (sub) sub.textContent = data.season && data.season.name ? data.season.name : "";
+  const count = $("#pm-count");
+  if (count) {
+    count.textContent = `官方返回 ${data.total || 0} 名 · 有同玩 ${data.active || 0} 名`;
+  }
+  pmFacts(data);
+  list.innerHTML = rows.length
+    ? rows.map(pmCard).join("")
+    : `<p class="dim pm-empty">${data.total ? "这个筛选下没有人。" : "官方这份名单是空的：可能是没登录态，或该赛季确实没跟人同玩过。"}</p>`;
+}
+
+async function loadPlaymates(force = false) {
+  if (!state.keyword) return;
+  const list = $("#pm-list");
+  // 换人/换赛季才重拉；同一个人同一个赛季第二次点进来直接复用。
+  if (!force && PM.data && PM.keyword === state.keyword && PM.loadedSeason === PM.season) {
+    renderPlaymates();
+    return;
+  }
+  if (list) list.innerHTML = '<p class="dim pm-empty">正在向官方要这份同玩名单…</p>';
+  try {
+    const data = await api.get("/api/player/playmates", { keyword: state.keyword, mode: state.source, season: PM.season });
+    if (PM.keyword !== state.keyword) PM.min = 0;
+    PM.keyword = state.keyword;
+    if (!data.ok) {
+      PM.data = null;
+      PM.loadedSeason = "";
+      if (list) list.innerHTML = `<p class="dim pm-empty">${escapeHtml(data.reason || "官方没给这份数据。")}</p>`;
+      const facts = $("#pm-facts");
+      if (facts) facts.innerHTML = "";
+      return;
+    }
+    PM.data = data;
+    PM.loadedSeason = (data.season && data.season.id) || "";
+    PM.season = PM.loadedSeason;
+    pmInit(data);
+    renderPlaymates();
+  } catch (err) {
+    if (list) {
+      list.innerHTML = `<p class="dim pm-empty">没拉到同玩统计：${escapeHtml(err && err.message ? err.message : "稍后再试")} <button type="button" class="chip" data-pm-retry="1">再试一次</button></p>`;
+    }
+  }
+}
+
 function switchTab(name) {
   state.tab = name;
   $$("#tabs button").forEach((b) => b.classList.toggle("active", b.dataset.tab === name));
-  ["history", "match", "party", "assets", "social", "season"].forEach((key) => {
+  ["history", "match", "party", "playmates", "assets", "social", "season"].forEach((key) => {
     $(`#panel-${key}`).classList.toggle("hidden", key !== name);
   });
   if (name === "party") loadParty();
+  if (name === "playmates") loadPlaymates();
   if (name === "assets") loadAssets();
   if (name === "social") loadSocial();
   if (name === "season") loadSeason();
@@ -3164,7 +3289,7 @@ function initSearchHistory() {
 
 const HOME_CACHE = "va.home.v2";
 const HOME_LABELS = { skins: "皮肤", cards: "卡面", sprays: "喷漆", charms: "挂饰" };
-const HOME = { state: null, mode: "game", notes: {} };
+const HOME = { state: null, mode: "auto", notes: {} };
 
 function homeCacheAll() {
   try { return JSON.parse(localStorage.getItem(HOME_CACHE) || "{}") || {}; } catch (_) { return {}; }
@@ -3776,7 +3901,7 @@ async function homeBind() {
       method: "POST",
       credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ keyword: kw, mode: HOME.mode || "game" }),
+      body: JSON.stringify({ keyword: kw, mode: HOME.mode || "auto" }),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error((data.detail && data.detail.message) || "绑定失败，稍后再试");
@@ -3820,20 +3945,7 @@ function initHomeMe() {
   if (!box) return;
   box.hidden = false;
   box.classList.remove("hidden");
-  const modes = $("#hm-modes");
-  if (modes) {
-    modes.addEventListener("click", (ev) => {
-      const btn = ev.target.closest("button[data-hmode]");
-      if (!btn) return;
-      HOME.mode = btn.dataset.hmode || "game";
-      modes.querySelectorAll("button").forEach((b) => b.classList.toggle("on", b === btn));
-      const input = $("#hm-input");
-      if (input) {
-        input.placeholder = HOME.mode === "mval" ? "掌瓦号，如 009202225"
-          : HOME.mode === "uid" ? "固定 ID（改名不变的那个）" : "名称#编号，如 示例玩家#12345";
-      }
-    });
-  }
+  // 绑定卡也改成「一个框自动识别」，不再有模式按钮。
   $("#hm-save").addEventListener("click", () => homeBind());
   const codeBox = $("#hm-code");
   if (codeBox) {
@@ -4094,23 +4206,8 @@ async function boot() {
     if (BAD_HASH.test(rawKeyword)) showFixHint(rawKeyword);
     const keyword = cleanId(rawKeyword).trim();
     if (!keyword) return;
-    // 「掌瓦ID」模式下粘了带 # 的游戏 ID：掌瓦号永远没有 #，直接切成游戏ID，
-    // 按钮状态跟着变，别让人以为是在查掌瓦号。
-    if (state.source === "mval" && keyword.includes("#")) {
-      $$("#search-mode button").forEach((b) => b.classList.toggle("active", b.dataset.source === "game"));
-      state.source = "game";
-      $("#search-input").placeholder = "游戏昵称#编号，如 示例玩家#12345";
-    }
     loadPlayer(keyword);
   });
-
-
-  $$("#search-mode button").forEach((btn) => btn.addEventListener("click", () => {
-    $$("#search-mode button").forEach((b) => b.classList.remove("active"));
-    btn.classList.add("active");
-    state.source = btn.dataset.source;
-    $("#search-input").placeholder = placeholderFor(state.source);
-  }));
 
   $$("#tabs button").forEach((btn) => btn.addEventListener("click", () => switchTab(btn.dataset.tab)));
   const sortBox = $("#asset-sort");
@@ -4477,7 +4574,7 @@ async function boot() {
     clearError();
     try {
       const hours = Number(($("#share-hours") || {}).value || 24);
-      const seed = await api.post("/api/share", { keyword: state.keyword, mode: state.source || "game", hours });
+      const seed = await api.post("/api/share", { keyword: state.keyword, mode: state.source || "auto", hours });
       // CDN（EdgeOne）30 秒就掐回源，冷缓存下快照要 20 秒左右：改成异步任务 + 轮询。
       let info = seed || {};
       const began = Date.now();
@@ -4693,6 +4790,55 @@ async function boot() {
   });
 
   $("#social-filter").addEventListener("input", () => renderPeople());
+
+  /* 同玩：切赛季、搜索、场次门槛、点人名去查他 */
+  const pmSeason = $("#pm-season");
+  if (pmSeason) {
+    pmSeason.addEventListener("change", () => {
+      PM.season = pmSeason.value;
+      loadPlaymates(true);
+    });
+  }
+  const pmFilter = $("#pm-filter");
+  if (pmFilter) {
+    pmFilter.addEventListener("input", () => {
+      PM.q = pmFilter.value || "";
+      renderPlaymates();
+    });
+  }
+  $$(".pm-chips .chip[data-pm-min]").forEach((chip) => chip.addEventListener("click", () => {
+    $$(".pm-chips .chip[data-pm-min]").forEach((c) => c.classList.remove("active"));
+    chip.classList.add("active");
+    PM.min = Number(chip.dataset.pmMin) || 0;
+    renderPlaymates();
+  }));
+  const pmList = $("#pm-list");
+  if (pmList) {
+    pmList.addEventListener("click", (ev) => {
+      if (ev.target.closest("[data-pm-retry]")) { loadPlaymates(true); return; }
+      const hit = ev.target.closest("[data-name]");
+      if (!hit) return;
+      const name = hit.dataset.name || "";
+      if (!name) return;
+      const input = $("#search-input");
+      if (input) input.value = name;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      loadPlayer(name);
+    });
+  }
+  const pmFactsBox = $("#pm-facts");
+  if (pmFactsBox) {
+    pmFactsBox.addEventListener("click", (ev) => {
+      const hit = ev.target.closest("[data-name]");
+      if (!hit) return;
+      const name = hit.dataset.name || "";
+      if (!name) return;
+      const input = $("#search-input");
+      if (input) input.value = name;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      loadPlayer(name);
+    });
+  }
   $$(".social-counts .chip[data-group]").forEach((chip) => chip.addEventListener("click", () => {
     $$(".social-counts .chip[data-group]").forEach((c) => c.classList.remove("active"));
     chip.classList.add("active");
@@ -4719,12 +4865,10 @@ async function boot() {
 
   const params = new URLSearchParams(location.search);
   state.pendingTab = params.get("tab");
+  // ?mode= 只剩兼容老分享链接的用途：mval/game 都收敛成 auto，由后端按写法判别。
   const presetMode = params.get("mode") || (window.__SHARE__ && window.__SHARE__.mode);
-  if (presetMode === "mval" || presetMode === "game") {
-    state.source = presetMode;
-    $$("#search-mode button").forEach((b) => b.classList.toggle("active", b.dataset.source === presetMode));
-    const modeInput = $("#search-input");
-    if (modeInput) modeInput.placeholder = placeholderFor(presetMode);
+  if (presetMode === "mval" || presetMode === "game" || presetMode === "auto") {
+    state.source = "auto";
   }
   if (EXPORT_KIND) {
     document.body.classList.add("export");
