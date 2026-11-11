@@ -3053,6 +3053,16 @@ function ciVerdict(t) {
     const span = CI.data && CI.data.season_name ? `这一幕` : "生涯";
     bullets.push(`${span} ${ciFmt(t.five_kills)} 次五杀、${ciFmt(t.perfect_rounds)} 个无死亡回合。`);
   }
+  // 场次太少时标签和结论都是噪音：2 场打出 1.5 首杀并不能说明「开团先锋」，
+  // 与其给个漂亮标签，不如老实说样本不够。
+  const games = Number(t.games) || 0;
+  if (games > 0 && games < 10) {
+    return {
+      line: `样本只有 ${games} 场，先看数字、别下结论`,
+      tags: [],
+      bullets,
+    };
+  }
   return {
     line: `${head}，${tail}`,
     tags,
