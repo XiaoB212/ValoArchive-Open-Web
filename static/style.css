@@ -682,24 +682,37 @@ body.export .row:hover { transform: none; box-shadow: none; border-color: var(--
   .desk-only table.board th { border-bottom-color: var(--line); }
 }
 
-/* 搜索框左侧的「自动识别」：一块深玉青贴在圆角框内侧，不再是个描边小方块 */
-.search .mode-tip {
+/* 搜索框左侧的「自动识别」：独立胶囊，放在输入框外面。
+   塞进输入框里面会正好压在 999px 圆角的边框上，看起来像一条黑边。 */
+.search-band .search-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(820px, 100%);
+  margin: 0 auto;
+}
+.search-band .search-row .search { flex: 1 1 auto; width: auto; margin: 0; }
+.search-band .mode-tip {
   flex: 0 0 auto;
-  align-self: stretch;
   display: inline-flex;
   align-items: center;
-  margin: -5px 0 -5px -12px;
-  padding: 0 14px;
+  height: 54px;
+  padding: 0 18px;
+  border-radius: 999px;
   background: var(--accent);
   color: #fff;
-  border-radius: 2px 0 0 2px;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
   letter-spacing: .04em;
   white-space: nowrap;
+  box-shadow: var(--shadow-1);
+}
+@media (max-width: 1180px) {
+  .search-band .mode-tip { height: 50px; }
 }
 @media (max-width: 720px) {
-  .search .mode-tip { display: none; }
+  .search-band .search-row { gap: 0; }
+  .search-band .mode-tip { display: none; }
 }
 
 /* ---------- search mode toggle ---------- */
