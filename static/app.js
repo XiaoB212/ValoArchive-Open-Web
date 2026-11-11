@@ -1804,38 +1804,96 @@ function renderMatch(payload, matchId, host) {
   const multiTeam = !!payload.multi_team;
   const ffaMode = !multiTeam && distinctTeams(score).length > 2;
 
-  const seatRow = (seat) => {
-    const ally = seat.is_ally ?? (seat.team === (payload.ally_team || score[0]?.team));
-    const teamClass = ally ? "team-ally" : "team-enemy";
-    const pal = teamPalette(seat.team, teamList);
-    // 乱斗（自由混战）掌瓦也按人给了 Team_N，但它不是分队模式：不标队伍、不上颜色。
-    const plainTeam = !multiTeam && distinctTeams(score).length > 2;
-    const side = multiTeam ? `${pal.number || "?"}` : plainTeam ? "" : (String(seat.team || "").toLowerCase() === "red" ? "红" : "蓝");
-    const sideStyle = multiTeam
-      ? ` style="--side:${pal.color}" title="第 ${pal.placement || pal.number} 名 · ${pal.label || pal.colorName + pal.name}"`
-      : "";
-    const teamCls = multiTeam ? "side-color multi" : (plainTeam ? "side-color none" : `side-color ${teamClass}`);
-    const badge = seat.party_letter && !multiTeam
-      ? `<span class="party-lg" style="background:var(--squad-${"ABCD".indexOf(seat.party_letter) + 1})">${seat.party_letter}队</span>`
-      : "";
-    const tag = seat.party_size >= 2 ? `<span class="tag">${seat.party_size} 人组队</span>` : "";
-    const face = seat.agent_image
-      ? `<img class="face${multiTeam ? " team-tint" : ""}"${multiTeam ? ` style="--team-color:${pal.color}"` : ""} src="${img(seat.agent_image)}" alt="" loading="lazy" />`
-      : "";
-    return `<tr class="${seat.subject === payload.viewer ? "me" : ""} ${teamClass}">
-      <td class="side" data-label="阵营"><i class="${teamCls}"${sideStyle}>${side}</i></td>
-      <td class="who" data-label="玩家"><div class="seat">${face || '<span class="face blank"></span>'}<div class="seat-txt"><span class="nm${seat.display_name || seat.user_name ? " nm-click" : " nm-unknown"}"${seat.display_name || seat.user_name ? ` data-q="${escapeHtml(seat.display_name || seat.user_name)}" title="点一下查这名玩家"` : ' title="名字没取到：名字查询服务未登录，或这名玩家没绑定过游戏账号"'}>${escapeHtml(seat.display_name || seat.user_name || "未知玩家")}${seat.subject === payload.viewer ? '<em class="you">你</em>' : ""}</span><span class="who-tags">${badge}${tag}${multiBadges(seat.multis, "board")}</span></div></div></td>
-      <td class="c-agent" data-label="英雄">${seat.used_agent?.name || "—"}</td>
-      <td class="tier" data-label="段位">${seat.tier_icon ? `<img src="${img(seat.tier_icon)}" alt="" title="${seat.tier_name || ""}${seat.tier_source === "current" ? "（当前段位）" : ""}" loading="lazy" /><span>${seat.tier_name || ""}</span>` : seat.tier_name || "—"}</td>
-      <td class="c-acs" data-label="ACS">${seat.acs || 0}</td>
-      <td class="c-dpr" data-label="回合均伤">${seat.damage_per_round || 0}</td>
-      <td class="c-hs" data-label="爆头率">${seat.headshot_rate || 0}%</td>
-      <td class="c-fb" data-label="首杀">${seat.first_blood || 0}</td>
-      <td class="c-kda" data-label="K/D/A">${seat.kda || "0/0/0"}</td>
-      <td class="c-score" data-label="评分">${seat.score || 0}</td>
-    </tr>`;
+  // 记分板：一个人一行，名字旁边就是段位和表现分，K/D/A 在右边；
+  // 想看这局他怎么打的，点行尾的箭头展开——手机上一屏能看完整队，
+  // 不用横向滚，也不会因为点到名字就跳去查别人（那是个很烦的误触）。
+  const teamAvg = {};
+  score.forEach((seat) => {
+    const key = String(seat.team || "");
+    const bag = teamAvg[key] || (teamAvg[key] = { n: 0, dpr: 0, acs: 0, k: 0, d: 0, a: 0 });
+    const parts = String(seat.kda || "0/0/0").split("/").map(Number);
+    bag.n += 1;
+    bag.dpr += Number(seat.damage_per_round) || 0;
+    bag.acs += Number(seat.acs) || 0;
+    bag.k += parts[0] || 0;
+    bag.d += parts[1] || 0;
+    bag.a += parts[2] || 0;
+  });
+  Object.keys(teamAvg).forEach((key) => {
+    const bag = teamAvg[key];
+    ["dpr", "acs", "k", "d", "a"].forEach((f) => { bag[f] = bag.n ? bag[f] / bag.n : 0; });
+  });
+  const avgOf = (team) => teamAvg[String(team || "")] || { dpr: 0, acs: 0, k: 0, d: 0, a: 0 };
+  const topScore = score.reduce((acc, seat) => Math.max(acc, Number(seat.score) || 0), 0);
+  const boardSeats = [];
+  const barRow = (label, mine, avg, unit = "") => {
+    const top = Math.max(mine, avg, 1);
+    const mineW = Math.round((mine / top) * 100);
+    const avgW = Math.round((avg / top) * 100);
+    return `<div class="mb-metric">
+      <span class="mb-lb">${label}</span>
+      <b>${mine}${unit}</b>
+      <span class="mb-track" title="个人 ${mine}${unit} · 队均 ${avg.toFixed(1)}${unit}">
+        <i class="pb" style="width:${mineW}%"></i><i class="tb" style="left:${avgW}%"></i>
+      </span>
+      <em>队均 ${avg ? avg.toFixed(1) : "—"}${unit}</em>
+    </div>`;
   };
-
+  const seatCard = (seat) => {
+    const idx = boardSeats.length;
+    boardSeats.push(seat);
+    const ally = seat.is_ally ?? (seat.team === (payload.ally_team || score[0]?.team));
+    const pal = teamPalette(seat.team, teamList);
+    const parts = String(seat.kda || "0/0/0").split("/");
+    const full = String(seat.display_name || seat.user_name || "").trim();
+    const tier = seat.tier_icon
+      ? `<img class="mb-tier" src="${img(seat.tier_icon)}" alt="" title="${escapeHtml(seat.tier_name || "")}${seat.tier_source === "current" ? "（当前段位）" : ""}" loading="lazy" onerror="this.classList.add('failed')" /><i>${escapeHtml(seat.tier_name || "")}</i>`
+      : `<i>${escapeHtml(seat.tier_name || "未定级")}</i>`;
+    const party = seat.party_size >= 2
+      ? `<em class="mb-party">${seat.party_letter && !multiTeam ? `${seat.party_letter}队 · ` : ""}${seat.party_size} 排</em>`
+      : "";
+    const mvp = Number(seat.score) && Number(seat.score) === topScore && score.length > 1
+      ? '<em class="mb-mvp">本场 MVP</em>'
+      : "";
+    const face = seat.agent_image
+      ? `<img class="mb-face" src="${img(seat.agent_image)}" alt="" title="${escapeHtml(seat.used_agent?.name || "")}" loading="lazy" onerror="this.classList.add('failed')" />`
+      : '<span class="mb-face blank"></span>';
+    const avg = avgOf(seat.team);
+    const dpr = Number(seat.damage_per_round) || 0;
+    const hs = Number(seat.headshot_rate) || 0;
+    const fb = Number(seat.first_blood) || 0;
+    const detail = `<div class="mb-detail" hidden>
+      <div class="mb-metrics">
+        ${barRow("伤害/回合", dpr, avg.dpr)}
+        ${barRow("击杀", parts[0] || 0, avg.k)}
+        ${barRow("助攻", parts[2] || 0, avg.a)}
+        ${barRow("表现分", Number(seat.acs) || 0, avg.acs)}
+      </div>
+      <div class="mb-extra">
+        <span class="mb-chip">爆头率 <b>${hs}%</b></span>
+        <span class="mb-chip">首杀 <b>${fb}</b></span>
+        ${multiBadges(seat.multis, "board")}
+      </div>
+      <p class="mb-note">端瓦只给爆头率，没有头/身/腿的命中拆分。</p>
+      <div class="mb-acts">
+        ${full ? `<button type="button" class="mb-query" data-query="${escapeHtml(full)}">看这名玩家的主页 →</button>` : '<span class="dim">这局没取到他的游戏 ID</span>'}
+      </div>
+    </div>`;
+    return `<div class="mb-row${seat.subject === payload.viewer ? " me" : ""}${ally ? " ally" : ""}" data-i="${idx}">
+      <button type="button" class="mb-main" aria-expanded="false">
+        ${face}
+        <span class="mb-id">
+          <span class="mb-name">${escapeHtml(full || "未知玩家")}${seat.subject === payload.viewer ? '<em class="you">你</em>' : ""}${mvp}</span>
+          <span class="mb-meta">${tier}${party}<em class="mb-agent">${escapeHtml(seat.used_agent?.name || "—")}</em></span>
+        </span>
+        <span class="mb-score"><b>${Number(seat.acs) || 0}</b><i>表现分</i></span>
+        <span class="mb-kda"><b>${parts[0] || 0}</b>/<s>${parts[1] || 0}</s>/<b>${parts[2] || 0}</b></span>
+        <span class="mb-cols"><i>${dpr}</i><i>${hs}%</i><i>${fb}</i></span>
+        <span class="mb-caret" aria-hidden="true"></span>
+      </button>
+      ${detail}
+    </div>`;
+  };
   // 死斗、斗牛这类没有红蓝阵营的模式，不要硬分「我方/对方」——掌瓦那边全是同一队。
   const sideGrouped = !multiTeam && TWO_SIDE_MODES.has(String(detail.game_mode || ""));
   const groups = sideGrouped
@@ -1865,9 +1923,9 @@ function renderMatch(payload, matchId, host) {
       info.won ? '<em class="team-tag first">本场第一</em>' : "",
       ally ? '<em class="team-tag you">你在这队</em>' : "",
     ].join("");
-    const head = `<tr class="board-sep team-multi${ally ? " team-ally" : ""}" style="--team-color:${pal.color}">
-      <td colspan="10"><div class="team-hd"><span class="team-id"><i class="team-dot"></i><b>${escapeHtml(pal.label || pal.name || `队伍 ${pal.number || "?"}`)}</b>${tags}</span><span class="team-meta">${escapeHtml(meta)}</span></div></td></tr>`;
-    return head + seats.map(seatRow).join("");
+    const head = `<div class="mb-sep team-multi${ally ? " team-ally" : ""}" style="--team-color:${pal.color}">
+      <span class="mb-sep-id"><i class="team-dot"></i><b>${escapeHtml(pal.label || pal.name || `队伍 ${pal.number || "?"}`)}</b>${tags}</span><span class="mb-sep-meta">${escapeHtml(meta)}</span></div>`;
+    return head + seats.map(seatCard).join("");
   };
   const rows = multiTeam
     ? [...teamIds].sort((a, b) => teamNumber(a, teamList) - teamNumber(b, teamList)).map(teamSection).join("")
@@ -1880,8 +1938,8 @@ function renderMatch(payload, matchId, host) {
                 return Boolean(ally) === group.ally;
               });
           if (!seats.length) return "";
-          const head = `<tr class="board-sep ${group.cls}"><td colspan="10"><b>${group.label}</b><span>${group.rounds === null ? "" : `${group.rounds ?? "—"} 回合 · `}${seats.length} 人</span></td></tr>`;
-          return head + seats.map(seatRow).join("");
+          const head = `<div class="mb-sep ${group.cls}"><b>${group.label}</b><span>${group.rounds === null ? "" : `${group.rounds ?? "—"} 回合 · `}${seats.length} 人</span></div>`;
+          return head + seats.map(seatCard).join("");
         })
         .join("");
 
@@ -1925,16 +1983,6 @@ function renderMatch(payload, matchId, host) {
       ${multiTeam ? "" : `<div class="squads">${squadChips || (ffaMode ? '<span class="dim">自由混战，没有组队</span>' : '<span class="dim">全场单排</span>')}</div>`}
     </div>`;
 
-  const boardTable = `
-    <div class="board-wrap">
-      <table class="board">
-        <thead><tr>
-          <th>阵营</th><th>玩家</th><th>英雄</th><th>段位</th><th>ACS</th><th>回合均伤</th><th>爆头率</th><th>首杀</th><th>K/D/A</th><th>评分</th>
-        </tr></thead>
-        <tbody>${rows || '<tr><td colspan="10" class="dim">没有记分板数据。</td></tr>'}</tbody>
-      </table>
-    </div>`;
-
   const tabs = `
     <div class="match-tabs">
       <button class="mtab on" data-tab="board">战绩详情</button>
@@ -1958,10 +2006,11 @@ function renderMatch(payload, matchId, host) {
   root.innerHTML = `
     ${inlineHead}
     ${tabs}
-    <div class="match-pane" data-pane="board">${hero}${boardTable}${nameNote}</div>
+    <div class="match-pane" data-pane="board">${hero}<div class="mb-board"><div class="mb-head"><span></span><span>玩家</span><span>表现分</span><span>K/D/A</span><span class="mb-head-cols"><i>均伤</i><i>爆头</i><i>首杀</i></span><span></span></div>${rows || '<p class="dim">没有记分板数据。</p>'}</div>${nameNote}</div>
     ${hasRounds ? `<div class="match-pane hidden" data-pane="rounds">${roundMarkup(roundInfo)}</div>` : ""}
     ${hasMatrix ? `<div class="match-pane hidden" data-pane="kills">${killMatrixMarkup(payload)}</div>` : ""}`;
   bindMatchTabs(root);
+  bindBoard(root);
   bindRounds(root, payload);
   if (inline) {
     const close = root.querySelector(".ih-close");
@@ -2019,6 +2068,41 @@ function killMatrixMarkup(payload) {
       <tbody>${rows}</tbody>
     </table></div>
   </div>`;
+}
+
+// 记分板：点一行展开这局他的数据，再点收起；只开一行，避免整页被撑长。
+function bindBoard(root) {
+  const host = root || $("#match-body");
+  if (!host) return;
+  const rows = Array.from(host.querySelectorAll(".mb-row"));
+  rows.forEach((row) => {
+    const btn = row.querySelector(".mb-main");
+    const detail = row.querySelector(".mb-detail");
+    if (!btn || !detail) return;
+    btn.addEventListener("click", () => {
+      const wasOpen = !detail.hidden;
+      rows.forEach((other) => {
+        const od = other.querySelector(".mb-detail");
+        const ob = other.querySelector(".mb-main");
+        if (od) od.hidden = true;
+        if (ob) ob.setAttribute("aria-expanded", "false");
+        other.classList.remove("open");
+      });
+      if (wasOpen) return;
+      detail.hidden = false;
+      btn.setAttribute("aria-expanded", "true");
+      row.classList.add("open");
+    });
+    const jump = row.querySelector("[data-query]");
+    if (jump) {
+      jump.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        const tab = document.querySelector('#tabs button[data-tab="history"]');
+        if (tab) tab.click();
+        loadPlayer(jump.dataset.query, false);
+      });
+    }
+  });
 }
 
 function bindMatchTabs(root) {
