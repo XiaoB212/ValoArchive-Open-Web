@@ -993,6 +993,21 @@ async function loadPlayer(keyword, refresh = false) {
       }
       appBox.title = p.app_num ? "掌瓦号（查询用的账号 ID）" : "掌瓦按昵称建索引，反查不到时可以手动填一次 9 位掌瓦号";
     }
+    // 只给了名字时，这次是按名字猜的：给一个「换成带编号的精确搜索」的快捷方式
+    const guessBox = $("#p-guess");
+    if (guessBox) {
+      const kw = String(state.keyword || "");
+      const exact = String(p.label || "").trim();
+      if (!kw.includes("#") && exact.includes("#")) {
+        guessBox.textContent = `换成 ${exact}`;
+        guessBox.dataset.exact = exact;
+        guessBox.classList.remove("hidden");
+      } else {
+        guessBox.textContent = "";
+        guessBox.dataset.exact = "";
+        guessBox.classList.add("hidden");
+      }
+    }
     // 属地：掌瓦资料里的「最后登录 IP 属地」；对局机房分布放到「对局历史总结」里
     const srvBox = $("#p-server");
     if (srvBox) {
@@ -1082,8 +1097,9 @@ async function loadPlayer(keyword, refresh = false) {
       showError(`查询失败：${err.message}`, action, $("#search-form"));
     }
     // 人已经找到了（只是换不出 PUUID）时不用再提供「是不是这个」候选，那反而更乱。
-    // 5xx 是服务端一时没连上，不是「查无此人」，更不能拿候选名单糊人。
-    if (!(detail && detail.found) && !(err.status >= 500)) suggest(keyword);
+    // 5xx 多半是掌瓦搜索被限流：官方的「是不是这个」不要再打（还会再撞一次风控），
+    // 但我们自己的名字索引是本地库，随手就能给候选——这时候正好帮上忙。
+    if (!(detail && detail.found)) suggest(keyword, err.status >= 500);
   }
 
   } finally {
@@ -1091,7 +1107,7 @@ async function loadPlayer(keyword, refresh = false) {
   }
 }
 
-async function suggest(keyword) {
+async function suggest(keyword, localOnly = false) {
   const box = $("#suggest");
   const name = keyword.includes("#") ? keyword.split("#")[0] : keyword;
   if (!name) return;
@@ -1100,16 +1116,17 @@ async function suggest(keyword) {
   // 两个来源一起问：掌瓦昵称索引（官方那套）经常因为对方关了「游戏 ID 可被搜索」
   // 而空空如也，但我们自己的 rolenames 索引里往往还留着他——他只要和谁同场过一次，
   // PD 详情里就有 subject。所以本地这份不能只当备胎，要跟官方结果并列显示。
-  const [official, local] = await Promise.allSettled([
-    api.get("/api/search", { q: name }),
-    api.get("/api/search/local", { q: name }),
-  ]);
-  const items = official.status === "fulfilled" ? (official.value.items || []).slice(0, 6) : [];
-  const ours = (local.status === "fulfilled" ? local.value.items || [] : [])
+  const tasks = [localOnly ? Promise.resolve({ items: [] }) : api.get("/api/search", { q: name }), api.get("/api/search/local", { q: name })];
+  const [official, local] = await Promise.allSettled(tasks);
+  const items = official.status === "fulfilled" ? ((official.value || {}).items || []).slice(0, 6) : [];
+  const ours = (local.status === "fulfilled" ? (local.value || {}).items || [] : [])
     .filter((item) => item.name)
     .slice(0, 6);
   if (!items.length && !ours.length) { box.classList.add("hidden"); return; }
-  box.innerHTML = `<p>没找到「${escapeHtml(keyword)}」，是不是其中一位？</p>`
+  const lead = localOnly
+    ? `官方搜索刚刚被限流，先看看我们本地索引里的：`
+    : `没找到「${escapeHtml(keyword)}」，是不是其中一位？`;
+  box.innerHTML = `<p>${lead}</p>`
     + items
       .map((item) => `<button type="button" data-uid="${escapeHtml(item.uuid)}" data-name="${escapeHtml(item.name)}">`
         + `${escapeHtml(item.name)}<em>${item.app_num ? `掌瓦 ${escapeHtml(item.app_num)}` : ""}</em></button>`)
@@ -4619,6 +4636,15 @@ async function boot() {
     const keyword = cleanId(rawKeyword).trim();
     if (!keyword) return;
     loadPlayer(keyword);
+  });
+  // 按名字搜到的结果旁边有「换成 名字#编号」：点一下就是精确搜索，不会再撞同名
+  const guessPill = $("#p-guess");
+  if (guessPill) guessPill.addEventListener("click", () => {
+    const exact = guessPill.dataset.exact || "";
+    if (!exact) return;
+    const input = $("#search-input");
+    if (input) input.value = exact;
+    loadPlayer(exact);
   });
 
   $$("#tabs button").forEach((btn) => btn.addEventListener("click", () => switchTab(btn.dataset.tab)));

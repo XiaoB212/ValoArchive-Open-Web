@@ -6163,3 +6163,7 @@ body.me-view .home-faq { display: none; }
   .mb-kda { font-size: 12.5px; }
   .mb-score b { font-size: 14px; }
 }
+
+/* 「换成 名字#编号」：按名字搜到人时给一个精确搜索入口，点一下就不会再撞同名 */
+#p-guess { cursor: pointer; }
+#p-guess:hover { color: var(--fg, #e8e6e3); border-color: currentColor; }
