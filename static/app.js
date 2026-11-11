@@ -3305,6 +3305,32 @@ function pmCard(r) {
   </article>`;
 }
 
+function pmBreakdown(data) {
+  const box = $("#pm-breakdown");
+  if (!box) return;
+  const parts = (data && data.breakdown) || [];
+  if (!parts.length) {
+    box.innerHTML = "";
+    box.classList.add("hidden");
+    return;
+  }
+  box.classList.remove("hidden");
+  box.innerHTML =
+    `<div class="pm-bd-head">这几幕分别是这样（点一幕看它自己的名单）</div>
+     <div class="pm-bd-row">` +
+    parts
+      .map((p) => {
+        const best = p.best ? `最佳搭档 ${escapeHtml(p.best.name)} · ${p.best.games} 场` : "没有同玩记录";
+        return `<button type="button" class="pm-bd" data-pm-season="${escapeHtml(p.id)}" title="切到${escapeHtml(p.name)}">
+          <b>${escapeHtml(p.name || "—")}</b>
+          <span class="pm-bd-num">${p.games || 0} 场 · ${p.win_rate === null || p.win_rate === undefined ? "—" : p.win_rate + "%"} · ${p.hours || 0} 小时</span>
+          <span class="pm-bd-sub">${p.mates || 0} 位同玩 · ${best}</span>
+        </button>`;
+      })
+      .join("") +
+    `</div>`;
+}
+
 function renderPlaymates() {
   const data = PM.data;
   const list = $("#pm-list");
@@ -3320,6 +3346,7 @@ function renderPlaymates() {
     count.textContent = `官方返回 ${data.total || 0} 名 · 有同玩 ${data.active || 0} 名`;
   }
   pmFacts(data);
+  pmBreakdown(data);
   list.innerHTML = rows.length
     ? rows.map(pmCard).join("")
     : `<p class="dim pm-empty">${data.total ? "这个筛选下没有人。" : "官方这份名单是空的：可能是没登录态，或该赛季确实没跟人同玩过。"}</p>`;
@@ -5435,6 +5462,17 @@ async function boot() {
       if (input) input.value = name;
       window.scrollTo({ top: 0, behavior: "smooth" });
       loadPlayer(name);
+    });
+  }
+  const pmBreakBox = $("#pm-breakdown");
+  if (pmBreakBox) {
+    pmBreakBox.addEventListener("click", (ev) => {
+      const hit = ev.target.closest("[data-pm-season]");
+      if (!hit) return;
+      const id = hit.dataset.pmSeason || "";
+      if (!id || id === PM.season) return;
+      PM.season = id;
+      loadPlaymates(true);
     });
   }
   const pmFactsBox = $("#pm-facts");

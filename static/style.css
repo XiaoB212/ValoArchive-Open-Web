@@ -6265,3 +6265,30 @@ body.me-view .home-faq { display: none; }
 .alts button b { font-weight: 600; }
 .alts button i { font-style: normal; font-size: 11.5px; color: var(--muted); }
 .alts button em { font-style: normal; font-family: var(--mono); font-size: 10.5px; color: var(--dim); }
+
+/* 同玩「近 3 幕合计」下面按幕拆开的小卡：一眼看出哪一幕贡献了这些场次 */
+.pm-breakdown { margin: 2px 0 10px; }
+.pm-breakdown.hidden { display: none; }
+.pm-bd-head { font-size: 12.5px; color: var(--muted); margin-bottom: 6px; }
+.pm-bd-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
+.pm-bd {
+  flex: 0 0 auto;
+  display: grid;
+  gap: 2px;
+  min-width: 190px;
+  padding: 9px 12px;
+  text-align: left;
+  font: inherit;
+  color: var(--ink);
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+}
+.pm-bd:hover { border-color: var(--accent); background: var(--accent-soft); }
+.pm-bd b { font-size: 13px; }
+.pm-bd-num { font-family: var(--mono); font-size: 12.5px; color: var(--ink); }
+.pm-bd-sub { font-size: 11.5px; color: var(--muted); }
+@media (max-width: 720px) {
+  .pm-bd { min-width: 168px; padding: 8px 10px; }
+}
