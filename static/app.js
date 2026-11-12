@@ -3448,7 +3448,7 @@ async function loadPlaymates(force = false) {
   }
 }
 
-const CI = { keyword: "", scope: "all", season: "", view: "overview", sort: "games", data: null, loaded: "" };
+const CI = { keyword: "", scope: "all", season: "", view: "overview", sort: "games", data: null, loaded: "", local: false };
 // 切人/切幕时上一次的 insight 请求可能还在路上（冷查询 5–10 秒），
 // 它晚到就会把新玩家已经画好的面板覆盖成上一个人的数据。用序号作废过期响应。
 let ciSeq = 0;
@@ -3623,19 +3623,29 @@ function renderCareer() {
   if (!data) return;
   const t = data.totals || {};
   const span = data.season_name || "生涯累计";
+  const local = data.source === "local";
   const sub = $("#ci-sub");
-  if (sub) sub.textContent = `${span} · ${data.scope_name || ""} · 官方口径`;
+  if (sub) {
+    sub.textContent = local
+      ? `${span} · ${data.scope_name || ""} · 非官方（本站对局累计）`
+      : `${span} · ${data.scope_name || ""} · 官方口径`;
+  }
   // 上游只有「汇总」和「地图」认幕；英雄/武器永远是生涯累计，选中某一幕时必须说清楚，
   // 否则同一屏里刚看完「这一幕 2 场」的人会以为英雄也是这一幕的。
   const scopeNote = data.season
     ? '<p class="dim ci-empty">英雄与武器上游不分幕，下面是生涯累计——上面选的幕只影响总览和地图。</p>'
     : "";
-  if (CI.view === "agents") body.innerHTML = scopeNote + ciAgents(data);
-  else if (CI.view === "maps") body.innerHTML = ciMaps(data);
-  else if (CI.view === "weapons") body.innerHTML = scopeNote + ciWeapons(data);
+  const localNote = data.source === "local"
+    ? `<p class="dim ci-empty">官方生涯统计暂时不可用（${escapeHtml(data.reason || "上游查谁都回同一份数据")}），下面这份是本站按已抓到的对局自己算的。</p>`
+    : "";
+  if (CI.view === "agents") body.innerHTML = localNote + scopeNote + ciAgents(data);
+  else if (CI.view === "maps") body.innerHTML = localNote + ciMaps(data);
+  else if (CI.view === "weapons") body.innerHTML = data.source === "local"
+    ? '<p class="dim ci-empty">本地统计只能算对局行里有的字段，武器击杀要等官方生涯恢复。</p>'
+    : scopeNote + ciWeapons(data);
   else {
     const v = ciVerdict(t);
-    body.innerHTML = `<section class="ci-verdict">
+    body.innerHTML = localNote + `<section class="ci-verdict">
         <h4>${escapeHtml(v.line)}</h4>
         ${v.tags.length ? `<div class="ci-tags">${v.tags.map((x) => `<span>${escapeHtml(x)}</span>`).join("")}</div>` : ""}
         ${v.bullets.length ? `<ul>${v.bullets.map((x) => `<li>${escapeHtml(x)}</li>`).join("")}</ul>` : ""}
@@ -3644,7 +3654,9 @@ function renderCareer() {
   }
   const foot = $("#ci-foot");
   if (foot) {
-    foot.innerHTML = `${escapeHtml(data.note || "")}<br>数据来源：腾讯端瓦（WeGame）官方服务直连 · 玩家 ${escapeHtml(state.keyword || "")}`;
+    foot.innerHTML = data.source === "local"
+      ? `${escapeHtml(data.note || "")}<br>数据来源：本站已抓到的对局（非官方）· 玩家 ${escapeHtml(state.keyword || "")}`
+      : `${escapeHtml(data.note || "")}<br>数据来源：腾讯端瓦（WeGame）官方服务直连 · 玩家 ${escapeHtml(state.keyword || "")}`;
   }
 }
 
@@ -3667,6 +3679,14 @@ async function loadCareer(force = false) {
     });
     if (seq !== ciSeq) return;
     if (!data.ok) {
+      // 官方口径不可用时后端会附一份本地统计；有就照常画，只是标注换成「非官方」。
+      if (data.local) {
+        CI.data = { ...data.local, reason: data.reason || "", player: data.player };
+        CI.loaded = key;
+        ciFillSeasons([]);
+        renderCareer();
+        return;
+      }
       CI.data = null;
       CI.loaded = "";
       if (body) body.innerHTML = `<p class="dim ci-empty">${escapeHtml(data.reason || "官方没给这份数据。")}</p>`;
