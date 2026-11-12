@@ -81,6 +81,40 @@ const _maskText = (text) => text.replace(/[^\s#<>|，,。()（）\[\]【】]{1,1
 });
 
 let _masking = false;
+
+// 「从单局里点名字跳过去」之后要能回来：记一层简单的查询栈（最多 8 条）。
+// 只记玩家查询，不记刷新；点返回时不再把自己的上一条压进栈。
+const qStack = [];
+let backJump = false;
+function renderBackChip() {
+  const row = document.querySelector("#player .id-row");
+  if (!row) return;
+  let btn = document.getElementById("query-back");
+  if (!btn) {
+    btn = document.createElement("button");
+    btn.type = "button";
+    btn.id = "query-back";
+    btn.className = "pill muted hidden";
+    btn.addEventListener("click", () => {
+      const prev = qStack.pop();
+      renderBackChip();
+      if (!prev) return;
+      backJump = true;
+      const done = () => { backJump = false; };
+      Promise.resolve(loadPlayer(prev.kw, false)).then(done, done);
+    });
+    row.insertBefore(btn, row.querySelector(".fav-btn"));
+  }
+  const top = qStack[qStack.length - 1];
+  if (!top) {
+    btn.classList.add("hidden");
+    btn.textContent = "";
+    return;
+  }
+  btn.classList.remove("hidden");
+  btn.textContent = `← 返回 ${top.name || top.kw}`;
+  btn.title = `回到上一名查询的玩家${top.kw ? `（${top.kw}）` : ""}`;
+}
 const applyPrivacy = () => {
   if (!PRIVACY || _masking) return;
   _masking = true;
@@ -917,6 +951,14 @@ async function bgWarm(keyword, mode) {
 async function loadPlayer(keyword, refresh = false) {
   setBusy(true, "正在解析玩家");
   try {
+  // 换了个人（不是后台刷新、也不是点「返回」）就记一笔，顶部会出现「← 返回 上一个」。
+  if (!refresh && !backJump && keyword && state.keyword && keyword !== state.keyword) {
+    const pName = $("#p-name");
+    const prevName = pName ? String(pName.textContent || "").trim() : "";
+    qStack.push({ kw: state.keyword, name: prevName && prevName !== "—" ? prevName : "" });
+    if (qStack.length > 8) qStack.shift();
+    renderBackChip();
+  }
   const __t = $("#history-rows");
   if (__t) __t.innerHTML = skeleton(6);
 
@@ -1128,6 +1170,8 @@ async function loadPlayer(keyword, refresh = false) {
 
   } finally {
     setBusy(false);
+    // 渲染过程中如果整块头部被重建过，返回按钮要能补回来。
+    renderBackChip();
   }
 }
 
@@ -2013,8 +2057,8 @@ function renderMatch(payload, matchId, host) {
     const squad = squadOf(seat);
     const party = seat.party_size >= 2
       ? (squad
-          ? `<em class="mb-party sq" style="background:var(--squad-${squadVar(squad)});color:#fff">${escapeHtml(squad)} 队 · ${seat.party_size} 排</em>`
-          : `<em class="mb-party">${seat.party_size} 排</em>`)
+          ? `<em class="mb-party sq" style="background:var(--squad-${squadVar(squad)});color:#fff">${escapeHtml(squad)}队·${seat.party_size}排</em>`
+          : `<em class="mb-party">${seat.party_size}排</em>`)
       : "";
     const mvp = Number(seat.score) && Number(seat.score) === topScore && score.length > 1
       ? '<em class="mb-mvp">本场 MVP</em>'
@@ -2042,7 +2086,7 @@ function renderMatch(payload, matchId, host) {
       <button type="button" class="mb-main" aria-expanded="false">
         ${face}
         <span class="mb-id">
-          <span class="mb-name"><span class="mb-nm">${escapeHtml(full || "未知玩家")}${seat.subject === payload.viewer ? '<em class="you">你</em>' : ""}</span>${mvp}</span>
+          <span class="mb-name"><span class="mb-nm"${full ? ` data-query="${escapeHtml(full)}" title="点名字直接查这名玩家"` : ""}>${escapeHtml(full || "未知玩家")}${seat.subject === payload.viewer ? '<em class="you">你</em>' : ""}</span>${mvp}</span>
           <span class="mb-meta">${teamBadge}${tier}${party}<em class="mb-agent">${escapeHtml(seat.used_agent?.name || "—")}</em></span>
         </span>
         <span class="mb-score"><b>${Number(seat.acs) || 0}</b><i>表现分</i></span>
@@ -2116,17 +2160,20 @@ function renderMatch(payload, matchId, host) {
       ? ` style="--side:${pal.color}" title="第 ${pal.placement || pal.number} 名 · ${pal.label || pal.colorName + pal.name}"`
       : "";
     const teamCls = multiTeam ? "side-color multi" : (plainTeam ? "side-color none" : `side-color ${teamClass}`);
-    const badge = squadOf(seat)
-      ? `<span class="party-lg" style="background:var(--squad-${squadVar(squadOf(seat))})">${squadOf(seat)}队</span>`
+    const sq = squadOf(seat);
+    const ps = Number(seat.party_size) || 0;
+    // 桌面以前是「A队」+「2 人组队」两个小标签，又长又碎；改成和手机同一个
+    // 「A队·2排」徽标：有队色就用队色，没队色用中性色。
+    const party = ps >= 2
+      ? `<span class="party-lg${sq ? "" : " solo"}"${sq ? ` style="background:var(--squad-${squadVar(sq)})"` : ""}>${sq ? `${escapeHtml(sq)}队·` : ""}${ps}排</span>`
       : "";
-    const tag = seat.party_size >= 2 ? `<span class="tag">${seat.party_size} 人组队</span>` : "";
     const face = seat.agent_image
       ? `<img class="face${multiTeam ? " team-tint" : ""}"${multiTeam ? ` style="--team-color:${pal.color}"` : ""} src="${img(seat.agent_image)}" alt="" loading="lazy" />`
       : "";
     const nm = String(seat.display_name || seat.user_name || "").trim();
     return `<tr class="desk-row${seat.subject === payload.viewer ? " me" : ""} ${teamClass}">
       <td class="side" data-label="阵营"><i class="${teamCls}"${sideStyle}>${side}</i></td>
-      <td class="who" data-label="玩家"><div class="seat">${face || '<span class="face blank"></span>'}<div class="seat-txt"><span class="nm${nm ? "" : " nm-unknown"}"${nm ? ` data-query="${escapeHtml(nm)}" title="点名字直接查这名玩家"` : ""}>${escapeHtml(nm || "未知玩家")}${seat.subject === payload.viewer ? '<em class="you">你</em>' : ""}</span><span class="who-tags">${badge}${tag}${multiBadges(seat.multis, "board")}</span></div></div></td>
+      <td class="who" data-label="玩家"><div class="seat">${face || '<span class="face blank"></span>'}<div class="seat-txt"><span class="nm${nm ? "" : " nm-unknown"}"${nm ? ` data-query="${escapeHtml(nm)}" title="点名字直接查这名玩家"` : ""}>${escapeHtml(nm || "未知玩家")}${seat.subject === payload.viewer ? '<em class="you">你</em>' : ""}</span><span class="who-tags">${party}${multiBadges(seat.multis, "board")}</span></div></div></td>
       <td class="c-agent" data-label="英雄">${escapeHtml(seat.used_agent?.name || "—")}</td>
       <td class="tier" data-label="段位">${seat.tier_icon ? `<img src="${img(seat.tier_icon)}" alt="" title="${escapeHtml(seat.tier_name || "")}${seat.tier_source === "current" ? "（当前段位）" : ""}" loading="lazy" /><span>${escapeHtml(seat.tier_name || "")}</span>` : escapeHtml(seat.tier_name || "—")}</td>
       <td class="c-acs" data-label="ACS">${seat.acs || 0}</td>
