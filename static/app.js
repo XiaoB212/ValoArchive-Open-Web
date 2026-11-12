@@ -1933,7 +1933,7 @@ function renderMatch(payload, matchId, host) {
       <em>队均 ${avg ? avg.toFixed(1) : "—"}${unit}</em>
     </div>`;
   };
-  const seatCard = (seat, enemySide = false) => {
+  const seatCard = (seat) => {
     const idx = boardSeats.length;
     boardSeats.push(seat);
     const ally = seat.is_ally ?? (seat.team === (payload.ally_team || score[0]?.team));
@@ -1973,11 +1973,15 @@ function renderMatch(payload, matchId, host) {
         ${full ? `<button type="button" class="mb-query" data-query="${escapeHtml(full)}">看这名玩家的主页 →</button>` : '<span class="dim">这局没取到他的游戏 ID</span>'}
       </div>
     </div>`;
-    return `<div class="mb-row${seat.subject === payload.viewer ? " me" : ""}${ally ? " ally" : ""}${enemySide ? " enemy" : ""}" data-i="${idx}">
+    // 阵营色：只有两方对局才按敌我上色（自由混战/全场单排所有人同队，涂成一片绿没意义）。
+    // 多队模式用每队自己的 --tc，跟上面对表头的颜色保持一致。
+    const sideCls = multiTeam ? " multi" : sideGrouped ? (ally ? " ally" : " enemy") : "";
+    const tcStyle = multiTeam ? ` style="--tc:${pal.color}"` : "";
+    return `<div class="mb-row${seat.subject === payload.viewer ? " me" : ""}${sideCls}"${tcStyle} data-i="${idx}">
       <button type="button" class="mb-main" aria-expanded="false">
         ${face}
         <span class="mb-id">
-          <span class="mb-name">${escapeHtml(full || "未知玩家")}${seat.subject === payload.viewer ? '<em class="you">你</em>' : ""}${mvp}</span>
+          <span class="mb-name"><span class="mb-nm">${escapeHtml(full || "未知玩家")}${seat.subject === payload.viewer ? '<em class="you">你</em>' : ""}</span>${mvp}</span>
           <span class="mb-meta">${tier}${party}<em class="mb-agent">${escapeHtml(seat.used_agent?.name || "—")}</em></span>
         </span>
         <span class="mb-score"><b>${Number(seat.acs) || 0}</b><i>表现分</i></span>
@@ -2033,7 +2037,7 @@ function renderMatch(payload, matchId, host) {
               });
           if (!seats.length) return "";
           const head = `<div class="mb-sep ${group.cls}"><b>${group.label}</b><span>${group.rounds === null ? "" : `${group.rounds ?? "—"} 回合 · `}${seats.length} 人</span></div>`;
-          return head + seats.map((s) => seatCard(s, group.ally === false)).join("");
+          return head + seats.map(seatCard).join("");
         })
         .join("");
 
@@ -2839,11 +2843,23 @@ function renderPeople() {
         const av = f.avatar
           ? `<img class="fav" src="${img(f.avatar)}" alt="" loading="lazy" onerror="this.replaceWith(document.createTextNode(''))" />`
           : `<i class="fav none">${escapeHtml(String(f.name || "?").slice(0, 1))}</i>`;
-        return `<div class="frow${f.hot ? " hot" : ""}" title="${escapeHtml(f.name || "")}">
+        // 段位 + 近期英雄：官方同玩榜/对局里能拿到的就画出来，拿不到只留一句「没同排过」。
+        const tier = f.tier_name
+          ? `<i class="ftier" title="段位">${f.tier_icon ? `<img src="${img(f.tier_icon)}" alt="" loading="lazy" onerror="this.remove()" />` : ""}${escapeHtml(f.tier_name)}</i>`
+          : "";
+        const icons = (f.agent_icons || []).filter(Boolean).slice(0, 3)
+          .map((src) => `<img class="fagent" src="${img(src)}" alt="" loading="lazy" onerror="this.remove()" />`)
+          .join("");
+        const agentText = icons || (f.agents || []).slice(0, 3)
+          .map((a) => `<i class="fagent-t">${escapeHtml(a)}</i>`).join("");
+        // 有真名就能点进去看个人详情（和同玩榜卡片一个动作）。
+        const canJump = Boolean(String(f.name || "").trim());
+        const tag = canJump ? "button" : "div";
+        return `<${tag}${canJump ? ' type="button"' : ""} class="frow${f.hot ? " hot" : ""}${canJump ? " link" : ""}"${canJump ? ` data-query="${escapeHtml(f.name)}"` : ""} title="${escapeHtml(f.name || "")}">
           ${av}
-          <div class="fmain"><b class="fname">${escapeHtml(f.name || "—")}</b><span class="fmeta">${meta}</span></div>
+          <span class="fmain"><b class="fname">${escapeHtml(f.name || "—")}</b><span class="fmeta">${tier}${agentText}<em>${meta}</em></span></span>
           ${f.games ? `<span class="fgames"><b>${f.games}</b>场</span>` : f.hot ? `<span class="fgames hot">近期同排</span>` : ""}
-        </div>`;
+        </${tag}>`;
       })
       .join("");
     const pager = pages > 1
@@ -3294,9 +3310,14 @@ function pmCard(r) {
     [pmNum(r.acs, 2), "同玩平均 ACS"],
     [`${time}<i>· ${pmNum(r.seconds)}秒</i>`, "同玩时长"],
   ];
+  // 官方这份榜带 ava（卡面），有就画头像，没有才退回首字母。
+  const letter = escapeHtml(String(r.name || "?").slice(0, 1));
+  const ava = r.avatar
+    ? `<span class="pm-av has"><img src="${img(r.avatar)}" alt="" loading="lazy" onerror="this.parentNode.classList.remove('has'); this.remove()" /><i>${letter}</i></span>`
+    : `<span class="pm-av">${letter}</span>`;
   return `<article class="pm-card" data-name="${escapeHtml(r.name)}">
     <div class="pm-head">
-      <span class="pm-av">${escapeHtml(String(r.name || "?").slice(0, 1))}</span>
+      ${ava}
       <div class="pm-id"><b>${escapeHtml(r.name || "")}</b><span>${escapeHtml(r.tier_name || "未定级")}</span></div>
       <span class="pm-go">›</span>
     </div>
@@ -4176,7 +4197,7 @@ function homeFriendRows(extra, kw, freshSet) {
     const tags = [];
     if (isNew) tags.push('<i class="hf-tag new">新</i>');
     if (mateNames.has(f.name)) tags.push('<i class="hf-tag">同排</i>');
-    return `<div class="hf">
+    return `<div class="hf${f.name ? " link" : ""}"${f.name ? ` data-query="${escapeHtml(f.name)}"` : ""}>
       ${f.avatar ? `<img class="hf-ava" src="${escapeHtml(f.avatar)}" alt="" loading="lazy" />` : '<i class="hf-ava"></i>'}
       <div class="hf-main"><b>${escapeHtml(homeNick(f.name))}${tags.join("")}</b>
         <span>${f.last ? `最近同排 ${escapeHtml(homeWhen2(f.last))}` : "近一月没一起排过"}</span></div>
@@ -4210,7 +4231,7 @@ function homeMateRows(extra, freshSet) {
   rows.sort((a, b) => (b.last || 0) - (a.last || 0) || String(a.name || "").localeCompare(String(b.name || ""), "zh"));
   return rows.slice(0, 5).map((m) => {
     const isNew = freshSet && freshSet.has(m.name);
-    return `<div class="hf${isNew ? " hot" : ""}">
+    return `<div class="hf${isNew ? " hot" : ""}${m.name ? " link" : ""}"${m.name ? ` data-query="${escapeHtml(m.name)}"` : ""}>
       ${m.avatar ? `<img class="hf-ava" src="${escapeHtml(m.avatar)}" alt="" loading="lazy" />` : '<i class="hf-ava"></i>'}
       <div class="hf-main"><b>${escapeHtml(homeNick(m.name))}<i class="hf-tag">${m.friend ? "好友" : "非好友"}</i>${isNew ? '<i class="hf-tag new">新</i>' : ""}</b>
         <span>${m.last ? `最近同排 ${escapeHtml(homeWhen2(m.last))}` : "近一月没一起排过"}</span></div>
@@ -4343,6 +4364,19 @@ function homeRowsBind(box) {
     el.addEventListener("click", (ev) => {
       ev.preventDefault();
       if (el.dataset.match) loadMatch(el.dataset.match, el);
+    });
+  });
+  // 首页好友/同排卡片：点一下按名字查这个人（和站内其它名字入口一致）。
+  box.querySelectorAll(".hm-card .hf[data-query]").forEach((el) => {
+    if (el.dataset.bound) return;
+    el.dataset.bound = "1";
+    el.addEventListener("click", () => {
+      const name = el.dataset.query || "";
+      if (!name) return;
+      const input = $("#search-input");
+      if (input) input.value = name;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      loadPlayer(name);
     });
   });
 }
@@ -5545,6 +5579,18 @@ async function boot() {
   const friendBox = $("#social-friends");
   if (friendBox) {
     friendBox.addEventListener("click", (ev) => {
+      // 好友名册整行可点：直接按名字去查这个人的档案（和同玩榜卡片一个动作）。
+      const row = ev.target.closest(".frow[data-query]");
+      if (row) {
+        const name = row.dataset.query || "";
+        if (name) {
+          const input = $("#search-input");
+          if (input) input.value = name;
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          loadPlayer(name);
+        }
+        return;
+      }
       const btn = ev.target.closest("button[data-fpage]");
       if (!btn) return;
       state.friendPage = Math.max(1, Number(btn.dataset.fpage) || 1);

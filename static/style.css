@@ -1097,7 +1097,16 @@ table.board tr.board-sep.team-enemy b { color: var(--loss); }
   font-size: 13px; font-weight: 500; color: var(--ink);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.frow .fmeta { font-size: 11px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.frow .fmeta { font-size: 11px; color: var(--dim); display: flex; align-items: center; gap: 5px; min-width: 0; }
+.frow .fmeta em { font-style: normal; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 段位 + 近期英雄：能拿到就画，拿不到整段不出现，不占位。 */
+.frow .ftier { display: inline-flex; align-items: center; gap: 3px; flex: 0 0 auto; color: var(--muted); font-style: normal; }
+.frow .ftier img { width: 12px; height: 12px; object-fit: contain; }
+.frow .fagent { width: 16px; height: 16px; border-radius: 50%; object-fit: cover; flex: 0 0 auto; background: var(--paper-2); }
+.frow .fagent-t { font-style: normal; color: var(--muted); white-space: nowrap; flex: 0 0 auto; }
+/* 整行是 <button>（可点进个人档案）时，把按钮的默认外观按掉。 */
+.frow.link { width: 100%; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.frow.link:hover { border-color: var(--accent); background: #f5fbf8; }
 .frow .fgames { font-size: 11.5px; color: var(--muted); white-space: nowrap; }
 .frow .fgames b { color: var(--ink); font-family: var(--mono); }
 .frow .fgames.hot { color: var(--accent); font-size: 11px; }
@@ -5266,6 +5275,7 @@ body.me-view .home-faq { display: none; }
   padding: 6px 8px; border-radius: 10px; }
 .hf + .hf { margin-top: 2px; }
 .hf:hover { background: #f5fbf8; }
+.hf.link { cursor: pointer; }
 .hf-ava { width: 30px; height: 30px; border-radius: 9px; object-fit: cover; background: #eef3f1; }
 .hf-main { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .hf-main b { font-size: 12.5px; font-weight: 600; color: #1d2b26; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -5908,6 +5918,9 @@ body.me-view .home-faq { display: none; }
   color: var(--accent-ink);
   font-weight: 600;
 }
+/* 有官方卡面就画头像；图挂了 onerror 会摘掉 .has，自动退回首字母。 */
+.pm-av.has { position: relative; overflow: hidden; background: var(--paper-2); }
+.pm-av.has img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
 .pm-id { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .pm-id b { font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pm-id span { font-size: 11.5px; color: var(--muted); }
@@ -6086,6 +6099,15 @@ body.me-view .home-faq { display: none; }
 /* 对方那组压暗一点，和我方拉开层次（老记分板是整行灰字）。 */
 .mb-row.enemy .mb-name, .mb-row.enemy .mb-kda, .mb-row.enemy .mb-score b { color: var(--muted); }
 .mb-row.enemy .mb-face { opacity: .85; }
+/* 阵营色不能只写在分组表头：卡片行左侧给一条色条 + 极淡底色，
+   扫一眼就知道这行是 A 队还是 B 队，不用回头找表头。 */
+.mb-row.ally:not(.me) { background: color-mix(in srgb, var(--win) 4%, transparent); }
+.mb-row.enemy { background: color-mix(in srgb, var(--loss) 4%, transparent); }
+.mb-row.ally { box-shadow: inset 3px 0 0 var(--win); }
+.mb-row.enemy { box-shadow: inset 3px 0 0 var(--loss); }
+/* 异变轮战这种多队：每队自己的颜色，跟着行上的 --tc 走 */
+.mb-row.multi:not(.me) { background: color-mix(in srgb, var(--tc, transparent) 5%, transparent); }
+.mb-row.multi { box-shadow: inset 3px 0 0 var(--tc, var(--line)); }
 .mb-main {
   display: grid;
   grid-template-columns: 38px minmax(0, 1fr) auto auto 12px;
@@ -6109,6 +6131,7 @@ body.me-view .home-faq { display: none; }
   display: flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
   font-size: 14px;
   font-weight: 600;
   white-space: nowrap;
@@ -6128,6 +6151,9 @@ body.me-view .home-faq { display: none; }
   background: color-mix(in srgb, var(--accent) 16%, transparent);
 }
 .mb-mvp { font-style: normal; font-size: 10.5px; padding: 1px 5px; border-radius: 3px; color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+/* 名字长了要先省略名字，不能把徽标顶出框：名字用可截断的 .mb-nm，徽标固定不缩。 */
+.mb-nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mb-name > .you, .mb-name > .mb-mvp { flex: 0 0 auto; }
 .mb-agent { font-style: normal; }
 .mb-score { display: grid; justify-items: end; line-height: 1.15; }
 .mb-score b { font-size: 15px; font-variant-numeric: tabular-nums; }
