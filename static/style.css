@@ -6371,3 +6371,27 @@ body.me-view .home-faq { display: none; }
   .top-inner .acct-entry { order: 3; }
   .top-inner .top-tools { order: 4; flex: 1 1 100%; justify-content: flex-end; }
 }
+
+/* 搜索框下方的小注释：三种 ID 各自从哪拿。
+   输入框里的 placeholder 在手机上只有 200px 左右，写全了必然被截断，说明挪到这一行。 */
+.search-hint {
+  margin: 8px 2px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.search-hint b { font-weight: 600; }
+.search-hint kbd {
+  font: inherit;
+  font-size: 11px;
+  padding: 0 4px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--paper);
+}
+@media (max-width: 720px) {
+  .search-hint { flex-direction: column; gap: 2px; margin-top: 6px; font-size: 11.5px; line-height: 1.7; }
+}

@@ -4890,14 +4890,27 @@ async function boot() {
   };
   const liveClean = (el, onFix) => {
     if (!el) return;
-    el.addEventListener("input", () => {
-      const now = el.value;
+    // 输入法组字期间绝对不能碰 value：iOS 上改写 value 会直接掐断组字，
+    // 光标里那串拼音就残留在框里（用户看到的「拼音乱码」，粘贴不受影响也是这个原因）。
+    // 组字结束后（compositionend）再收拾一次，这样全角 ＃ 仍然会被换成 #。
+    let composing = false;
+    const tidy = (raw) => {
+      const now = raw == null ? el.value : raw;
       const fixed = cleanId(now);
       if (fixed === now) return;
       const pos = el.selectionStart;
       el.value = fixed;
       try { el.setSelectionRange(pos, pos); } catch (err) { /* 只读框忽略 */ }
       if (onFix) onFix(now);
+    };
+    el.addEventListener("compositionstart", () => { composing = true; });
+    el.addEventListener("compositionend", () => {
+      composing = false;
+      tidy();
+    });
+    el.addEventListener("input", (event) => {
+      if (composing || event.isComposing) return;
+      tidy();
     });
   };
 
