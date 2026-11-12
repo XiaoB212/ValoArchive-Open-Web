@@ -115,7 +115,9 @@
     // 别整站喊「上游异常」。
     const partial = ok && feats.length > 0;
     $("#lamp").className = "st-lamp " + (ok ? (partial ? "warn" : "ok") : "bad");
-    $("#headline").textContent = ok ? (partial ? "部分功能异常" : "服务正常") : "上游异常";
+    $("#headline").textContent = ok
+      ? (partial ? "部分功能异常" : "服务正常")
+      : (d.upstream === "timeout" ? "状态探活超时" : "上游异常");
     $("#headmsg").textContent = ok
       ? (partial
         ? feats.map((f) => f.message || `${f.label}暂时不可用`).join(" ")
