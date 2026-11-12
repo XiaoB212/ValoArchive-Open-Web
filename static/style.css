@@ -6101,13 +6101,22 @@ body.me-view .home-faq { display: none; }
 .mb-row.enemy .mb-face { opacity: .85; }
 /* 阵营色不能只写在分组表头：卡片行左侧给一条色条 + 极淡底色，
    扫一眼就知道这行是 A 队还是 B 队，不用回头找表头。 */
-.mb-row.ally:not(.me) { background: color-mix(in srgb, var(--win) 4%, transparent); }
-.mb-row.enemy { background: color-mix(in srgb, var(--loss) 4%, transparent); }
+.mb-row.ally:not(.me) { background: color-mix(in srgb, var(--win) 6%, transparent); }
+.mb-row.enemy { background: color-mix(in srgb, var(--loss) 6%, transparent); }
 .mb-row.ally { box-shadow: inset 3px 0 0 var(--win); }
 .mb-row.enemy { box-shadow: inset 3px 0 0 var(--loss); }
 /* 异变轮战这种多队：每队自己的颜色，跟着行上的 --tc 走 */
-.mb-row.multi:not(.me) { background: color-mix(in srgb, var(--tc, transparent) 5%, transparent); }
+.mb-row.multi:not(.me) { background: color-mix(in srgb, var(--tc, transparent) 7%, transparent); }
 .mb-row.multi { box-shadow: inset 3px 0 0 var(--tc, var(--line)); }
+/* 行首队徽：多队用队色，两队用红/蓝，跟桌面十列表的座位徽标同一套颜色 */
+.mb-team {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 17px; height: 17px; padding: 0 3px; border-radius: 4px;
+  font-style: normal; font-size: 10.5px; font-weight: 700; line-height: 1;
+  color: #fff; background: var(--tc, var(--line));
+}
+.mb-team.ally { background: var(--win); }
+.mb-team.enemy { background: var(--loss); }
 .mb-main {
   display: grid;
   grid-template-columns: 38px minmax(0, 1fr) auto auto 12px;

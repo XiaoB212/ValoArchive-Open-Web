@@ -1934,14 +1934,14 @@ function renderMatch(payload, matchId, host) {
     </div>`;
   };
   // 单局里某个人的「展开明细」：手机卡片和桌面十列表共用（桌面点开一行也是这一块）。
-  const seatDetail = (seat) => {
+  const seatDetail = (seat, open = false) => {
     const avg = avgOf(seat.team);
     const dpr = Number(seat.damage_per_round) || 0;
     const hs = Number(seat.headshot_rate) || 0;
     const fb = Number(seat.first_blood) || 0;
     const parts = String(seat.kda || "0/0/0").split("/");
     const full = String(seat.display_name || seat.user_name || "").trim();
-    return `<div class="mb-detail" hidden>
+    return `<div class="mb-detail"${open ? "" : " hidden"}>
       <div class="mb-metrics">
         ${barRow("伤害/回合", dpr, avg.dpr)}
         ${barRow("击杀", parts[0] || 0, avg.k)}
@@ -1988,12 +1988,18 @@ function renderMatch(payload, matchId, host) {
     // 自由混战（3 队以上）所有人同队，涂成一片绿没意义；多队模式用每队自己的 --tc。
     const sideCls = multiTeam ? " multi" : ffaMode ? "" : ally ? " ally" : " enemy";
     const tcStyle = multiTeam ? ` style="--tc:${pal.color}"` : "";
+    // 手机上原来只有很淡的底色，看不出这行是哪队；桌面每个座位前面有个队徽（数字 + 队色 / 红蓝），
+    // 这里补同一枚徽标，两边一个口径。
+    const manyTeam = !multiTeam && distinctTeams(score).length > 2;
+    const teamBadge = multiTeam
+      ? `<i class="mb-team" style="--tc:${pal.color}" title="第 ${pal.placement || pal.number || "?"} 名${pal.label ? ` · ${escapeHtml(pal.label)}` : ""}">${pal.number || "?"}</i>`
+      : (ffaMode || manyTeam) ? "" : `<i class="mb-team ${ally ? "ally" : "enemy"}">${String(seat.team || "").toLowerCase() === "red" ? "红" : "蓝"}</i>`;
     return `<div class="mb-row${seat.subject === payload.viewer ? " me" : ""}${sideCls}"${tcStyle} data-i="${idx}">
       <button type="button" class="mb-main" aria-expanded="false">
         ${face}
         <span class="mb-id">
           <span class="mb-name"><span class="mb-nm">${escapeHtml(full || "未知玩家")}${seat.subject === payload.viewer ? '<em class="you">你</em>' : ""}</span>${mvp}</span>
-          <span class="mb-meta">${tier}${party}<em class="mb-agent">${escapeHtml(seat.used_agent?.name || "—")}</em></span>
+          <span class="mb-meta">${teamBadge}${tier}${party}<em class="mb-agent">${escapeHtml(seat.used_agent?.name || "—")}</em></span>
         </span>
         <span class="mb-score"><b>${Number(seat.acs) || 0}</b><i>表现分</i></span>
         <span class="mb-kda"><b>${parts[0] || 0}</b>/<s>${parts[1] || 0}</s>/<b>${parts[2] || 0}</b></span>
@@ -2086,7 +2092,7 @@ function renderMatch(payload, matchId, host) {
       <td class="c-kda" data-label="K/D/A">${seat.kda || "0/0/0"}</td>
       <td class="c-score" data-label="评分">${seat.score || 0}</td>
     </tr>
-    <tr class="desk-detail" hidden><td colspan="10">${seatDetail(seat)}</td></tr>`;
+    <tr class="desk-detail" hidden><td colspan="10">${seatDetail(seat, true)}</td></tr>`;
   };
   const deskSection = (teamId) => {
     const seats = score
