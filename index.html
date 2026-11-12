@@ -80,13 +80,18 @@
       <div class="search-row">
       <span class="mode-tip" title="游戏名#编号 / 掌瓦号 / 固定ID 都能直接粘进来，自动识别">自动识别</span>
       <form class="search" id="search-form" autocomplete="off">
-        <input id="search-input" name="valo-keyword" placeholder="游戏名#编号 / 掌瓦号（数字或自定义）/ 固定ID，粘进来就能查"
-               autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+        <input id="search-input" name="valo-keyword" placeholder="游戏ID / 掌瓦号 / 固定ID"
+               autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" />
         <span class="busy hidden" id="busy"><i class="spinner"></i><span id="busy-text">载入中</span></span>
         <button type="submit" id="search-btn">检索</button>
       </form>
       </div>
       <p class="search-fix" id="search-fix" role="status" aria-live="polite" hidden></p>
+      <p class="search-hint">
+        <span><b>游戏 ID</b>：游戏内按 <kbd>ESC</kbd>，把鼠标移到昵称上就能看到完整的「名字#编号」</span>
+        <span><b>掌瓦 ID</b>：掌瓦主页（个人页）上就能看到</span>
+        <span><b>固定 ID</b>：只在本站绑定过才有</span>
+      </p>
     </div>
   </div>
 
