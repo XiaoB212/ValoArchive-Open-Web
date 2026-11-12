@@ -1933,6 +1933,32 @@ function renderMatch(payload, matchId, host) {
       <em>队均 ${avg ? avg.toFixed(1) : "—"}${unit}</em>
     </div>`;
   };
+  // 单局里某个人的「展开明细」：手机卡片和桌面十列表共用（桌面点开一行也是这一块）。
+  const seatDetail = (seat) => {
+    const avg = avgOf(seat.team);
+    const dpr = Number(seat.damage_per_round) || 0;
+    const hs = Number(seat.headshot_rate) || 0;
+    const fb = Number(seat.first_blood) || 0;
+    const parts = String(seat.kda || "0/0/0").split("/");
+    const full = String(seat.display_name || seat.user_name || "").trim();
+    return `<div class="mb-detail" hidden>
+      <div class="mb-metrics">
+        ${barRow("伤害/回合", dpr, avg.dpr)}
+        ${barRow("击杀", parts[0] || 0, avg.k)}
+        ${barRow("助攻", parts[2] || 0, avg.a)}
+        ${barRow("表现分", Number(seat.acs) || 0, avg.acs)}
+      </div>
+      <div class="mb-extra">
+        <span class="mb-chip">爆头率 <b>${hs}%</b></span>
+        <span class="mb-chip">首杀 <b>${fb}</b></span>
+        ${multiBadges(seat.multis, "board")}
+      </div>
+      <p class="mb-note">端瓦只给爆头率，没有头/身/腿的命中拆分。</p>
+      <div class="mb-acts">
+        ${full ? `<button type="button" class="mb-query" data-query="${escapeHtml(full)}">看这名玩家的主页 →</button>` : '<span class="dim">这局没取到他的游戏 ID</span>'}
+      </div>
+    </div>`;
+  };
   const seatCard = (seat) => {
     const idx = boardSeats.length;
     boardSeats.push(seat);
@@ -1952,30 +1978,15 @@ function renderMatch(payload, matchId, host) {
     const face = seat.agent_image
       ? `<img class="mb-face" src="${img(seat.agent_image)}" alt="" title="${escapeHtml(seat.used_agent?.name || "")}" loading="lazy" onerror="this.classList.add('failed')" />`
       : '<span class="mb-face blank"></span>';
-    const avg = avgOf(seat.team);
     const dpr = Number(seat.damage_per_round) || 0;
     const hs = Number(seat.headshot_rate) || 0;
     const fb = Number(seat.first_blood) || 0;
-    const detail = `<div class="mb-detail" hidden>
-      <div class="mb-metrics">
-        ${barRow("伤害/回合", dpr, avg.dpr)}
-        ${barRow("击杀", parts[0] || 0, avg.k)}
-        ${barRow("助攻", parts[2] || 0, avg.a)}
-        ${barRow("表现分", Number(seat.acs) || 0, avg.acs)}
-      </div>
-      <div class="mb-extra">
-        <span class="mb-chip">爆头率 <b>${hs}%</b></span>
-        <span class="mb-chip">首杀 <b>${fb}</b></span>
-        ${multiBadges(seat.multis, "board")}
-      </div>
-      <p class="mb-note">端瓦只给爆头率，没有头/身/腿的命中拆分。</p>
-      <div class="mb-acts">
-        ${full ? `<button type="button" class="mb-query" data-query="${escapeHtml(full)}">看这名玩家的主页 →</button>` : '<span class="dim">这局没取到他的游戏 ID</span>'}
-      </div>
-    </div>`;
-    // 阵营色：只有两方对局才按敌我上色（自由混战/全场单排所有人同队，涂成一片绿没意义）。
-    // 多队模式用每队自己的 --tc，跟上面对表头的颜色保持一致。
-    const sideCls = multiTeam ? " multi" : sideGrouped ? (ally ? " ally" : " enemy") : "";
+    const detail = seatDetail(seat);
+    // 阵营色：跟桌面十列同一个口径——按这名玩家实际在哪队上色，不看模式白名单。
+    // （以前只有 TWO_SIDE_MODES 里的模式才上色，于是手机上明明是两队却一片白，
+    //   桌面因为直接按队上色反而有颜色，两边对不上。）
+    // 自由混战（3 队以上）所有人同队，涂成一片绿没意义；多队模式用每队自己的 --tc。
+    const sideCls = multiTeam ? " multi" : ffaMode ? "" : ally ? " ally" : " enemy";
     const tcStyle = multiTeam ? ` style="--tc:${pal.color}"` : "";
     return `<div class="mb-row${seat.subject === payload.viewer ? " me" : ""}${sideCls}"${tcStyle} data-i="${idx}">
       <button type="button" class="mb-main" aria-expanded="false">
@@ -2062,9 +2073,10 @@ function renderMatch(payload, matchId, host) {
     const face = seat.agent_image
       ? `<img class="face${multiTeam ? " team-tint" : ""}"${multiTeam ? ` style="--team-color:${pal.color}"` : ""} src="${img(seat.agent_image)}" alt="" loading="lazy" />`
       : "";
-    return `<tr class="${seat.subject === payload.viewer ? "me" : ""} ${teamClass}">
+    const nm = String(seat.display_name || seat.user_name || "").trim();
+    return `<tr class="desk-row${seat.subject === payload.viewer ? " me" : ""} ${teamClass}">
       <td class="side" data-label="阵营"><i class="${teamCls}"${sideStyle}>${side}</i></td>
-      <td class="who" data-label="玩家"><div class="seat">${face || '<span class="face blank"></span>'}<div class="seat-txt"><span class="nm${seat.display_name || seat.user_name ? "" : " nm-unknown"}">${escapeHtml(seat.display_name || seat.user_name || "未知玩家")}${seat.subject === payload.viewer ? '<em class="you">你</em>' : ""}</span><span class="who-tags">${badge}${tag}${multiBadges(seat.multis, "board")}</span></div></div></td>
+      <td class="who" data-label="玩家"><div class="seat">${face || '<span class="face blank"></span>'}<div class="seat-txt"><span class="nm${nm ? "" : " nm-unknown"}"${nm ? ` data-query="${escapeHtml(nm)}" title="点名字直接查这名玩家"` : ""}>${escapeHtml(nm || "未知玩家")}${seat.subject === payload.viewer ? '<em class="you">你</em>' : ""}</span><span class="who-tags">${badge}${tag}${multiBadges(seat.multis, "board")}</span></div></div></td>
       <td class="c-agent" data-label="英雄">${escapeHtml(seat.used_agent?.name || "—")}</td>
       <td class="tier" data-label="段位">${seat.tier_icon ? `<img src="${img(seat.tier_icon)}" alt="" title="${escapeHtml(seat.tier_name || "")}${seat.tier_source === "current" ? "（当前段位）" : ""}" loading="lazy" /><span>${escapeHtml(seat.tier_name || "")}</span>` : escapeHtml(seat.tier_name || "—")}</td>
       <td class="c-acs" data-label="ACS">${seat.acs || 0}</td>
@@ -2073,7 +2085,8 @@ function renderMatch(payload, matchId, host) {
       <td class="c-fb" data-label="首杀">${seat.first_blood || 0}</td>
       <td class="c-kda" data-label="K/D/A">${seat.kda || "0/0/0"}</td>
       <td class="c-score" data-label="评分">${seat.score || 0}</td>
-    </tr>`;
+    </tr>
+    <tr class="desk-detail" hidden><td colspan="10">${seatDetail(seat)}</td></tr>`;
   };
   const deskSection = (teamId) => {
     const seats = score
@@ -2275,6 +2288,34 @@ function bindBoard(root) {
     if (jump) {
       jump.addEventListener("click", (ev) => {
         ev.stopPropagation();
+        const tab = document.querySelector('#tabs button[data-tab="history"]');
+        if (tab) tab.click();
+        loadPlayer(jump.dataset.query, false);
+      });
+    }
+  });
+  // 桌面十列表：点一行展开这局明细（跟手机卡片是同一块内容），点名字直接查这名玩家。
+  const deskRows = Array.from(host.querySelectorAll(".desk-row"));
+  deskRows.forEach((tr) => {
+    const det = tr.nextElementSibling;
+    if (!det || !det.classList.contains("desk-detail")) return;
+    tr.addEventListener("click", (ev) => {
+      if (ev.target.closest("[data-query]")) return;
+      const wasOpen = !det.hidden;
+      deskRows.forEach((other) => {
+        const od = other.nextElementSibling;
+        if (od && od.classList.contains("desk-detail")) od.hidden = true;
+        other.classList.remove("open");
+      });
+      if (wasOpen) return;
+      det.hidden = false;
+      tr.classList.add("open");
+    });
+    const jump = tr.querySelector("[data-query]");
+    if (jump) {
+      jump.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        ev.preventDefault();
         const tab = document.querySelector('#tabs button[data-tab="history"]');
         if (tab) tab.click();
         loadPlayer(jump.dataset.query, false);

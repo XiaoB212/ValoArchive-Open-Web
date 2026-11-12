@@ -72,7 +72,7 @@ main.shell { flex: 1 0 auto; }
   z-index: 5;
   backdrop-filter: blur(10px);
 }
-.top-inner { display: flex; align-items: center; gap: 22px; padding: 15px 0; }
+.top-inner { display: flex; align-items: center; gap: 22px; padding: 15px 28px; }
 
 .brand { display: flex; align-items: center; gap: 12px; color: inherit; text-decoration: none; cursor: pointer; }
 /* 左上角站名兼作「回到首页」入口：悬停给一点反馈，键盘聚焦要看得见 */
@@ -4923,7 +4923,7 @@ footer.shell .legal{text-wrap:pretty;word-break:normal;overflow-wrap:break-word;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas: "brand svc" "exp acct" "tools tools";
-    align-items: center; gap: 8px 10px; padding: 10px 0 8px;
+    align-items: center; gap: 8px 10px; padding: 10px 14px 8px;
   }
   .top .top-inner .brand { grid-area: brand; order: 0; min-width: 0; justify-self: start; }
   .top .top-inner #svc-dot {
@@ -6344,4 +6344,30 @@ body.me-view .home-faq { display: none; }
     letter-spacing: .02em;
   }
   #player .id-card .id-meta #p-appnum { font-size: 10.5px; }
+}
+
+/* ===== v23：桌面十列表也能点开单局明细，名字直达个人档案 ===== */
+.desk-row { cursor: pointer; }
+.desk-row:hover > td { background: color-mix(in srgb, var(--accent) 4%, transparent); }
+.desk-row.open > td { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+.desk-row .nm[data-query] { cursor: pointer; }
+.desk-row .nm[data-query]:hover { color: var(--accent); text-decoration: underline; }
+.desk-detail > td { padding: 0 12px 12px; background: var(--card); }
+.desk-detail .mb-detail { padding: 6px 2px 2px; }
+
+/* ===== v23：顶栏顺序收口（721–1180）=====
+   这一段以前把账号排到工具条前面（order:2），窗口一宽就成了「导航在最右、登录在它左边」；
+   同时所有东西挤成一行。现在账号恒为最后一项（顶栏最右），装不下时工具条整行换到第二行。 */
+@media (min-width: 721px) and (max-width: 1180px) {
+  .top-inner { flex-wrap: wrap; row-gap: 8px; padding: 12px 28px; }
+  .top-inner .brand { order: 1; flex: 1 1 auto; min-width: 0; }
+  .top-inner .brand-sub { display: none; }
+  .top-inner .export-group { order: 2; margin-left: 0; }
+  .top-inner #export-open { order: 2; margin-left: 0; }
+  .top-inner .top-tools { order: 3; margin-left: 0; }
+  .top-inner .acct-entry { order: 4; margin-left: auto; }
+}
+@media (min-width: 721px) and (max-width: 1040px) {
+  .top-inner .acct-entry { order: 3; }
+  .top-inner .top-tools { order: 4; flex: 1 1 100%; justify-content: flex-end; }
 }
