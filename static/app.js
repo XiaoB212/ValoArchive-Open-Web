@@ -1704,13 +1704,43 @@ function teamPalette(teamId, teams) {
 // 多人分队模式（异变轮战是 8 队各 2 人）不能按红蓝两方排，得按 teamId 分组。
 // 小队 A/B/C/D 各一种颜色。以前直接 "ABCD".indexOf(letter)+1，拿到小写或空值
 // 时是 0/undefined，徽标就成了透明底——看起来「四个队都是同一个颜色」。
+// 小队 A/B/C/D/E/F 各一种颜色（好友组排最多能到 6 队）。以前直接
+// "ABCD".indexOf(letter)+1，拿到 E/F 时是 0/undefined，徽标就成了透明底——
+// 看起来「几个队都是同一个颜色」。索引上限跟着 CSS 里的 --squad-6 走。
 function squadVar(letter) {
-  const i = "ABCD".indexOf(String(letter || "").trim().toUpperCase());
-  return Math.max(1, Math.min(4, i + 1));
+  const i = "ABCDEF".indexOf(String(letter || "").trim().toUpperCase());
+  return Math.max(1, Math.min(6, i + 1));
 }
 
 function distinctTeams(score) {
   return [...new Set((score || []).map((seat) => String(seat.team || "")).filter(Boolean))];
+}
+
+// 座位 → 小队字母（A/B/C/D）。PD 只给 partyId，后端 squads_of() 已经按人数排好、
+// 分了字母，前端只要反查一次。以前前端读的是 seat.party_letter，而后端从不产出
+// 这个字段，于是桌面和手机的「A 队」徽标永远不显示——好友组排里两三个小队
+// 看起来一模一样，用户只能看到「3 排」而不知道谁跟谁一队。
+function squadLettersOf(payload) {
+  if (!payload) return new Map();
+  if (payload.__squadLetters instanceof Map) return payload.__squadLetters;
+  const map = new Map();
+  (payload.squads || []).forEach((sq) => {
+    (sq.subjects || []).forEach((sub) => {
+      map.set(String(sub).toLowerCase(), String(sq.letter || "").toUpperCase());
+    });
+  });
+  try {
+    Object.defineProperty(payload, "__squadLetters", { value: map, enumerable: false });
+  } catch (_err) {
+    /* 冻结对象就不缓存，每次重算也无所谓（最多 20 个座位） */
+  }
+  return map;
+}
+
+function squadLetterOf(payload, seat) {
+  if (!seat) return "";
+  if (seat.party_letter) return String(seat.party_letter).toUpperCase();
+  return squadLettersOf(payload).get(String(seat.subject || "").toLowerCase()) || "";
 }
 
 function renderQuickMatch(payload, matchId, host) {
@@ -1756,8 +1786,9 @@ function renderQuickMatch(payload, matchId, host) {
       ? `<img class="iq-tier" src="${img(seat.tier_icon)}" alt="" title="${escapeHtml(seat.tier_name || "未定级")}${seat.tier_source === "current" ? "（当前段位）" : ""}" loading="lazy" onerror="this.remove()" />`
       : '<span class="iq-tier blank"></span>';
     // 死斗这类自由混战没有「两方」，但同一小队的人仍要能看出来，所以只按 multiTeam 排除。
-    const squadBadge = seat.party_letter
-      ? (multiTeam ? "" : `<span class="party-lg" style="background:var(--squad-${squadVar(seat.party_letter)})">${seat.party_letter}队</span>`)
+    const sq = multiTeam ? "" : squadLetterOf(payload, seat);
+    const squadBadge = sq
+      ? `<span class="party-lg" style="background:var(--squad-${squadVar(sq)})">${sq}队</span>`
       : Number(seat.party_size) >= 2
         ? (multiTeam ? "" : `<span class="party-lg solo">${seat.party_size}人</span>`)
         : '<span class="party-lg blank"></span>';
@@ -1842,6 +1873,10 @@ function renderMatch(payload, matchId, host) {
   const detail = payload.detail || {};
   const score = payload.scoreboard || [];
   const squads = payload.squads || [];
+  // 座位 → 小队字母。PD 只给 partyId，后端 squads_of() 已经按人数排好并分了 A/B/C/D，
+  // 这里反查一次给「A 队」徽标用：以前前端读的是 seat.party_letter，而后端从不产出这个
+  // 字段，于是徽标永远不显示——好友组排里两三个小队看起来一模一样。
+  const squadOf = (seat) => (multiTeam ? "" : squadLetterOf(payload, seat));
   const won = String(detail.victory) === "1";
   const teamIds = distinctTeams(score);
   const titleText = detail.used_map?.name ? `${detail.used_map.name} · ${won ? "胜利" : "失败"}` : "单局详情";
@@ -1888,7 +1923,10 @@ function renderMatch(payload, matchId, host) {
   }
 
   const squadChips = squads
-    .map((s, i) => `<span class="squad" style="background:var(--squad-${(i % 4) + 1})">${"ABCD"[i] || "?"}队 · ${s.size}人</span>`)
+    .map((s, i) => {
+      const letter = String(s.letter || "ABCDEF"[i] || "?").toUpperCase();
+      return `<span class="squad" style="background:var(--squad-${squadVar(letter)})">${letter}队 · ${s.size}人</span>`;
+    })
     .join("");
 
   // 异变轮战这类「多人分队」模式（8 队各 2 人）没法用红蓝两方表达，
@@ -1969,8 +2007,14 @@ function renderMatch(payload, matchId, host) {
     const tier = seat.tier_icon
       ? `<img class="mb-tier" src="${img(seat.tier_icon)}" alt="" title="${escapeHtml(seat.tier_name || "")}${seat.tier_source === "current" ? "（当前段位）" : ""}" loading="lazy" onerror="this.classList.add('failed')" /><i>${escapeHtml(seat.tier_name || "")}</i>`
       : `<i>${escapeHtml(seat.tier_name || "未定级")}</i>`;
+    // 好友组排：同一场里可能有两三个小队（A 队 / B 队 / C 队…）。桌面用
+    // `--squad-N` 给「A队」徽标上色，手机以前只写灰字「A队 · 3 排」——字母有、
+    // 颜色没有，扫一眼分不出谁跟谁一队。这里补成和桌面同一套小队配色。
+    const squad = squadOf(seat);
     const party = seat.party_size >= 2
-      ? `<em class="mb-party">${seat.party_letter && !multiTeam ? `${seat.party_letter}队 · ` : ""}${seat.party_size} 排</em>`
+      ? (squad
+          ? `<em class="mb-party sq" style="background:var(--squad-${squadVar(squad)});color:#fff">${escapeHtml(squad)} 队 · ${seat.party_size} 排</em>`
+          : `<em class="mb-party">${seat.party_size} 排</em>`)
       : "";
     const mvp = Number(seat.score) && Number(seat.score) === topScore && score.length > 1
       ? '<em class="mb-mvp">本场 MVP</em>'
@@ -2072,8 +2116,8 @@ function renderMatch(payload, matchId, host) {
       ? ` style="--side:${pal.color}" title="第 ${pal.placement || pal.number} 名 · ${pal.label || pal.colorName + pal.name}"`
       : "";
     const teamCls = multiTeam ? "side-color multi" : (plainTeam ? "side-color none" : `side-color ${teamClass}`);
-    const badge = seat.party_letter && !multiTeam
-      ? `<span class="party-lg" style="background:var(--squad-${squadVar(seat.party_letter)})">${seat.party_letter}队</span>`
+    const badge = squadOf(seat)
+      ? `<span class="party-lg" style="background:var(--squad-${squadVar(squadOf(seat))})">${squadOf(seat)}队</span>`
       : "";
     const tag = seat.party_size >= 2 ? `<span class="tag">${seat.party_size} 人组队</span>` : "";
     const face = seat.agent_image

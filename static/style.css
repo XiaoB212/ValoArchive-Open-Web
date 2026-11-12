@@ -6,10 +6,14 @@
   --squad-2: #1d4f96;
   --squad-3: #9a5a0a;
   --squad-4: #7a2f83;
+  --squad-5: #8d2f3f;
+  --squad-6: #4a6b12;
   --squad-1-ink: #ffffff;
   --squad-2-ink: #ffffff;
   --squad-3-ink: #ffffff;
   --squad-4-ink: #ffffff;
+  --squad-5-ink: #ffffff;
+  --squad-6-ink: #ffffff;
   --paper: #f7f6f2;
   --paper-2: #efece4;
   --card: #ffffff;
@@ -5551,10 +5555,14 @@ body.me-view .home-faq { display: none; }
     --squad-2: #3f7ecb;
     --squad-3: #c98a2b;
     --squad-4: #a45fb4;
+    --squad-5: #d15c6a;
+    --squad-6: #7fae3f;
     --squad-1-ink: #ffffff;
     --squad-2-ink: #ffffff;
     --squad-3-ink: #ffffff;
     --squad-4-ink: #ffffff;
+    --squad-5-ink: #ffffff;
+    --squad-6-ink: #ffffff;
   }
   .grid-bg {
     background-image:
