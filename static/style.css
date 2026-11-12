@@ -6395,3 +6395,9 @@ body.me-view .home-faq { display: none; }
 @media (max-width: 720px) {
   .search-hint { flex-direction: column; gap: 2px; margin-top: 6px; font-size: 11.5px; line-height: 1.7; }
 }
+/* 窄机（360/375）上再把按钮收窄一点、输入字号降 0.5px，
+   placeholder「游戏ID / 掌瓦号 / 固定ID」才不会被截成「游戏ID / 掌瓦…」。 */
+@media (max-width: 420px) {
+  .search-band .search input { font-size: 15px; }
+  .search-band .search #search-btn { padding: 0 16px; }
+}
