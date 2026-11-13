@@ -5024,7 +5024,7 @@ async function boot() {
     const box = $("#search-fix");
     if (!box) return;
     const bad = (String(raw || "").match(BAD_HASH) || [])[0] || "＃";
-    box.textContent = "已把\u201c" + bad + "\u201d改成英文\u201c#\u201d，点一次检索就行";
+    box.textContent = "输入法在全角状态打 # 会变成\u201c" + bad + "\u201d，已经自动换成英文\u201c#\u201d了，直接点检索就行";
     box.hidden = false;
     clearTimeout(fixTimer);
     fixTimer = setTimeout(() => { box.hidden = true; }, 6000);
