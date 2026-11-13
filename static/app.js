@@ -206,19 +206,33 @@ const api = {
     const url = new URL(path, location.origin);
     Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v === "uid" ? "game" : v));
     let res = await fetch(url);
-    // 502/503/504 是反向代理那层没连上后端（部署重启的那几秒最常见）。
-    // 等一下重试一次就过去了，别让用户以为「查不到这个人」。
+    // 502/503/504 有两种来源：反向代理没连上后端（部署重启那几秒最常见），
+    // 以及我们自己回的「上游限流 / 正在忙」（detail.busy）。前者等 700ms 重试
+    // 一次就过去了；后者越重试越压上游，应该把真实原因直接告诉用户。
     if (res.status >= 502 && res.status <= 504) {
-      await new Promise((resolve) => setTimeout(resolve, 700));
-      res = await fetch(url);
+      let busy = false;
+      try {
+        const body = await res.clone().json();
+        busy = !!(body && body.detail && body.detail.busy);
+      } catch (_) { /* 不是 JSON：按代理故障处理 */ }
+      if (!busy) {
+        await new Promise((resolve) => setTimeout(resolve, 700));
+        res = await fetch(url);
+      }
     }
     if (res.status === 401) {
       showLoginGate();
       throw new Error("需要登录");
     }
     if (res.status >= 502 && res.status <= 504) {
-      const err = new Error("服务器正在更新，稍等几秒再点一次检索");
+      let detail = null;
+      try {
+        detail = (await res.json()).detail || null;
+      } catch (_) { /* 保持 null */ }
+      const msg = typeof detail === "string" ? detail : (detail && detail.message);
+      const err = new Error(msg || "服务器正在更新，稍等几秒再点一次检索");
       err.status = res.status;
+      err.detail = detail;
       throw err;
     }
     if (!res.ok) {
