@@ -126,6 +126,11 @@
     const q = $("#v-query");
     q.textContent = ok ? (partial ? "部分" : "正常") : "异常";
     q.parentNode.className = "st-cell" + (ok ? (partial ? " warn" : "") : " bad");
+    // 匿名访客只拿到「通不通」：明细（哪块功能、库存数量）要登录才给，
+    // 别让接口顺便充当「我们用了哪些数据源」的说明书。
+    if (d.detail_hidden) {
+      $("#headmsg").textContent = ($("#headmsg").textContent || "") + " 明细（各功能状态与库存数量）登录 /account 后可见。";
+    }
 
     const up = d.now && d.started_at ? d.now - d.started_at : 0;
     $("#v-uptime").textContent = dur(up);
