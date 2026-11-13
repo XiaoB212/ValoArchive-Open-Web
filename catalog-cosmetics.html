@@ -188,6 +188,14 @@
       if (!res.ok) return;
       const data = await res.json();
       const counts = data.counts || {};
+      // 匿名访客的状态接口不带 counts（明细要登录才给）：这时别让标签一直挂着「…」。
+      if (!data.counts) {
+        ["cards", "sprays", "buddies"].forEach(function (tab) {
+          const el = document.getElementById("n-" + tab);
+          if (el) el.textContent = "";
+        });
+        return;
+      }
       ["cards", "sprays", "buddies"].forEach((tab) => {
         const n = Number(counts[tab]);
         if (Number.isFinite(n) && n > 0) $("#n-" + tab).textContent = String(n);
