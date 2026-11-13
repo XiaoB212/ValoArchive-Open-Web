@@ -5847,6 +5847,12 @@ function exportContentCount() {
   if (EXPORT_KIND === "match") return rows("#match-body table.board tbody tr");
   if (EXPORT_KIND === "history") return rows("#history-rows .row");
   if (EXPORT_KIND === "party") return rows("#party-rows .row");
+  if (EXPORT_KIND === "activity") {
+    // 面板里有一句固定的「推断口径」说明，按 innerText 长度算会一直是「已就绪」，
+    // 得等到真的画出上线段（或明确的空态）才算数。
+    if (document.querySelector("#activity-empty:not([hidden])")) return 1;
+    return rows("#activity .act-item") + (document.querySelector("#activity .act-head") ? 1 : 0);
+  }
   const panel = document.querySelector(`#panel-${EXPORT_KIND}`) || document.querySelector(".panel:not(.hidden)");
   return panel ? panel.innerText.replace(/\s+/g, "").length : 0;
 }
