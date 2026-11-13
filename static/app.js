@@ -5846,6 +5846,15 @@ function exportContentCount() {
   if (EXPORT_KIND === "overview") return document.querySelectorAll("#player .tile, #player .id-card").length;
   if (EXPORT_KIND === "match") return rows("#match-body table.board tbody tr");
   if (EXPORT_KIND === "history") return rows("#history-rows .row");
+  if (EXPORT_KIND === "playmates") {
+    // 同玩面板顶部有一段固定的口径说明，不能按 innerText 判就绪。
+    if (document.querySelector("#pm-list .pm-empty")) return 1;
+    return rows("#pm-list .pm-card");
+  }
+  if (EXPORT_KIND === "career") {
+    if (document.querySelector("#ci-body .ci-empty")) return 1;
+    return rows("#ci-body .ci-cell") + rows("#ci-body .ci-row");
+  }
   if (EXPORT_KIND === "party") return rows("#party-rows .row");
   if (EXPORT_KIND === "activity") {
     // 面板里有一句固定的「推断口径」说明，按 innerText 长度算会一直是「已就绪」，
