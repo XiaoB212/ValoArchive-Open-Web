@@ -6413,3 +6413,7 @@ body.me-view .home-faq { display: none; }
   .search-band .search input { font-size: 15px; }
   .search-band .search #search-btn { padding: 0 16px; }
 }
+/* 「近期上线」从概览挪进独立 tab（2026-11-13）：卡片边框和面板对齐，
+   不再留概览时那 14px 下间距；空态提示跟在卡片位。 */
+#panel-activity .activity { margin: 0; }
+#panel-activity #activity-empty { margin: 12px 0 0; font-size: 12.5px; }

@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#0e7c6b" />
 <meta name="site-home" content="https://va.223212.xyz" />
 <meta name="description" content="瓦罗兰档案：非官方《无畏契约》社区项目，支持长历史、单局详情、对位击杀热力图与组队分析。" />
-<link rel="stylesheet" href="/static/style.css?v=acba4d483c" />
+<link rel="stylesheet" href="/static/style.css?v=b70f528e6d" />
 </head>
 <body>
 <div class="grid-bg" aria-hidden="true"></div>
@@ -253,6 +253,7 @@
           <button data-tab="social">好友与组队</button>
           <button data-tab="party">组队</button>
           <button data-tab="playmates">同玩</button>
+          <button data-tab="activity">近期上线</button>
           <button data-tab="season">赛季总览</button>
           <button data-tab="career">生涯统计</button>
           <button data-tab="assets">资产</button>
@@ -365,6 +366,19 @@
             名单表示官方返回的同玩统计，不据此认定好友关系、同次组排或组队人数。<br />
             数据来源：腾讯 WeGame 官方服务直连 · 同玩统计
           </p>
+        </div>
+
+        <div class="panel hidden" id="panel-activity">
+          <div class="panel-head">
+            <h3>近期上线</h3>
+            <span class="panel-sub" id="activity-sub"></span>
+          </div>
+          <p class="coverage">
+            按每局开始/结束的间隔推断出的上线时段，不是官方「在线」状态：两次对局间隔超过
+            45 分钟就当中间下线过。
+          </p>
+          <section class="activity" id="activity" hidden></section>
+          <p class="dim" id="activity-empty" hidden></p>
         </div>
 
         <div class="panel hidden" id="panel-season">
@@ -492,7 +506,7 @@
 </footer>
 
 <script src="/config.js?v=5159ad9f1b"></script>
-<script src="/static/app.js?v=7b4c427f14"></script>
+<script src="/static/app.js?v=b6d42d3bb9"></script>
 <script>
 (function () {
   document.querySelectorAll("#home-try .try").forEach(function (el) {
