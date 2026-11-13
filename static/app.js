@@ -215,10 +215,11 @@ const api = {
         const body = await res.clone().json();
         busy = !!(body && body.detail && body.detail.busy);
       } catch (_) { /* 不是 JSON：按代理故障处理 */ }
-      if (!busy) {
-        await new Promise((resolve) => setTimeout(resolve, 700));
-        res = await fetch(url);
-      }
+      // busy = 上游限流（掌瓦 1001）。抽一次索引的命中率大概一半，等 1.4 秒
+      // 再抽一次就能把「同一个人有时查得到、有时查不到」压下去大半，用户不用
+      // 自己再点一遍；两次都撞上限流才把原因摆出来。
+      await new Promise((resolve) => setTimeout(resolve, busy ? 1400 : 700));
+      res = await fetch(url);
     }
     if (res.status === 401) {
       showLoginGate();
